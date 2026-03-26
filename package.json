@@ -1,0 +1,14 @@
+{
+  "name": "scheduling-visualizer",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^4.0.0",
+    "vite": "^2.0.0"
+  }
+}
