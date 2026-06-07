@@ -14,8 +14,8 @@ The Scheduling Visualizer is a web application designed to help users visualize 
 - Frontend: HTML, CSS, JavaScript
 - Backend: Node.js, Express
 - Database: MongoDB
-- Visualization Library: D3.js
-- Hosting: Heroku
+- Visualization Library: ~~D3.js~~; GSAP
+- Hosting: ~~Heroku~~
 
 ## Getting Started
 To get started, clone this repository and follow the instructions in the documentation.
