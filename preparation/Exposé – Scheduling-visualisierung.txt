@@ -1,0 +1,116 @@
+﻿Fachbereich VI - Informatik und Medien 
+
+Studiengang Medieninformatik 
+
+ 
+
+​ ​  
+
+ 
+
+ 
+
+Exposé - Bachelorarbeit 
+ “Anwendung zur Veranschaulichung von Scheduling-Verfahren” 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+eingereicht von: Marten Kirschenhofer 
+
+ 
+
+Matrikel-Nr.: 833825 
+
+
+
+1. Arbeitstitel 
+Konzeption und Implementierung einer interaktiven Visualisierung präemptiver 
+Scheduling-Verfahren für die Lehre 
+
+ 
+
+2. Motivation und Problemstellung 
+Scheduling-Verfahren sind zentral für Betriebssysteme, aber für Studierende oft schwer 
+verständlich. Präemptive Verfahren wie Round Robin, Strict Priority, Multilevel Feedback 
+Queue oder Last Come First Served enthalten viele Kontextwechsel, deren Ablauf sich nur 
+schwer aus statischen Darstellungen erschließt. Ziel der Arbeit ist die Entwicklung einer 
+interaktiven Web-App, die diese Abläufe anschaulich visualisiert und Unterschiede der 
+Algorithmen vergleichbar macht. 
+
+ 
+
+3. Zielsetzung 
+Die Bachelorarbeit soll eine Web-Anwendung entwickeln, die: 
+
+●​ präemptive Scheduling-Algorithmen korrekt simuliert, 
+●​ deren Ablauf interaktiv und visuell darstellt, 
+●​ Studierenden das Verständnis von Abläufen, Präemption und Unterschiede der 
+
+Verfahren erleichtert. 
+
+Die Umsetzung erfolgt als Web-App mit TypeScript, HTML, CSS, SVG und Vue.js. 
+
+ 
+
+4. Umfang und Abgrenzung 
+Betrachtete Verfahren: LCFS, Round Robin, Strict Priority, Multilevel Feedback Queue.​
+Nicht Bestandteil: nicht-präemptive Algorithmen, reale Betriebssystem-Implementierungen, 
+Performance-Optimierungen auf Kernel-Ebene.​
+Die Arbeit dient als didaktisches Werkzeug. 
+
+ 
+
+ 
+
+
+
+5. Methodisches Vorgehen 
+1.​ Theoretische Analyse: Grundlagen zu Scheduling und Algorithmusvisualisierung. 
+2.​ Konzeption: Prozessmodell, Simulationslogik, Visualisierungskonzept 
+
+(Gantt-Diagramme, Zeitachsen). 
+3.​ Implementierung: Simulation und interaktive Visualisierung als Web-App mit 
+
+TypeScript, HTML, CSS, SVG und Vue.js. Nutzerinnen und Nutzer können Prozesse 
+konfigurieren, Parameter ändern und Simulationen schrittweise oder automatisch 
+ausführen. 
+
+4.​ Evaluation: Qualitative Bewertung anhand Szenarien, Vergleich der Algorithmen 
+bezüglich Wartezeit, Durchlaufzeit und Verständlichkeit. 
+
+ 
+
+6. Erwartete Ergebnisse 
+●​ Lauffähige Web-App, die präemptive Scheduling-Verfahren simuliert und visualisiert. 
+●​ Vergleich der Algorithmen auf identische Szenarien. 
+●​ Schriftliche Arbeit reflektiert Designentscheidungen und didaktische Eignung. 
+
+ 
+
+7. Zeitplanung (3 Monate) 
+
+Zeitraum Inhalte 
+
+Monat 1 Analyse, Konzeption, theoretische Grundlagen 
+
+Monat 2 Implementierung Simulation und Visualisierung 
+
+Monat 3 Evaluation, Ausarbeitung, Feinschliff 
+
+ 
+
+Berlin, 12.01.2026 
+
+Marten Kirschenhofer
