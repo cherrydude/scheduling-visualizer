@@ -17,10 +17,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-
 const props = defineProps<{ total: number; index: number }>();
-const emit = defineEmits<[('seek', (index: number) => void)]>();
+const emit = defineEmits<{ (e: 'seek', index: number): void }>();
 
 function onInput(e: Event) {
   const target = e.target as HTMLInputElement;
