@@ -191,6 +191,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   const segments: TimelineSegment[] = [];
   const maxTicks = processes.reduce((sum, process) => sum + process.burstTime, 0) + processes.reduce((sum, process) => Math.max(sum, process.arrivalTime), 0) + 25;
   const quantum = clampInteger(scenario.algorithmParams.timeQuantum ?? 2, 1, 2);
+  const snapshotInterval = clampInteger(scenario.algorithmParams.snapshotInterval ?? 1, 1, 1);
 
   let currentProcess: ProcessRuntime | null = null;
   let currentSegmentStart = 0;
@@ -201,6 +202,16 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   let completedCount = 0;
   let idleSegmentStart: number | null = null;
   let lastEvent: ScheduleEvent | null = null;
+  let lastSnapshotTime = -1;
+
+  function maybeSnapshot(force: boolean) {
+    if (!force && snapshots.length > 0 && time - lastSnapshotTime < snapshotInterval) {
+      return;
+    }
+
+    snapshots.push(createSnapshot(time, currentProcess, readyQueue, remainingQuantum, lastEvent, processes, busyTicks, contextSwitches));
+    lastSnapshotTime = time;
+  }
 
   function pushSegment(endTime: number): void {
     if (!currentProcess) {
@@ -261,7 +272,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       idleSegmentStart ??= time;
       time += 1;
       enqueueArrivals(time);
-      snapshots.push(createSnapshot(time, currentProcess, readyQueue, remainingQuantum, lastEvent, processes, busyTicks, contextSwitches));
+      maybeSnapshot(false);
       continue;
     }
 
@@ -303,7 +314,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     }
 
     if (!currentProcess) {
-      snapshots.push(createSnapshot(time, currentProcess, readyQueue, remainingQuantum, lastEvent, processes, busyTicks, contextSwitches));
+      maybeSnapshot(false);
       continue;
     }
 
@@ -391,7 +402,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       }
     }
 
-    snapshots.push(createSnapshot(time, currentProcess, readyQueue, remainingQuantum, lastEvent, processes, busyTicks, contextSwitches));
+    maybeSnapshot(false);
   }
 
   if (currentProcess) {
@@ -399,6 +410,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   } else if (idleSegmentStart !== null) {
     pushIdleSegment(time);
   }
+
+  // ensure final snapshot present
+  maybeSnapshot(true);
 
   const finalMetrics = createMetrics(processes, time, busyTicks, contextSwitches);
 

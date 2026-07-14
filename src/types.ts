@@ -12,6 +12,8 @@ export interface ProcessInput {
 
 export interface AlgorithmParams {
   timeQuantum?: number;
+  /** Anzahl Ticks zwischen automatischen Snapshots (1 = jeder Tick) */
+  snapshotInterval?: number;
   queueLevels?: number;
 }
 

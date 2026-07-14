@@ -59,7 +59,18 @@
         </div>
 
         <div class="gantt-wrap" ref="ganttWrapRef">
-          <svg
+          <Gantt
+            :segments="visibleSegments"
+            :tickMarks="tickMarks"
+            :cellWidth="cellWidth"
+            :chartHeight="chartHeight"
+            :segmentHeight="segmentHeight"
+            :viewBox="ganttViewBox"
+            @segmentEnter="onSegmentEnter"
+            @segmentLeave="onSegmentLeave"
+            @segmentClick="onSegmentClick"
+          />
+<!--           <svg
             :viewBox="ganttViewBox"
             class="gantt-svg"
             role="img"
@@ -119,7 +130,7 @@
                 {{ tick }}
               </text>
             </g>
-          </svg>
+          </svg> -->
         </div>
 
         <div class="timeline-caption">
@@ -369,6 +380,7 @@ import gsap from "gsap";
 import { createSeededScenarioProcesses, simulateScenario } from "@/simulation";
 import Scrubber from '@/components/Scrubber.vue';
 import Tooltip from '@/components/Tooltip.vue';
+import Gantt from "./components/Gantt.vue";
 import { usePlayback } from '@/composables/usePlayback';
 import type {
   AlgorithmType,
