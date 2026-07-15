@@ -427,7 +427,7 @@ const currentStepIndex = ref(0);
 const isPlaying = ref(false);
 
 const snapshotsRef = computed(() => runState.value?.snapshots ?? []);
-const playback = usePlayback(snapshotsRef, { intervalMs: 750, loop: loopPlayback });
+const playback = usePlayback(snapshotsRef, { intervalMs: 1000, loop: loopPlayback });
 
 const currentSnapshot = computed<SimulationSnapshot | null>(
   () =>
@@ -947,11 +947,6 @@ function saveScenario(): void {
   resetPlayback();
   activeScenarioId.value = scenario.id;
 }
-
-watch(currentStepIndex, async () => {
-  await nextTick();
-  animateDashboardStep();
-});
 
 onMounted(() => {
   openWelcomeIfNeeded();

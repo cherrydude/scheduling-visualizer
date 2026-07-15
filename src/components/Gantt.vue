@@ -8,20 +8,18 @@
     </defs>
 
     <g v-if="segments && segments.length">
-      <g v-for="segment in segments" :key="`${segment.processName}-${segment.start}-${segment.end}`">
-        <!-- active glow behind the currently running sub-interval -->
-        <rect
-          v-if="segment.processId && segment.processId === activeId && !segment.idle && activeSubRect(segment)"
-          :x="activeSubRect(segment)?.x"
-          :y="segmentY(segment) - 3"
-          :width="activeSubRect(segment)?.width"
-          :height="segmentHeight + 6"
-          :rx="9"
-          class="active-glow"
-          :style="{ ['--active-color']: segment.color, ['--active-rgb']: hexToRgb(segment.color) }"
-          aria-hidden="true"
-        />
+      <rect
+        v-if="completedOverlayWidth > 0"
+        :x="offsetX"
+        y="16"
+        :width="completedOverlayWidth"
+        :height="chartHeight - 34"
+        rx="14"
+        class="completed-overlay"
+        aria-hidden="true"
+      />
 
+      <g v-for="segment in segments" :key="`${segment.processName}-${segment.start}-${segment.end}`">
         <rect
           :x="segment.start * cellWidth + offsetX"
           :y="segmentY(segment)"
@@ -41,6 +39,29 @@
           {{ segment.processName }}
         </text>
       </g>
+
+      <rect
+        v-for="segment in activeSegments"
+        :key="`${segment.processName}-${segment.start}-${segment.end}-active`"
+        :x="activeSubRect(segment)?.x"
+        :y="segmentY(segment) - 3"
+        :width="activeSubRect(segment)?.width"
+        :height="segmentHeight + 6"
+        :rx="9"
+        class="active-glow"
+        :style="{ ['--active-color']: segment.color, ['--active-rgb']: hexToRgb(segment.color) }"
+        aria-hidden="true"
+      />
+
+      <line
+        v-if="pointerX !== null"
+        :x1="pointerX"
+        y1="16"
+        :x2="pointerX"
+        :y2="chartHeight - 18"
+        class="time-pointer"
+        aria-hidden="true"
+      />
     </g>
 
     <text v-else x="80" y="120" class="empty-gantt">
@@ -55,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { TimelineSegment } from "@/types";
 
 const props = defineProps<{
@@ -77,6 +99,12 @@ const emit = defineEmits<{
 }>();
 
 const offsetX = props.offsetX ?? 80;
+
+const activeSegments = computed(() =>
+  props.segments.filter(
+    (segment) => segment.processId && segment.processId === props.activeId && !segment.idle && activeSubRect(segment),
+  ),
+);
 
 function handleEnter(segment: TimelineSegment, ev: Event) {
   emit("segmentEnter", segment, ev as PointerEvent);
@@ -121,6 +149,23 @@ function activeSubRect(segment: TimelineSegment) {
   return { x, width };
 }
 
+const pointerX = computed(() => {
+  if (props.currentTime === undefined || props.currentTime === null) {
+    return null;
+  }
+
+  return (props.currentTime + (props.tickSize ?? 1)) * props.cellWidth + offsetX;
+});
+
+const completedOverlayWidth = computed(() => {
+  const x = pointerX.value;
+  if (x === null) {
+    return 0;
+  }
+
+  return Math.max(0, x - offsetX);
+});
+
 function hexToRgb(hex?: string) {
   if (!hex) return "70,86,105";
   const h = hex.replace('#', '');
@@ -149,6 +194,11 @@ function hexToRgb(hex?: string) {
   stroke-width: 1;
 }
 
+.completed-overlay {
+  fill: rgba(100, 116, 139, 0.24);
+  stroke: rgba(148, 163, 184, 0.08);
+}
+
 .active-glow {
   fill: none;
   stroke: var(--active-color);
@@ -157,7 +207,14 @@ function hexToRgb(hex?: string) {
   filter: drop-shadow(0 10px 20px rgba(var(--active-rgb), 0.2));
 }
 
+.time-pointer {
+  stroke: #ef4444;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.35));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .active-glow { filter: none; stroke-width: 2; opacity: 0.95; }
+  .time-pointer { filter: none; }
 }
 </style>
