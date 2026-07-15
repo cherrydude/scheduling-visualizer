@@ -66,6 +66,7 @@
             :chartHeight="chartHeight"
             :segmentHeight="segmentHeight"
             :viewBox="ganttViewBox"
+            :activeId="currentSnapshot?.currentProcessId ?? null"
             @segmentEnter="onSegmentEnter"
             @segmentLeave="onSegmentLeave"
             @segmentClick="onSegmentClick"
@@ -143,6 +144,19 @@
       </section>
 
       <aside class="side-column">
+        <section class="panel small-panel">
+          <div class="section-header">
+            <h2>Stack-Simulation</h2>
+            <span>Simulation</span>
+          </div>
+
+          <div class="stack-area">
+            <StackList v-if="stackItems.length" :items="stackItems" :maxVisible="6" :activeId="currentSnapshot?.currentProcessId ?? null" aria-label="Process queue" />
+          </div>
+
+          <p class="note-text">{{ simulationNote }}</p>
+        </section>
+
         <section
           class="panel metric-panel"
           v-for="metric in metricCards"
@@ -202,7 +216,7 @@
       class="modal-overlay"
       @click.self="closeGenerator"
     >
-      <div class="modal panel" ref="modalRef">
+      <div class="modal panel" ref="modalRef" tabindex="-1">
         <div class="section-header">
           <h2>Szenario-Generator</h2>
           <button
@@ -381,6 +395,7 @@ import { createSeededScenarioProcesses, simulateScenario } from "@/simulation";
 import Scrubber from '@/components/Scrubber.vue';
 import Tooltip from '@/components/Tooltip.vue';
 import Gantt from "./components/Gantt.vue";
+import StackList from "./components/StackList.vue";
 import { usePlayback } from '@/composables/usePlayback';
 import type {
   AlgorithmType,
@@ -425,6 +440,8 @@ const algorithmOptions: ScenarioOption[] = [
   { label: "Strict Priority", value: "strictPriority" },
   { label: "MLFQ", value: "mlfq" },
 ];
+
+
 
 const presetScenarios: Record<string, ScenarioDraft> = {
   classroom: {
@@ -569,6 +586,124 @@ const tickMarks = computed(() => {
   const time = Math.max(runState.value?.totalTime ?? 8, 8);
   return Array.from({ length: time + 1 }, (_, index) => index);
 });
+// --- Stable stack: initialize once, update only on top-change ---
+type StackItem = { id: string; title: string; subtitle?: string; color?: string };
+
+const stableStackIds = ref<string[]>([]);
+const stackItems = ref<StackItem[]>([]);
+
+function findProcessMeta(pid?: string | null) {
+  if (!pid) return { name: pid ?? "?", color: "#475569" };
+  const seg = visibleSegments.value.find((s) => s.processId === pid);
+  const proc = selectedScenario.value.processes.find((p) => p.id === pid);
+  return {
+    name: seg?.processName ?? proc?.name ?? pid,
+    color: seg?.color ?? proc?.color ?? "#475569",
+  };
+}
+
+function isProcessDone(pid: string, snap: SimulationSnapshot | null) {
+  if (!snap) return false;
+  return !visibleSegments.value.some((s) => s.processId === pid && s.end > snap.time);
+}
+
+function buildInitialOrder(snap: SimulationSnapshot | null, max = 8) {
+  if (!snap) return [];
+  const ids: string[] = [];
+  const seen = new Set<string>();
+
+  const push = (pid?: string | null) => {
+    if (!pid || seen.has(pid)) return;
+    seen.add(pid);
+    ids.push(pid);
+  };
+
+  push(snap.currentProcessId);
+  if (Array.isArray(snap.readyQueue)) {
+    for (const pid of snap.readyQueue) {
+      if (ids.length >= max) break;
+      push(pid);
+    }
+  }
+
+  for (const s of visibleSegments.value) {
+    if (ids.length >= max) break;
+    if (s.processId && !seen.has(s.processId) && s.end > (snap?.time ?? 0)) {
+      push(s.processId);
+    }
+  }
+
+  return ids;
+}
+
+function writeStackFromIds(ids: string[], max = 8) {
+  stableStackIds.value = ids.slice(0, max);
+  stackItems.value = stableStackIds.value.map((pid) => {
+    const meta = findProcessMeta(pid);
+    const nextSeg =
+      visibleSegments.value.find((s) => s.processId === pid && s.end > (currentSnapshot.value?.time ?? 0)) ??
+      visibleSegments.value.find((s) => s.processId === pid);
+    const subtitle = nextSeg ? `t ${nextSeg.start}–${nextSeg.end}` : `t done`;
+    return { id: pid, title: meta.name, subtitle, color: meta.color };
+  });
+}
+
+// initialize once when runState / first snapshot available
+watch(
+  () => runState.value?.snapshots.length,
+  (len) => {
+    if (len && !stableStackIds.value.length) {
+      const snap = currentSnapshot.value;
+      const ids = buildInitialOrder(snap);
+      writeStackFromIds(ids);
+    }
+  },
+  { immediate: true },
+);
+
+// update only on top-change (minimizes reordering)
+let lastTop: string | null = null;
+watch(
+  () => currentSnapshot.value,
+  (snap, prev) => {
+    if (!snap) return;
+    const newTop = snap.currentProcessId ?? null;
+    if (newTop === lastTop) return;
+    lastTop = newTop;
+
+    if (!stableStackIds.value.length) {
+      writeStackFromIds(buildInitialOrder(snap));
+      return;
+    }
+
+    const idx = stableStackIds.value.indexOf(newTop ?? "");
+    if (idx > -1) stableStackIds.value.splice(idx, 1);
+    if (newTop) stableStackIds.value.unshift(newTop);
+
+    const prevTop = prev?.currentProcessId ?? null;
+    if (prevTop && prevTop !== newTop) {
+      if (!isProcessDone(prevTop, snap)) {
+        const pidx = stableStackIds.value.indexOf(prevTop);
+        if (pidx > -1) stableStackIds.value.splice(pidx, 1);
+        stableStackIds.value.push(prevTop);
+      } else {
+        const pidx = stableStackIds.value.indexOf(prevTop);
+        if (pidx > -1) stableStackIds.value.splice(pidx, 1);
+      }
+    }
+
+    const max = 8;
+    const fillIds: string[] = [];
+    for (const s of visibleSegments.value) {
+      if (stableStackIds.value.length + fillIds.length >= max) break;
+      if (s.processId && stableStackIds.value.indexOf(s.processId) === -1 && !fillIds.includes(s.processId)) {
+        fillIds.push(s.processId);
+      }
+    }
+    writeStackFromIds(stableStackIds.value.concat(fillIds).slice(0, max));
+  },
+  { immediate: true },
+);
 const currentEventLabel = computed(() =>
   currentSnapshot.value?.lastEvent
     ? `${currentSnapshot.value.lastEvent.type} @ ${currentSnapshot.value.lastEvent.time}`
@@ -706,22 +841,36 @@ watch(currentStepIndex, async () => {
   animateDashboardStep();
 });
 
-watch(runState, () => {
-  currentStepIndex.value = 0;
-});
-
 watch(showModal, async (visible) => {
-  if (!visible) {
+  if (visible) {
+    // lock page scroll
+    document.body.style.overflow = "hidden";
+    await nextTick();
+    if (modalRef.value) {
+      modalRef.value.focus?.();
+      gsap.fromTo(
+        modalRef.value,
+        { y: 24, opacity: 0, scale: 0.98 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.28, ease: "power2.out" },
+      );
+    }
     return;
   }
 
-  await nextTick();
+  // closing: animate out then restore body scroll
   if (modalRef.value) {
-    gsap.fromTo(
-      modalRef.value,
-      { y: 24, opacity: 0, scale: 0.98 },
-      { y: 0, opacity: 1, scale: 1, duration: 0.28, ease: "power2.out" },
-    );
+    gsap.to(modalRef.value, {
+      y: 12,
+      opacity: 0,
+      scale: 0.995,
+      duration: 0.18,
+      ease: "power1.in",
+      onComplete: () => {
+        document.body.style.overflow = "";
+      },
+    });
+  } else {
+    document.body.style.overflow = "";
   }
 });
 

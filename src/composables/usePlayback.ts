@@ -1,6 +1,9 @@
 import { ref, computed, watch } from 'vue';
 
-export function usePlayback(snapshotsRef: any, options: { intervalMs?: number } = {}) {
+export function usePlayback(
+  snapshotsRef: any,
+  options: { intervalMs?: number; loop?: { value: boolean } } = {},
+) {
   const intervalMs = options.intervalMs ?? 750;
   const index = ref(0);
   const playing = ref(false);
@@ -22,6 +25,11 @@ export function usePlayback(snapshotsRef: any, options: { intervalMs?: number } 
       if (index.value < Math.max(total.value - 1, 0)) {
         index.value += 1;
       } else {
+        if (options.loop?.value && total.value > 0) {
+          index.value = 0;
+          return;
+        }
+
         pause();
       }
     }, Math.max(20, Math.round(intervalMs / Math.max(0.001, speed.value))));

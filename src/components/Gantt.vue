@@ -9,6 +9,19 @@
 
     <g v-if="segments && segments.length">
       <g v-for="segment in segments" :key="`${segment.processName}-${segment.start}-${segment.end}`">
+        <!-- active glow behind the currently running sub-interval -->
+        <rect
+          v-if="segment.processId && segment.processId === activeId && !segment.idle && activeSubRect(segment)"
+          :x="activeSubRect(segment)?.x"
+          :y="segmentY(segment) - 3"
+          :width="activeSubRect(segment)?.width"
+          :height="segmentHeight + 6"
+          :rx="9"
+          class="active-glow"
+          :style="{ ['--active-color']: segment.color, ['--active-rgb']: hexToRgb(segment.color) }"
+          aria-hidden="true"
+        />
+
         <rect
           :x="segment.start * cellWidth + offsetX"
           :y="segmentY(segment)"
@@ -23,6 +36,7 @@
           @pointerleave.prevent="handleLeave"
           @click.prevent="handleClick(segment)"
         />
+
         <text :x="segment.start * cellWidth + offsetX + 8" :y="segmentY(segment) + 22" class="gantt-label">
           {{ segment.processName }}
         </text>
@@ -42,7 +56,6 @@
 
 <script setup lang="ts">
 import type { TimelineSegment } from "@/types";
-import { computed } from "vue";
 
 const props = defineProps<{
   segments: TimelineSegment[];
@@ -52,6 +65,9 @@ const props = defineProps<{
   segmentHeight: number;
   viewBox: string;
   offsetX?: number;
+  activeId?: string | null;
+  currentTime?: number;
+  tickSize?: number;
 }>();
 
 const emit = defineEmits<{
@@ -88,6 +104,32 @@ const segmentOpacity = (segment: TimelineSegment): number => {
   // simple default: fully visible
   return 0.9;
 };
+
+/**
+ * Compute the active sub-rectangle (x + width) for a given segment
+ * based on current snapshot time and tick size.
+ * Returns null when there's no overlap.
+ */
+function activeSubRect(segment: TimelineSegment) {
+  const ct = props.currentTime ?? 0;
+  const ts = props.tickSize ?? 1;
+  const activeStart = Math.max(segment.start, ct);
+  const activeEnd = Math.min(segment.end, ct + ts);
+  if (activeEnd <= activeStart) return null;
+  const x = activeStart * props.cellWidth + offsetX - 2;
+  const width = Math.max((activeEnd - activeStart) * props.cellWidth, 6) + 4;
+  return { x, width };
+}
+
+function hexToRgb(hex?: string) {
+  if (!hex) return "70,86,105";
+  const h = hex.replace('#', '');
+  const bigint = parseInt(h.length === 3 ? h.split('').map(c=>c+ c).join('') : h, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `${r},${g},${b}`;
+}
 </script>
 
 <style scoped>
@@ -105,5 +147,17 @@ const segmentOpacity = (segment: TimelineSegment): number => {
 .tick-mark line {
   stroke: rgba(148, 163, 184, 0.18);
   stroke-width: 1;
+}
+
+.active-glow {
+  fill: none;
+  stroke: var(--active-color);
+  stroke-width: 4;
+  opacity: 0.9;
+  filter: drop-shadow(0 10px 20px rgba(var(--active-rgb), 0.2));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-glow { filter: none; stroke-width: 2; opacity: 0.95; }
 }
 </style>
