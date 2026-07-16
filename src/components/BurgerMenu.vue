@@ -23,7 +23,7 @@
             @click="$emit('select', scenario.id)"
           >
             <span class="scenario-title">{{ scenario.title }}</span>
-            <span class="scenario-meta">{{ scenario.appliedAlgorithm ? scenario.appliedAlgorithm.algorithm : 'kein Algo' }}</span>
+            <span class="scenario-meta">{{ scenario.runs.length ? `${scenario.runs.length} Run(s)` : 'kein Algo' }}</span>
           </button>
         </div>
 

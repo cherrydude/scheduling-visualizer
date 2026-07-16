@@ -5,6 +5,9 @@
     <AlgorithmPickerModal
       :modelValue="showAlgorithmModal"
       :scenarioTitle="activeScenario?.title"
+      :initialAlgorithm="algorithmModalSeed?.algorithm"
+      :initialAlgorithmParams="algorithmModalSeed?.algorithmParams"
+      :confirmLabel="activeRun ? 'Run anlegen' : 'Algorithmus anwenden'"
       @close="showAlgorithmModal = false"
       @confirm="confirmAlgorithm"
     />
@@ -259,14 +262,40 @@
           <div class="scenario-banner">
             <div>
               <strong>Szenario geladen</strong>
-              <p>{{ activeScenario.title }}</p>
+              <p class="scenario-line">
+                <span>{{ activeScenario.title }}</span>
+                <button
+                  v-if="activeRun"
+                  class="icon-button"
+                  type="button"
+                  aria-label="Aktiven Algorithmus anpassen"
+                  @click="openAlgorithmModal"
+                >
+                  ✎
+                </button>
+              </p>
             </div>
             <button
               class="primary-button"
               type="button"
               @click="openAlgorithmModal"
             >
-              + Algorithmus anwenden
+              {{
+                activeRun ? "+ weiteren Algorithmus" : "+ Algorithmus anwenden"
+              }}
+            </button>
+          </div>
+
+          <div v-if="activeScenario.runs.length > 1" class="run-navigation">
+            <button
+              v-for="(run, index) in activeScenario.runs"
+              :key="run.id"
+              type="button"
+              class="run-step"
+              :class="{ active: index === activeRunIndex }"
+              @click="selectRun(index)"
+            >
+              {{ index + 1 }}
             </button>
           </div>
 
@@ -482,6 +511,9 @@ const {
   deleteScenario,
   duplicateScenario,
   applyAlgorithm,
+  createRun,
+  updateActiveRun,
+  setActiveRun,
 } = workspace;
 
 const scenarioPresets: Record<string, ScenarioDraft> = {
@@ -571,6 +603,14 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
 const showWelcomeModal = ref(false);
 const showGeneratorModal = ref(false);
 const showAlgorithmModal = ref(false);
+const algorithmModalSeed = ref<{
+  algorithm: AlgorithmType;
+  algorithmParams: {
+    timeQuantum: number;
+    snapshotInterval: number;
+    queueLevels: number;
+  };
+} | null>(null);
 const generatorModalRef = ref<HTMLElement | null>(null);
 const ganttWrapRef = ref<HTMLElement | null>(null);
 const currentRoute = ref<RouteName>("home");
@@ -588,18 +628,31 @@ function cloneDraft(source: ScenarioDraft): void {
 
 cloneDraft(scenarioPresets.classroom);
 
+const activeRunIndex = computed<number>(
+  () => activeScenario.value?.activeRunIndex ?? -1,
+);
+const activeRun = computed(() => {
+  const scenario = activeScenario.value;
+  if (!scenario || scenario.activeRunIndex < 0) {
+    return null;
+  }
+
+  return scenario.runs[scenario.activeRunIndex] ?? null;
+});
+
 const simulationScenario = computed<Scenario | null>(() => {
   const scenario = activeScenario.value;
-  if (!scenario?.appliedAlgorithm) {
+  const run = activeRun.value;
+  if (!scenario || !run) {
     return null;
   }
 
   return {
-    id: scenario.id,
+    id: `${scenario.id}:${run.id}`,
     title: scenario.title,
     description: scenario.description,
-    algorithm: scenario.appliedAlgorithm.algorithm,
-    algorithmParams: scenario.appliedAlgorithm.algorithmParams,
+    algorithm: run.algorithm,
+    algorithmParams: run.algorithmParams,
     seed: scenario.seed,
     tickSize: scenario.tickSize,
     processes: scenario.processes.map((process) => ({ ...process })),
@@ -890,12 +943,10 @@ const statusCards = computed<MetricCard[]>(() => [
   },
   {
     label: "Algorithmus",
-    value: activeScenario.value?.appliedAlgorithm
-      ? algorithmName(activeScenario.value.appliedAlgorithm.algorithm)
+    value: activeRun.value
+      ? algorithmName(activeRun.value.algorithm)
       : "Kein Algo",
-    help: activeScenario.value?.appliedAlgorithm
-      ? "Algorithmus ist dem Szenario zugeordnet"
-      : "Bitte erst Algorithmus anwenden",
+    help: activeRun.value ? "Aktiver Run" : "Bitte erst Algorithmus anwenden",
   },
   {
     label: "Zeit",
@@ -904,11 +955,7 @@ const statusCards = computed<MetricCard[]>(() => [
   },
   {
     label: "Laufstatus",
-    value: isPlaying.value
-      ? "Running"
-      : activeScenario.value?.appliedAlgorithm
-        ? "Paused"
-        : "Bereit",
+    value: isPlaying.value ? "Running" : activeRun.value ? "Paused" : "Bereit",
     help: "Steuerung per Toolbar",
   },
 ]);
@@ -1009,11 +1056,11 @@ const focusSubtitle = computed(() => {
     return "Kein Szenario aktiv";
   }
 
-  if (!activeScenario.value.appliedAlgorithm) {
+  if (!activeRun.value) {
     return "Algorithmus fehlt";
   }
 
-  return algorithmName(activeScenario.value.appliedAlgorithm.algorithm);
+  return algorithmName(activeRun.value.algorithm);
 });
 
 function normalizeRoute(pathname: string): RouteName {
@@ -1077,6 +1124,24 @@ function openAlgorithmModal(): void {
     return;
   }
 
+  algorithmModalSeed.value = activeRun.value
+    ? {
+        algorithm: activeRun.value.algorithm,
+        algorithmParams: {
+          timeQuantum: activeRun.value.algorithmParams.timeQuantum ?? 2,
+          snapshotInterval:
+            activeRun.value.algorithmParams.snapshotInterval ?? 1,
+          queueLevels: activeRun.value.algorithmParams.queueLevels ?? 3,
+        },
+      }
+    : {
+        algorithm: "roundRobin",
+        algorithmParams: {
+          timeQuantum: 2,
+          snapshotInterval: 1,
+          queueLevels: 3,
+        },
+      };
   showAlgorithmModal.value = true;
 }
 
@@ -1088,8 +1153,34 @@ function confirmAlgorithm(payload: {
     queueLevels: number;
   };
 }): void {
-  applyAlgorithm(payload);
+  if (!activeScenario.value) {
+    return;
+  }
+
+  if (activeRun.value) {
+    updateActiveRun(payload);
+  } else {
+    createRun(payload);
+  }
+  algorithmModalSeed.value = null;
   showAlgorithmModal.value = false;
+  resetPlayback();
+}
+
+function selectRun(index: number): void {
+  if (!activeScenario.value) {
+    return;
+  }
+
+  const nextIndex = Math.max(
+    0,
+    Math.min(index, activeScenario.value.runs.length - 1),
+  );
+  if (activeScenario.value.activeRunIndex === nextIndex) {
+    return;
+  }
+
+  setActiveRun(nextIndex);
   resetPlayback();
 }
 

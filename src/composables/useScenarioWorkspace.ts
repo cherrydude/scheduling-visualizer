@@ -1,9 +1,13 @@
-import { computed, ref, watch } from 'vue';
-import type { AlgorithmParams, AlgorithmType, ProcessInput } from '@/types';
+import { computed, ref, watch } from "vue";
+import type { AlgorithmParams, AlgorithmType, ProcessInput } from "@/types";
 
 export interface AlgorithmAttachment {
   algorithm: AlgorithmType;
   algorithmParams: AlgorithmParams;
+}
+
+export interface ScenarioRunRecord extends AlgorithmAttachment {
+  id: string;
 }
 
 export interface ScenarioDraft {
@@ -16,14 +20,16 @@ export interface ScenarioDraft {
 
 export interface ScenarioRecord extends ScenarioDraft {
   id: string;
+  runs: ScenarioRunRecord[];
+  activeRunIndex: number;
   appliedAlgorithm: AlgorithmAttachment | null;
 }
 
-const STORAGE_KEY = 'scheduling-visualizer.scenarios.v1';
-const ACTIVE_KEY = 'scheduling-visualizer.active-scenario.v1';
+const STORAGE_KEY = "scheduling-visualizer.scenarios.v1";
+const ACTIVE_KEY = "scheduling-visualizer.active-scenario.v1";
 
 function createId(prefix: string): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
 
@@ -34,29 +40,94 @@ function cloneProcesses(processes: ProcessInput[]): ProcessInput[] {
   return processes.map((process) => ({ ...process }));
 }
 
+function normalizeAlgorithmAttachment(
+  attachment: Partial<AlgorithmAttachment> | null | undefined,
+): AlgorithmAttachment | null {
+  if (!attachment?.algorithm) {
+    return null;
+  }
+
+  return {
+    algorithm: attachment.algorithm,
+    algorithmParams: {
+      timeQuantum: attachment.algorithmParams?.timeQuantum ?? 2,
+      snapshotInterval: attachment.algorithmParams?.snapshotInterval ?? 1,
+      queueLevels: attachment.algorithmParams?.queueLevels ?? 3,
+    },
+  };
+}
+
+function normalizeRun(
+  run: Partial<ScenarioRunRecord> | Partial<AlgorithmAttachment>,
+  fallbackId?: string,
+): ScenarioRunRecord | null {
+  const attachment = normalizeAlgorithmAttachment(run);
+  if (!attachment) {
+    return null;
+  }
+
+  return {
+    id:
+      typeof (run as ScenarioRunRecord).id === "string" &&
+      (run as ScenarioRunRecord).id
+        ? (run as ScenarioRunRecord).id
+        : fallbackId || createId("run"),
+    ...attachment,
+  };
+}
+
 function normalizeScenario(record: Partial<ScenarioRecord>): ScenarioRecord {
   return {
-    id: typeof record.id === 'string' && record.id ? record.id : createId('scenario'),
-    title: record.title || 'Benutzer-Szenario',
-    description: record.description || 'Vom Szenario-Generator erstelltes Beispiel.',
+    id:
+      typeof record.id === "string" && record.id
+        ? record.id
+        : createId("scenario"),
+    title: record.title || "Benutzer-Szenario",
+    description:
+      record.description || "Vom Szenario-Generator erstelltes Beispiel.",
     seed: Number.isFinite(record.seed) ? Number(record.seed) : 17,
-    tickSize: Number.isFinite(record.tickSize) ? Math.max(1, Number(record.tickSize)) : 1,
-    processes: Array.isArray(record.processes) ? cloneProcesses(record.processes) : [],
-    appliedAlgorithm: record.appliedAlgorithm
-      ? {
-          algorithm: record.appliedAlgorithm.algorithm,
-          algorithmParams: {
-            timeQuantum: record.appliedAlgorithm.algorithmParams?.timeQuantum ?? 2,
-            snapshotInterval: record.appliedAlgorithm.algorithmParams?.snapshotInterval ?? 1,
-            queueLevels: record.appliedAlgorithm.algorithmParams?.queueLevels ?? 3,
-          },
-        }
-      : null,
+    tickSize: Number.isFinite(record.tickSize)
+      ? Math.max(1, Number(record.tickSize))
+      : 1,
+    processes: Array.isArray(record.processes)
+      ? cloneProcesses(record.processes)
+      : [],
+    runs: Array.isArray((record as ScenarioRecord).runs)
+      ? (record as ScenarioRecord).runs
+          .map((run, index) =>
+            normalizeRun(run, `${record.id || "scenario"}-run-${index + 1}`),
+          )
+          .filter((run): run is ScenarioRunRecord => Boolean(run))
+      : record.appliedAlgorithm
+        ? [
+            normalizeRun(
+              record.appliedAlgorithm,
+              `${record.id || "scenario"}-run-1`,
+            ),
+          ].filter((run): run is ScenarioRunRecord => Boolean(run))
+        : [],
+    activeRunIndex: Number.isInteger((record as ScenarioRecord).activeRunIndex)
+      ? Math.max(
+          0,
+          Math.min(
+            (record as ScenarioRecord).activeRunIndex,
+            Math.max(
+              (Array.isArray((record as ScenarioRecord).runs)
+                ? (record as ScenarioRecord).runs.length
+                : 0) - 1,
+              0,
+            ),
+          ),
+        )
+      : record.appliedAlgorithm
+        ? 0
+        : -1,
+    appliedAlgorithm: null,
   };
 }
 
 function loadScenarios(): ScenarioRecord[] {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return [];
   }
 
@@ -78,7 +149,7 @@ function loadScenarios(): ScenarioRecord[] {
 }
 
 function loadActiveScenarioId(): string | null {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return null;
   }
 
@@ -86,7 +157,7 @@ function loadActiveScenarioId(): string | null {
 }
 
 function persistScenarios(scenarios: ScenarioRecord[]): void {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -95,8 +166,8 @@ function persistScenarios(scenarios: ScenarioRecord[]): void {
 
 export function createBlankScenarioDraft(): ScenarioDraft {
   return {
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     seed: 17,
     tickSize: 1,
     processes: [],
@@ -107,12 +178,15 @@ export function useScenarioWorkspace() {
   const scenarios = ref<ScenarioRecord[]>(loadScenarios());
   const activeScenarioId = ref<string | null>(loadActiveScenarioId());
 
-  const activeScenario = computed(() =>
-    scenarios.value.find((scenario) => scenario.id === activeScenarioId.value) ?? null,
+  const activeScenario = computed(
+    () =>
+      scenarios.value.find(
+        (scenario) => scenario.id === activeScenarioId.value,
+      ) ?? null,
   );
 
   function persistActiveScenarioId(id: string | null): void {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -130,7 +204,10 @@ export function useScenarioWorkspace() {
   }
 
   function ensureValidActiveScenario(): void {
-    if (activeScenarioId.value && scenarios.value.some((scenario) => scenario.id === activeScenarioId.value)) {
+    if (
+      activeScenarioId.value &&
+      scenarios.value.some((scenario) => scenario.id === activeScenarioId.value)
+    ) {
       return;
     }
 
@@ -139,7 +216,7 @@ export function useScenarioWorkspace() {
 
   function createScenario(draft: ScenarioDraft): ScenarioRecord {
     const scenario = normalizeScenario({
-      id: createId('scenario'),
+      id: createId("scenario"),
       title: draft.title,
       description: draft.description,
       seed: draft.seed,
@@ -165,7 +242,9 @@ export function useScenarioWorkspace() {
 
   function renameScenario(id: string, title: string): void {
     scenarios.value = scenarios.value.map((scenario) =>
-      scenario.id === id ? { ...scenario, title: title || scenario.title } : scenario,
+      scenario.id === id
+        ? { ...scenario, title: title || scenario.title }
+        : scenario,
     );
     syncPersistence();
   }
@@ -186,7 +265,7 @@ export function useScenarioWorkspace() {
 
     const copy = normalizeScenario({
       ...source,
-      id: createId('scenario'),
+      id: createId("scenario"),
       title: `${source.title} Kopie`,
       appliedAlgorithm: null,
       processes: cloneProcesses(source.processes),
@@ -206,14 +285,98 @@ export function useScenarioWorkspace() {
       scenario.id === activeScenario.value?.id
         ? {
             ...scenario,
+            runs: [
+              ...(scenario.runs ?? []),
+              {
+                id: createId("run"),
+                algorithm: attachment.algorithm,
+                algorithmParams: {
+                  timeQuantum: attachment.algorithmParams.timeQuantum ?? 2,
+                  snapshotInterval:
+                    attachment.algorithmParams.snapshotInterval ?? 1,
+                  queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+                },
+              },
+            ],
+            activeRunIndex: Math.max(0, (scenario.runs ?? []).length),
             appliedAlgorithm: {
               algorithm: attachment.algorithm,
               algorithmParams: {
                 timeQuantum: attachment.algorithmParams.timeQuantum ?? 2,
-                snapshotInterval: attachment.algorithmParams.snapshotInterval ?? 1,
+                snapshotInterval:
+                  attachment.algorithmParams.snapshotInterval ?? 1,
                 queueLevels: attachment.algorithmParams.queueLevels ?? 3,
               },
             },
+          }
+        : scenario,
+    );
+    syncPersistence();
+  }
+
+  function createRun(attachment: AlgorithmAttachment): void {
+    applyAlgorithm(attachment);
+  }
+
+  function updateActiveRun(attachment: AlgorithmAttachment): void {
+    if (!activeScenario.value) {
+      return;
+    }
+
+    scenarios.value = scenarios.value.map((scenario) => {
+      if (scenario.id !== activeScenario.value?.id) {
+        return scenario;
+      }
+
+      const nextRuns = [...(scenario.runs ?? [])];
+      const currentIndex = Math.max(0, scenario.activeRunIndex);
+      if (!nextRuns[currentIndex]) {
+        return scenario;
+      }
+
+      nextRuns[currentIndex] = {
+        ...nextRuns[currentIndex],
+        algorithm: attachment.algorithm,
+        algorithmParams: {
+          timeQuantum: attachment.algorithmParams.timeQuantum ?? 2,
+          snapshotInterval: attachment.algorithmParams.snapshotInterval ?? 1,
+          queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+        },
+      };
+
+      return {
+        ...scenario,
+        runs: nextRuns,
+        appliedAlgorithm: nextRuns[currentIndex],
+      };
+    });
+
+    syncPersistence();
+  }
+
+  function setActiveRun(index: number): void {
+    if (!activeScenario.value) {
+      return;
+    }
+
+    scenarios.value = scenarios.value.map((scenario) =>
+      scenario.id === activeScenario.value?.id
+        ? {
+            ...scenario,
+            activeRunIndex: Math.max(
+              0,
+              Math.min(index, Math.max((scenario.runs?.length ?? 0) - 1, 0)),
+            ),
+            appliedAlgorithm:
+              scenario.runs?.[
+                Math.max(
+                  0,
+                  Math.min(
+                    index,
+                    Math.max((scenario.runs?.length ?? 0) - 1, 0),
+                  ),
+                )
+              ] ?? null,
           }
         : scenario,
     );
@@ -226,7 +389,9 @@ export function useScenarioWorkspace() {
     }
 
     scenarios.value = scenarios.value.map((scenario) =>
-      scenario.id === activeScenario.value?.id ? { ...scenario, appliedAlgorithm: null } : scenario,
+      scenario.id === activeScenario.value?.id
+        ? { ...scenario, activeRunIndex: -1, appliedAlgorithm: null }
+        : scenario,
     );
     syncPersistence();
   }
@@ -256,6 +421,9 @@ export function useScenarioWorkspace() {
     deleteScenario,
     duplicateScenario,
     applyAlgorithm,
+    createRun,
+    updateActiveRun,
+    setActiveRun,
     clearAlgorithm,
   };
 }
