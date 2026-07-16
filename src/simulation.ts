@@ -1,6 +1,19 @@
-import type { AlgorithmType, ProcessRuntime, Scenario, ScheduleEvent, SimulationMetrics, SimulationRun, SimulationSnapshot, TimelineSegment } from '@/types';
+import type {
+  AlgorithmType,
+  ProcessRuntime,
+  Scenario,
+  ScheduleEvent,
+  SimulationMetrics,
+  SimulationRun,
+  SimulationSnapshot,
+  TimelineSegment,
+} from "@/types";
 
-function clampInteger(value: number, minimum: number, fallback: number): number {
+function clampInteger(
+  value: number,
+  minimum: number,
+  fallback: number,
+): number {
   if (!Number.isFinite(value)) {
     return fallback;
   }
@@ -20,12 +33,12 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function createRuntime(processes: Scenario['processes']): ProcessRuntime[] {
+function createRuntime(processes: Scenario["processes"]): ProcessRuntime[] {
   return processes
     .map((process) => ({
       ...process,
       remainingTime: clampInteger(process.burstTime, 1, 1),
-      status: 'pending' as const,
+      status: "pending" as const,
       waitingTime: 0,
       turnaroundTime: 0,
       responseTime: null,
@@ -33,29 +46,54 @@ function createRuntime(processes: Scenario['processes']): ProcessRuntime[] {
       startedAt: null,
       finishedAt: null,
     }))
-    .sort((left, right) => left.arrivalTime - right.arrivalTime || left.id.localeCompare(right.id));
+    .sort(
+      (left, right) =>
+        left.arrivalTime - right.arrivalTime || left.id.localeCompare(right.id),
+    );
 }
 
-function createMetrics(processes: ProcessRuntime[], currentTime: number, busyTicks: number, contextSwitches: number): SimulationMetrics {
-  const completedProcesses = processes.filter((process) => process.finishedAt !== null);
+function createMetrics(
+  processes: ProcessRuntime[],
+  currentTime: number,
+  busyTicks: number,
+  contextSwitches: number,
+): SimulationMetrics {
+  const completedProcesses = processes.filter(
+    (process) => process.finishedAt !== null,
+  );
 
   const averageWaitingTime = completedProcesses.length
-    ? completedProcesses.reduce((sum, process) => sum + process.waitingTime, 0) / completedProcesses.length
+    ? completedProcesses.reduce(
+        (sum, process) => sum + process.waitingTime,
+        0,
+      ) / completedProcesses.length
     : null;
   const averageTurnaroundTime = completedProcesses.length
-    ? completedProcesses.reduce((sum, process) => sum + process.turnaroundTime, 0) / completedProcesses.length
+    ? completedProcesses.reduce(
+        (sum, process) => sum + process.turnaroundTime,
+        0,
+      ) / completedProcesses.length
     : null;
   const averageResponseTime = completedProcesses.length
-    ? completedProcesses.reduce((sum, process) => sum + (process.responseTime ?? 0), 0) / completedProcesses.length
+    ? completedProcesses.reduce(
+        (sum, process) => sum + (process.responseTime ?? 0),
+        0,
+      ) / completedProcesses.length
     : null;
 
   const cpuUtilization = currentTime > 0 ? busyTicks / currentTime : 0;
   const idleShare = 1 - cpuUtilization;
 
-  const fairnessValues = completedProcesses.map((process) => process.executedTime || process.burstTime).filter((value) => value > 0);
+  const fairnessValues = completedProcesses
+    .map((process) => process.executedTime || process.burstTime)
+    .filter((value) => value > 0);
   const fairnessIndex = fairnessValues.length
-    ? Math.pow(fairnessValues.reduce((sum, value) => sum + value, 0), 2) /
-      (fairnessValues.length * fairnessValues.reduce((sum, value) => sum + value * value, 0))
+    ? Math.pow(
+        fairnessValues.reduce((sum, value) => sum + value, 0),
+        2,
+      ) /
+      (fairnessValues.length *
+        fairnessValues.reduce((sum, value) => sum + value * value, 0))
     : null;
 
   return {
@@ -95,7 +133,7 @@ function finalizeProcess(process: ProcessRuntime, time: number): void {
   process.finishedAt = time;
   process.turnaroundTime = time - process.arrivalTime;
   process.waitingTime = process.turnaroundTime - process.burstTime;
-  process.status = 'finished';
+  process.status = "finished";
 }
 
 function dispatchProcess(
@@ -138,15 +176,15 @@ function dispatchProcess(
     nextCurrent.responseTime = time - nextCurrent.arrivalTime;
   }
 
-  nextCurrent.status = 'running';
+  nextCurrent.status = "running";
   const dispatchEvent: ScheduleEvent = {
     time,
-    type: 'dispatch',
+    type: "dispatch",
     processId: nextCurrent.id,
     processName: nextCurrent.name,
     algorithm,
-    fromStatus: 'ready',
-    toStatus: 'running',
+    fromStatus: "ready",
+    toStatus: "running",
     reason: `Dispatch from ready queue (${readyQueue.length + 1} total slots before selection).`,
   };
   events.push(dispatchEvent);
@@ -161,7 +199,7 @@ function dispatchProcess(
 }
 
 export function simulateScenario(scenario: Scenario): SimulationRun {
-  if (scenario.algorithm !== 'roundRobin') {
+  if (scenario.algorithm !== "roundRobin") {
     return {
       snapshots: [],
       events: [],
@@ -184,14 +222,24 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   }
 
   const processes = createRuntime(scenario.processes);
-  const pending = [...processes].sort((left, right) => left.arrivalTime - right.arrivalTime || left.id.localeCompare(right.id));
+  const pending = [...processes].sort(
+    (left, right) =>
+      left.arrivalTime - right.arrivalTime || left.id.localeCompare(right.id),
+  );
   const readyQueue: ProcessRuntime[] = [];
   const events: ScheduleEvent[] = [];
   const snapshots: SimulationSnapshot[] = [];
   const segments: TimelineSegment[] = [];
-  const maxTicks = processes.reduce((sum, process) => sum + process.burstTime, 0) + processes.reduce((sum, process) => Math.max(sum, process.arrivalTime), 0) + 25;
+  const maxTicks =
+    processes.reduce((sum, process) => sum + process.burstTime, 0) +
+    processes.reduce((sum, process) => Math.max(sum, process.arrivalTime), 0) +
+    25;
   const quantum = clampInteger(scenario.algorithmParams.timeQuantum ?? 2, 1, 2);
-  const snapshotInterval = clampInteger(scenario.algorithmParams.snapshotInterval ?? 1, 1, 1);
+  const snapshotInterval = clampInteger(
+    scenario.algorithmParams.snapshotInterval ?? 1,
+    1,
+    1,
+  );
 
   let currentProcess: ProcessRuntime | null = null;
   let currentSegmentStart = 0;
@@ -205,11 +253,26 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   let lastSnapshotTime = -1;
 
   function maybeSnapshot(force: boolean) {
-    if (!force && snapshots.length > 0 && time - lastSnapshotTime < snapshotInterval) {
+    if (
+      !force &&
+      snapshots.length > 0 &&
+      time - lastSnapshotTime < snapshotInterval
+    ) {
       return;
     }
 
-    snapshots.push(createSnapshot(time, currentProcess, readyQueue, remainingQuantum, lastEvent, processes, busyTicks, contextSwitches));
+    snapshots.push(
+      createSnapshot(
+        time,
+        currentProcess,
+        readyQueue,
+        remainingQuantum,
+        lastEvent,
+        processes,
+        busyTicks,
+        contextSwitches,
+      ),
+    );
     lastSnapshotTime = time;
   }
 
@@ -234,10 +297,10 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
 
     segments.push({
       processId: null,
-      processName: 'Idle',
+      processName: "Idle",
       start: idleSegmentStart,
       end: endTime,
-      color: '#64748b',
+      color: "#64748b",
       idle: true,
     });
 
@@ -247,17 +310,17 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   function enqueueArrivals(atTime: number): void {
     while (pending.length && pending[0].arrivalTime <= atTime) {
       const process = pending.shift() as ProcessRuntime;
-      process.status = 'ready';
+      process.status = "ready";
       readyQueue.push(process);
 
       const arrivalEvent: ScheduleEvent = {
         time: atTime,
-        type: 'arrival',
+        type: "arrival",
         processId: process.id,
         processName: process.name,
         algorithm: scenario.algorithm,
-        fromStatus: 'pending',
-        toStatus: 'ready',
+        fromStatus: "pending",
+        toStatus: "ready",
         reason: `Process ${process.name} arrived and joined the ready queue.`,
       };
       events.push(arrivalEvent);
@@ -266,6 +329,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   }
 
   enqueueArrivals(time);
+  maybeSnapshot(true);
 
   while (completedCount < processes.length && time <= maxTicks) {
     if (!currentProcess && readyQueue.length === 0) {
@@ -277,20 +341,33 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     }
 
     if (!currentProcess) {
-      const dispatch = dispatchProcess(scenario.algorithm, time, currentProcess, readyQueue, remainingQuantum, events);
+      const dispatch = dispatchProcess(
+        scenario.algorithm,
+        time,
+        currentProcess,
+        readyQueue,
+        remainingQuantum,
+        events,
+      );
       currentProcess = dispatch.nextCurrent;
       remainingQuantum = dispatch.nextQuantum;
-      currentSegmentStart = dispatch.currentSegmentNeedsReset ? time : currentSegmentStart;
+      currentSegmentStart = dispatch.currentSegmentNeedsReset
+        ? time
+        : currentSegmentStart;
       contextSwitches += dispatch.contextSwitches;
 
-      if (dispatch.contextSwitches > 0 && lastEvent?.processId && lastEvent.processId !== currentProcess?.id) {
+      if (
+        dispatch.contextSwitches > 0 &&
+        lastEvent?.processId &&
+        lastEvent.processId !== currentProcess?.id
+      ) {
         const contextSwitchEvent: ScheduleEvent = {
           time,
-          type: 'contextSwitch',
+          type: "contextSwitch",
           processId: currentProcess?.id ?? null,
           processName: currentProcess?.name ?? null,
           algorithm: scenario.algorithm,
-          reason: `Context switch to ${currentProcess?.name ?? 'idle'}.`,
+          reason: `Context switch to ${currentProcess?.name ?? "idle"}.`,
         };
         events.push(contextSwitchEvent);
         lastEvent = contextSwitchEvent;
@@ -300,12 +377,12 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         currentSegmentStart = time;
         const startEvent: ScheduleEvent = {
           time,
-          type: 'start',
+          type: "start",
           processId: currentProcess.id,
           processName: currentProcess.name,
           algorithm: scenario.algorithm,
-          fromStatus: 'ready',
-          toStatus: 'running',
+          fromStatus: "ready",
+          toStatus: "running",
           reason: `Process ${currentProcess.name} begins execution.`,
         };
         events.push(startEvent);
@@ -337,12 +414,12 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       completedCount += 1;
       const finishEvent: ScheduleEvent = {
         time,
-        type: 'finish',
+        type: "finish",
         processId: currentProcess.id,
         processName: currentProcess.name,
         algorithm: scenario.algorithm,
-        fromStatus: 'running',
-        toStatus: 'finished',
+        fromStatus: "running",
+        toStatus: "finished",
         reason: `Process ${currentProcess.name} completed execution.`,
       };
       events.push(finishEvent);
@@ -353,17 +430,17 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       pushIdleSegment(time);
     } else if (remainingQuantum <= 0) {
       if (readyQueue.length > 0) {
-        currentProcess.status = 'preempted';
+        currentProcess.status = "preempted";
         pushSegment(time);
         readyQueue.push(currentProcess);
         const preemptEvent: ScheduleEvent = {
           time,
-          type: 'preempt',
+          type: "preempt",
           processId: currentProcess.id,
           processName: currentProcess.name,
           algorithm: scenario.algorithm,
-          fromStatus: 'running',
-          toStatus: 'preempted',
+          fromStatus: "running",
+          toStatus: "preempted",
           reason: `Time quantum expired for ${currentProcess.name}; it returns to the ready queue.`,
         };
         events.push(preemptEvent);
@@ -377,7 +454,14 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     }
 
     if (!currentProcess) {
-      const dispatch = dispatchProcess(scenario.algorithm, time, currentProcess, readyQueue, remainingQuantum, events);
+      const dispatch = dispatchProcess(
+        scenario.algorithm,
+        time,
+        currentProcess,
+        readyQueue,
+        remainingQuantum,
+        events,
+      );
       currentProcess = dispatch.nextCurrent;
       remainingQuantum = dispatch.nextQuantum;
       if (dispatch.currentSegmentNeedsReset) {
@@ -389,12 +473,12 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         pushIdleSegment(time);
         const startEvent: ScheduleEvent = {
           time,
-          type: 'start',
+          type: "start",
           processId: currentProcess.id,
           processName: currentProcess.name,
           algorithm: scenario.algorithm,
-          fromStatus: 'ready',
-          toStatus: 'running',
+          fromStatus: "ready",
+          toStatus: "running",
           reason: `Process ${currentProcess.name} takes the CPU.`,
         };
         events.push(startEvent);
@@ -414,7 +498,12 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   // ensure final snapshot present
   maybeSnapshot(true);
 
-  const finalMetrics = createMetrics(processes, time, busyTicks, contextSwitches);
+  const finalMetrics = createMetrics(
+    processes,
+    time,
+    busyTicks,
+    contextSwitches,
+  );
 
   return {
     snapshots,
@@ -427,12 +516,23 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   };
 }
 
-export function createSeededScenarioProcesses(seed: number, count: number): Scenario['processes'] {
+export function createSeededScenarioProcesses(
+  seed: number,
+  count: number,
+): Scenario["processes"] {
   const random = seededRandom(seed);
-  const palette = ['#7dd3fc', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa'];
+  const palette = [
+    "#7dd3fc",
+    "#60a5fa",
+    "#34d399",
+    "#fbbf24",
+    "#f87171",
+    "#a78bfa",
+  ];
 
   return Array.from({ length: count }, (_, index) => {
-    const arrivalTime = index === 0 ? 0 : clampInteger(Math.round(random() * 6), 0, 0);
+    const arrivalTime =
+      index === 0 ? 0 : clampInteger(Math.round(random() * 6), 0, 0);
     const burstTime = clampInteger(Math.round(2 + random() * 6), 1, 3);
     const priority = clampInteger(Math.round(1 + random() * 4), 1, 1);
 
@@ -443,7 +543,7 @@ export function createSeededScenarioProcesses(seed: number, count: number): Scen
       burstTime,
       priority,
       color: palette[index % palette.length],
-      group: index % 2 === 0 ? 'A' : 'B',
+      group: index % 2 === 0 ? "A" : "B",
     };
   });
 }

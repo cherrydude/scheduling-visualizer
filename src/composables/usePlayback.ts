@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch } from "vue";
 
 export function usePlayback(
   snapshotsRef: any,
@@ -8,8 +8,11 @@ export function usePlayback(
   const index = ref(0);
   const playing = ref(false);
   const speed = ref(1);
+  const loopIteration = ref(0);
   let timer: number | undefined;
-  const total = computed(() => (snapshotsRef?.value ? snapshotsRef.value.length : 0));
+  const total = computed(() =>
+    snapshotsRef?.value ? snapshotsRef.value.length : 0,
+  );
 
   function clearTimer() {
     if (timer !== undefined) {
@@ -21,18 +24,22 @@ export function usePlayback(
   function startTimer() {
     clearTimer();
     if (!playing.value) return;
-    timer = window.setInterval(() => {
-      if (index.value < Math.max(total.value - 1, 0)) {
-        index.value += 1;
-      } else {
-        if (options.loop?.value && total.value > 0) {
-          index.value = 0;
-          return;
-        }
+    timer = window.setInterval(
+      () => {
+        if (index.value < Math.max(total.value - 1, 0)) {
+          index.value += 1;
+        } else {
+          if (options.loop?.value && total.value > 0) {
+            index.value = 0;
+            loopIteration.value += 1;
+            return;
+          }
 
-        pause();
-      }
-    }, Math.max(20, Math.round(intervalMs / Math.max(0.001, speed.value))));
+          pause();
+        }
+      },
+      Math.max(20, Math.round(intervalMs / Math.max(0.001, speed.value))),
+    );
   }
 
   function play() {
@@ -67,6 +74,11 @@ export function usePlayback(
     index.value = Math.max(0, Math.min(i, maxIndex));
   }
 
+  function reset() {
+    index.value = 0;
+    loopIteration.value = 0;
+  }
+
   watch(snapshotsRef, () => {
     const len = snapshotsRef?.value?.length ?? 0;
     if (index.value >= len) {
@@ -83,11 +95,13 @@ export function usePlayback(
     playing,
     speed,
     total,
+    loopIteration,
     play,
     pause,
     toggle,
     stepForward,
     stepBack,
     seek,
+    reset,
   };
 }

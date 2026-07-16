@@ -4,26 +4,26 @@
       class="scrubber-range"
       type="range"
       :min="0"
-      :max="Math.max(total - 1, 0)"
-      :value="index"
+      :max="Math.max(total, 0)"
+      :value="currentTime"
       @input="onInput"
     />
     <div class="scrubber-info">
-      <span>{{ index }}</span>
-      <span>/</span>
+      <span>{{ currentTime }}</span>
+      <span> | </span>
       <span>{{ total }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ total: number; index: number }>();
-const emit = defineEmits<{ (e: 'seek', index: number): void }>();
+const props = defineProps<{ total: number; currentTime: number }>();
+const emit = defineEmits<{ (e: "seek", time: number): void }>();
 
 function onInput(e: Event) {
   const target = e.target as HTMLInputElement;
   const value = Number(target.value || 0);
-  emit('seek', value);
+  emit("seek", value);
 }
 </script>
 

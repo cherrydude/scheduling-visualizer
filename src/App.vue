@@ -71,7 +71,7 @@
             @segmentLeave="onSegmentLeave"
             @segmentClick="onSegmentClick"
           />
-<!--           <svg
+          <!--           <svg
             :viewBox="ganttViewBox"
             class="gantt-svg"
             role="img"
@@ -136,11 +136,14 @@
 
         <div class="timeline-caption">
           <span>Aktuelle Zeit: {{ currentSnapshot?.time ?? 0 }}</span>
-          <span>Step: {{ currentStepIndex + 1 }} / {{ totalSnapshots }}</span>
           <span>Queue: {{ currentSnapshot?.readyQueue.length ?? 0 }}</span>
         </div>
 
-        <Scrubber :total="totalSnapshots" :index="currentStepIndex" @seek="seekTo" />
+        <Scrubber
+          :total="timelineEnd"
+          :index="currentStepIndex"
+          @seek="seekTo"
+        />
       </section>
 
       <aside class="side-column">
@@ -151,7 +154,13 @@
           </div>
 
           <div class="stack-area">
-            <StackList v-if="stackItems.length" :items="stackItems" :maxVisible="6" :activeId="currentSnapshot?.currentProcessId ?? null" aria-label="Process queue" />
+            <StackList
+              v-if="stackItems.length"
+              :items="stackItems"
+              :maxVisible="6"
+              :activeId="currentSnapshot?.currentProcessId ?? null"
+              aria-label="Process queue"
+            />
           </div>
 
           <p class="note-text">{{ simulationNote }}</p>
@@ -209,7 +218,13 @@
       </section>
     </main>
 
-    <Tooltip :x="tooltip.x" :y="tooltip.y" :visible="tooltip.visible" :title="tooltip.title" :subtitle="tooltip.subtitle" />
+    <Tooltip
+      :x="tooltip.x"
+      :y="tooltip.y"
+      :visible="tooltip.visible"
+      :title="tooltip.title"
+      :subtitle="tooltip.subtitle"
+    />
 
     <section
       v-if="showModal"
@@ -392,11 +407,11 @@ import {
 } from "vue";
 import gsap from "gsap";
 import { createSeededScenarioProcesses, simulateScenario } from "@/simulation";
-import Scrubber from '@/components/Scrubber.vue';
-import Tooltip from '@/components/Tooltip.vue';
+import Scrubber from "@/components/Scrubber.vue";
+import Tooltip from "@/components/Tooltip.vue";
 import Gantt from "./components/Gantt.vue";
 import StackList from "./components/StackList.vue";
-import { usePlayback } from '@/composables/usePlayback';
+import { usePlayback } from "@/composables/usePlayback";
 import type {
   AlgorithmType,
   ProcessInput,
@@ -440,8 +455,6 @@ const algorithmOptions: ScenarioOption[] = [
   { label: "Strict Priority", value: "strictPriority" },
   { label: "MLFQ", value: "mlfq" },
 ];
-
-
 
 const presetScenarios: Record<string, ScenarioDraft> = {
   classroom: {
@@ -575,19 +588,27 @@ const totalSnapshots = computed(() => runState.value?.snapshots.length ?? 0);
 const currentSnapshot = computed<SimulationSnapshot | null>(
   () =>
     runState.value?.snapshots[currentStepIndex.value] ??
-    runState.value?.snapshots.at(-1) ??
+    runState.value?.snapshots[runState.value.snapshots.length - 1] ??
     null,
 );
-const canStepForward = computed(
-  () => currentStepIndex.value < Math.max(totalSnapshots.value - 1, 0),
-);
 const visibleSegments = computed(() => runState.value?.segments ?? []);
+const timelineEnd = computed(() =>
+  visibleSegments.value.reduce((max, segment) => Math.max(max, segment.end), 0),
+);
+const canStepForward = computed(
+  () => currentStepIndex.value < timelineEnd.value,
+);
 const tickMarks = computed(() => {
-  const time = Math.max(runState.value?.totalTime ?? 8, 8);
+  const time = Math.max(timelineEnd.value, 8);
   return Array.from({ length: time + 1 }, (_, index) => index);
 });
 // --- Stable stack: initialize once, update only on top-change ---
-type StackItem = { id: string; title: string; subtitle?: string; color?: string };
+type StackItem = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  color?: string;
+};
 
 const stableStackIds = ref<string[]>([]);
 const stackItems = ref<StackItem[]>([]);
@@ -604,7 +625,9 @@ function findProcessMeta(pid?: string | null) {
 
 function isProcessDone(pid: string, snap: SimulationSnapshot | null) {
   if (!snap) return false;
-  return !visibleSegments.value.some((s) => s.processId === pid && s.end > snap.time);
+  return !visibleSegments.value.some(
+    (s) => s.processId === pid && s.end > snap.time,
+  );
 }
 
 function buildInitialOrder(snap: SimulationSnapshot | null, max = 8) {
@@ -641,8 +664,10 @@ function writeStackFromIds(ids: string[], max = 8) {
   stackItems.value = stableStackIds.value.map((pid) => {
     const meta = findProcessMeta(pid);
     const nextSeg =
-      visibleSegments.value.find((s) => s.processId === pid && s.end > (currentSnapshot.value?.time ?? 0)) ??
-      visibleSegments.value.find((s) => s.processId === pid);
+      visibleSegments.value.find(
+        (s) =>
+          s.processId === pid && s.end > (currentSnapshot.value?.time ?? 0),
+      ) ?? visibleSegments.value.find((s) => s.processId === pid);
     const subtitle = nextSeg ? `t ${nextSeg.start}–${nextSeg.end}` : `t done`;
     return { id: pid, title: meta.name, subtitle, color: meta.color };
   });
@@ -696,7 +721,11 @@ watch(
     const fillIds: string[] = [];
     for (const s of visibleSegments.value) {
       if (stableStackIds.value.length + fillIds.length >= max) break;
-      if (s.processId && stableStackIds.value.indexOf(s.processId) === -1 && !fillIds.includes(s.processId)) {
+      if (
+        s.processId &&
+        stableStackIds.value.indexOf(s.processId) === -1 &&
+        !fillIds.includes(s.processId)
+      ) {
         fillIds.push(s.processId);
       }
     }
@@ -787,7 +816,7 @@ const recentEvents = computed<ScheduleEvent[]>(
 );
 const ganttViewBox = computed(
   () =>
-    `0 0 ${Math.max((runState.value?.totalTime ?? 12) * cellWidth + 100, 860)} ${chartHeight}`,
+    `0 0 ${Math.max(timelineEnd.value * cellWidth + 100, 860)} ${chartHeight}`,
 );
 
 // Playback composable bridges snapshots -> UI index/time
@@ -795,20 +824,32 @@ const snapshotsRef = computed(() => runState.value?.snapshots ?? []);
 const playback = usePlayback(snapshotsRef, { intervalMs: 750 });
 
 // keep currentStepIndex and playback.index in sync
-watch(() => playback.index.value, (v) => {
-  currentStepIndex.value = v;
-});
+watch(
+  () => playback.index.value,
+  (v) => {
+    currentStepIndex.value = v;
+  },
+);
 
 watch(currentStepIndex, (v) => {
   if (playback.index.value !== v) playback.seek(v);
 });
 
-watch(() => playback.playing.value, (v) => {
-  isPlaying.value = v;
-});
+watch(
+  () => playback.playing.value,
+  (v) => {
+    isPlaying.value = v;
+  },
+);
 
 // Tooltip state for gantt interactions
-const tooltip = reactive({ visible: false, x: 0, y: 0, title: '', subtitle: '' });
+const tooltip = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  title: "",
+  subtitle: "",
+});
 
 function seekTo(index: number) {
   playback.seek(index);
