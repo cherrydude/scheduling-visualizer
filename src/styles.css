@@ -79,6 +79,29 @@ select {
   padding: 1rem 1.2rem;
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.topbar-brand {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.topbar-brand strong {
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+}
+
+.topbar-brand span {
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+
 .eyebrow {
   margin: 0 0 0.25rem;
   font-size: 0.76rem;
@@ -158,6 +181,18 @@ select {
 .status-card {
   padding: 0.9rem 1rem;
   min-height: 92px;
+}
+
+.status-card--clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-card--clickable:hover,
+.status-card--clickable:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.28);
 }
 
 .status-label {

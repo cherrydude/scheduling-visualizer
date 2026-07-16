@@ -18,6 +18,10 @@ export interface ScenarioDraft {
   processes: ProcessInput[];
 }
 
+export interface ScenarioUpdateDraft extends ScenarioDraft {
+  id: string;
+}
+
 export interface ScenarioRecord extends ScenarioDraft {
   id: string;
   runs: ScenarioRunRecord[];
@@ -73,6 +77,27 @@ function normalizeRun(
         ? (run as ScenarioRunRecord).id
         : fallbackId || createId("run"),
     ...attachment,
+  };
+}
+
+function normalizeScenarioDraft(
+  record: Partial<ScenarioUpdateDraft>,
+): ScenarioUpdateDraft {
+  return {
+    id:
+      typeof record.id === "string" && record.id
+        ? record.id
+        : createId("scenario"),
+    title: record.title || "Benutzer-Szenario",
+    description:
+      record.description || "Vom Szenario-Generator erstelltes Beispiel.",
+    seed: Number.isFinite(record.seed) ? Number(record.seed) : 17,
+    tickSize: Number.isFinite(record.tickSize)
+      ? Math.max(1, Number(record.tickSize))
+      : 1,
+    processes: Array.isArray(record.processes)
+      ? cloneProcesses(record.processes)
+      : [],
   };
 }
 
@@ -249,6 +274,26 @@ export function useScenarioWorkspace() {
     syncPersistence();
   }
 
+  function updateScenario(draft: ScenarioUpdateDraft): void {
+    scenarios.value = scenarios.value.map((scenario) =>
+      scenario.id === draft.id
+        ? {
+            ...scenario,
+            title: draft.title || scenario.title,
+            description: draft.description || scenario.description,
+            seed: Number.isFinite(draft.seed)
+              ? Number(draft.seed)
+              : scenario.seed,
+            tickSize: Number.isFinite(draft.tickSize)
+              ? Math.max(1, Number(draft.tickSize))
+              : scenario.tickSize,
+            processes: cloneProcesses(draft.processes),
+          }
+        : scenario,
+    );
+    syncPersistence();
+  }
+
   function deleteScenario(id: string): void {
     scenarios.value = scenarios.value.filter((scenario) => scenario.id !== id);
     if (activeScenarioId.value === id) {
@@ -418,6 +463,7 @@ export function useScenarioWorkspace() {
     createScenario,
     selectScenario,
     renameScenario,
+    updateScenario,
     deleteScenario,
     duplicateScenario,
     applyAlgorithm,

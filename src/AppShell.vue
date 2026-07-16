@@ -7,7 +7,9 @@
       :scenarioTitle="activeScenario?.title"
       :initialAlgorithm="algorithmModalSeed?.algorithm"
       :initialAlgorithmParams="algorithmModalSeed?.algorithmParams"
-      :confirmLabel="activeRun ? 'Run anlegen' : 'Algorithmus anwenden'"
+      :confirmLabel="
+        algorithmModalMode === 'edit' ? 'Run anpassen' : 'Algorithmus anwenden'
+      "
       @close="showAlgorithmModal = false"
       @confirm="confirmAlgorithm"
     />
@@ -19,7 +21,7 @@
     >
       <div class="modal panel" ref="generatorModalRef" tabindex="-1">
         <div class="section-header">
-          <h2>Szenario-Generator</h2>
+          <h2>{{ generatorModalTitle }}</h2>
           <button
             class="secondary-button"
             type="button"
@@ -107,26 +109,33 @@
                 </div>
 
                 <div
-                  v-for="(process, index) in draft.processes"
-                  :key="process.id"
                   class="process-row"
+                  v-for="(process, index) in draft.processes"
+                  :key="`${process.id}-${index}`"
                 >
-                  <input v-model="process.id" type="text" />
-                  <input v-model="process.name" type="text" />
+                  <input v-model="process.id" type="text" placeholder="P1" />
+                  <input
+                    v-model="process.name"
+                    type="text"
+                    placeholder="Name"
+                  />
                   <input
                     v-model.number="process.arrivalTime"
                     type="number"
                     min="0"
+                    placeholder="0"
                   />
                   <input
                     v-model.number="process.burstTime"
                     type="number"
                     min="1"
+                    placeholder="5"
                   />
                   <input
                     v-model.number="process.priority"
                     type="number"
-                    min="1"
+                    min="0"
+                    placeholder="1"
                   />
                   <input v-model="process.color" type="color" />
                   <button
@@ -134,7 +143,7 @@
                     type="button"
                     @click="removeProcess(index)"
                   >
-                    -
+                    ×
                   </button>
                 </div>
               </div>
@@ -142,24 +151,10 @@
 
             <div class="button-row submit-row">
               <button class="primary-button" type="submit">
-                Szenario uebernehmen
+                {{ generatorSubmitLabel }}
               </button>
             </div>
           </form>
-
-          <aside class="modal-help panel soft-panel">
-            <h3>Hinweis</h3>
-            <p>
-              Der Generator erstellt nur die Prozess-Struktur. Die Auswahl des
-              Algorithmus erfolgt separat ueber den Button „Algorithmus
-              anwenden“ in der Fokusansicht.
-            </p>
-            <p>
-              Szenarien werden in diesem Schritt bereits als eigenstaendige
-              Container gespeichert, damit sie spaeter sauber fuer Vergleiche
-              genutzt werden koennen.
-            </p>
-          </aside>
         </div>
       </div>
     </section>
@@ -177,21 +172,14 @@
           @about="navigate('/about')"
           @knowledge="navigate('/wissen')"
         />
-
-        <div>
-          <p class="eyebrow">Scheduling Visualizer</p>
-          <h1>{{ headerTitle }}</h1>
+        <div class="topbar-brand">
+          <strong>{{ headerTitle }}</strong>
+          <span v-if="isHome">Scheduling Visualizer</span>
+          <span v-else>Navigation und Wissen</span>
         </div>
       </div>
 
       <div v-if="isHome" class="topbar-actions">
-        <button
-          class="secondary-button"
-          type="button"
-          @click="openGeneratorModal"
-        >
-          Szenario
-        </button>
         <button
           class="primary-button"
           type="button"
@@ -236,8 +224,25 @@
       <section class="panel status-strip">
         <article
           class="status-card"
+          :class="{
+            'status-card--clickable':
+              card.label === 'Szenario' || card.label === 'Algorithmus',
+          }"
           v-for="card in statusCards"
           :key="card.label"
+          :role="
+            card.label === 'Szenario' || card.label === 'Algorithmus'
+              ? 'button'
+              : undefined
+          "
+          :tabindex="
+            card.label === 'Szenario' || card.label === 'Algorithmus'
+              ? 0
+              : undefined
+          "
+          @click="handleStatusCardClick(card.label)"
+          @keydown.enter.prevent="handleStatusCardClick(card.label)"
+          @keydown.space.prevent="handleStatusCardClick(card.label)"
         >
           <span class="status-label">{{ card.label }}</span>
           <strong>{{ card.value }}</strong>
@@ -251,10 +256,18 @@
           <span>{{ focusSubtitle }}</span>
         </div>
 
-        <div v-if="!activeScenario" class="empty-state">
+        <div v-if="!activeScenario" class="empty-state empty-state--actions">
           <strong>Bitte Szenario erstellen</strong>
           <p>
-            Oeffne das Burgermenue oben links und lege zuerst ein Szenario an.
+            Oeffne das Burgermenue oben links und lege zuerst ein Szenario an
+            oder drücke hier:
+            <button
+              class="inline-link-button"
+              type="button"
+              @click="openGeneratorModal"
+            >
+              +
+            </button>
           </p>
         </div>
 
@@ -269,7 +282,7 @@
                   class="icon-button"
                   type="button"
                   aria-label="Aktiven Algorithmus anpassen"
-                  @click="openAlgorithmModal"
+                  @click="openAlgorithmModal('edit')"
                 >
                   ✎
                 </button>
@@ -278,7 +291,7 @@
             <button
               class="primary-button"
               type="button"
-              @click="openAlgorithmModal"
+              @click="openAlgorithmModal('create')"
             >
               {{
                 activeRun ? "+ weiteren Algorithmus" : "+ Algorithmus anwenden"
@@ -508,6 +521,7 @@ const {
   createScenario,
   selectScenario,
   renameScenario,
+  updateScenario,
   deleteScenario,
   duplicateScenario,
   applyAlgorithm,
@@ -603,6 +617,8 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
 const showWelcomeModal = ref(false);
 const showGeneratorModal = ref(false);
 const showAlgorithmModal = ref(false);
+const generatorMode = ref<"create" | "edit">("create");
+const algorithmModalMode = ref<"create" | "edit">("create");
 const algorithmModalSeed = ref<{
   algorithm: AlgorithmType;
   algorithmParams: {
@@ -618,12 +634,40 @@ const loopPlayback = ref(false);
 
 const draft = reactive<ScenarioDraft>(createBlankScenarioDraft());
 
+const generatorModalTitle = computed(() =>
+  generatorMode.value === "edit" ? "Szenario bearbeiten" : "Szenario-Generator",
+);
+
+const generatorSubmitLabel = computed(() =>
+  generatorMode.value === "edit"
+    ? "Szenario speichern"
+    : "Szenario uebernehmen",
+);
+
 function cloneDraft(source: ScenarioDraft): void {
   draft.title = source.title;
   draft.description = source.description;
   draft.seed = source.seed;
   draft.tickSize = source.tickSize;
   draft.processes = source.processes.map((process) => ({ ...process }));
+}
+
+function openScenarioEditModal(): void {
+  if (!activeScenario.value) {
+    return;
+  }
+
+  generatorMode.value = "edit";
+  cloneDraft({
+    title: activeScenario.value.title,
+    description: activeScenario.value.description,
+    seed: activeScenario.value.seed,
+    tickSize: activeScenario.value.tickSize,
+    processes: activeScenario.value.processes.map((process) => ({
+      ...process,
+    })),
+  });
+  showGeneratorModal.value = true;
 }
 
 cloneDraft(scenarioPresets.classroom);
@@ -960,6 +1004,21 @@ const statusCards = computed<MetricCard[]>(() => [
   },
 ]);
 
+function handleStatusCardClick(label: string): void {
+  if (label === "Szenario") {
+    if (activeScenario.value) {
+      openScenarioEditModal();
+    } else {
+      openGeneratorModal();
+    }
+    return;
+  }
+
+  if (label === "Algorithmus") {
+    openAlgorithmModal(activeRun.value ? "edit" : "create");
+  }
+}
+
 const metricCards = computed<MetricCard[]>(() => {
   const metrics =
     currentSnapshot.value?.metrics ?? runState.value?.finalMetrics;
@@ -1111,6 +1170,8 @@ function closeWelcomeModal(): void {
 }
 
 function openGeneratorModal(): void {
+  generatorMode.value = "create";
+  cloneDraft(createBlankScenarioDraft());
   showGeneratorModal.value = true;
   navigate("/");
 }
@@ -1119,11 +1180,12 @@ function closeGeneratorModal(): void {
   showGeneratorModal.value = false;
 }
 
-function openAlgorithmModal(): void {
+function openAlgorithmModal(mode: "create" | "edit"): void {
   if (!activeScenario.value) {
     return;
   }
 
+  algorithmModalMode.value = mode;
   algorithmModalSeed.value = activeRun.value
     ? {
         algorithm: activeRun.value.algorithm,
@@ -1157,11 +1219,12 @@ function confirmAlgorithm(payload: {
     return;
   }
 
-  if (activeRun.value) {
+  if (algorithmModalMode.value === "edit" && activeRun.value) {
     updateActiveRun(payload);
   } else {
     createRun(payload);
   }
+  algorithmModalMode.value = "create";
   algorithmModalSeed.value = null;
   showAlgorithmModal.value = false;
   resetPlayback();
@@ -1351,19 +1414,31 @@ function removeProcess(index: number): void {
 }
 
 function saveScenario(): void {
-  const scenario = createScenario({
+  const scenarioPayload = {
     title: draft.title || "Benutzer-Szenario",
     description:
       draft.description || "Vom Szenario-Generator erstelltes Beispiel.",
     seed: draft.seed,
     tickSize: draft.tickSize,
     processes: draft.processes.map((process) => ({ ...process })),
-  });
+  };
+
+  const scenario =
+    generatorMode.value === "edit" && activeScenario.value
+      ? (() => {
+          updateScenario({
+            id: activeScenario.value.id,
+            ...scenarioPayload,
+          });
+          return activeScenario.value;
+        })()
+      : createScenario(scenarioPayload);
 
   showGeneratorModal.value = false;
   navigate("/");
   resetPlayback();
   activeScenarioId.value = scenario.id;
+  generatorMode.value = "create";
 }
 
 onMounted(() => {
