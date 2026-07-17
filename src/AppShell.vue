@@ -5,6 +5,12 @@
     <AlgorithmPickerModal
       :modelValue="showAlgorithmModal"
       :scenarioTitle="activeScenario?.title"
+      :modalTitle="
+        algorithmModalMode === 'edit'
+          ? 'Algorithmus bearbeiten'
+          : 'Algorithmus anwenden'
+      "
+      :runLabel="activeRunIndex >= 0 ? String(activeRunIndex + 1) : undefined"
       :initialAlgorithm="algorithmModalSeed?.algorithm"
       :initialAlgorithmParams="algorithmModalSeed?.algorithmParams"
       :confirmLabel="

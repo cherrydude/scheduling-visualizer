@@ -4,13 +4,14 @@
       class="modal panel algorithm-modal"
       role="dialog"
       aria-modal="true"
-      aria-label="Algorithmus anwenden"
+      :aria-label="modalTitle"
     >
       <div class="section-header">
         <div>
-          <h2>Algorithmus anwenden</h2>
-          <p class="subtitle" v-if="scenarioTitle">
-            Szenario: {{ scenarioTitle }}
+          <h2>{{ modalTitle }}</h2>
+          <p class="subtitle subtitle-meta" v-if="scenarioTitle || runLabel">
+            <span v-if="scenarioTitle">Szenario: {{ scenarioTitle }}</span>
+            <span v-if="runLabel">Run: {{ runLabel }}</span>
           </p>
         </div>
         <button class="secondary-button" type="button" @click="$emit('close')">
@@ -18,49 +19,67 @@
         </button>
       </div>
 
-      <form class="form-grid" @submit.prevent="submitForm">
-        <label>
-          <span>Algorithmus</span>
-          <select v-model="algorithm">
-            <option value="roundRobin">Round Robin</option>
-            <option value="lcfs">LCFS</option>
-            <option value="strictPriority">Strict Priority</option>
-            <option value="mlfq">MLFQ</option>
-          </select>
-        </label>
+      <div class="modal-layout algorithm-modal-layout">
+        <form class="form-grid algorithm-form" @submit.prevent="submitForm">
+          <label class="algorithm-field">
+            <span>Algorithmus</span>
+            <select v-model="algorithm" class="algorithm-control">
+              <option value="roundRobin">Round Robin</option>
+              <option value="lcfs">LCFS</option>
+              <option value="strictPriority">Strict Priority</option>
+              <option value="mlfq">MLFQ</option>
+            </select>
+          </label>
 
-        <label>
-          <span>Zeitscheibe</span>
-          <input v-model.number="timeQuantum" type="number" min="1" />
-        </label>
+          <label v-if="algorithm === 'roundRobin'" class="algorithm-field">
+            <span>Zeitscheibe (Quantum)</span>
+            <input
+              v-model.number="timeQuantum"
+              class="algorithm-control"
+              type="number"
+              min="1"
+            />
+          </label>
 
-        <label>
-          <span>Snapshot-Intervall</span>
-          <input v-model.number="snapshotInterval" type="number" min="1" />
-        </label>
+          <p v-else class="subtitle">
+            Fuer diesen Algorithmus sind im aktuellen Stand keine zusaetzlichen
+            Einstellwerte aktiv.
+          </p>
 
-        <label>
-          <span>Queue-Stufen</span>
-          <input v-model.number="queueLevels" type="number" min="1" />
-        </label>
+          <div class="button-row submit-row">
+            <button class="primary-button" type="submit">
+              {{ confirmLabel }}
+            </button>
+          </div>
+        </form>
 
-        <div class="button-row submit-row">
-          <button class="primary-button" type="submit">
-            Algorithmus anwenden
-          </button>
-        </div>
-      </form>
+        <aside class="modal-help panel soft-panel algorithm-info-panel">
+          <h3>{{ algorithmInfo.title }}</h3>
+          <p>{{ algorithmInfo.description }}</p>
+
+          <h4>Parameterwirkung</h4>
+          <ul class="algorithm-info-list">
+            <li v-for="item in algorithmInfo.parameterImpact" :key="item">
+              {{ item }}
+            </li>
+          </ul>
+
+          <p class="algorithm-info-note">{{ algorithmInfo.note }}</p>
+        </aside>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import type { AlgorithmType } from "@/types";
 
 const props = defineProps<{
   modelValue: boolean;
   scenarioTitle?: string;
+  modalTitle?: string;
+  runLabel?: string;
   initialAlgorithm?: AlgorithmType;
   initialAlgorithmParams?: {
     timeQuantum: number;
@@ -89,6 +108,64 @@ const algorithm = ref<AlgorithmType>("roundRobin");
 const timeQuantum = ref(2);
 const snapshotInterval = ref(1);
 const queueLevels = ref(3);
+
+const confirmLabel = computed(
+  () => props.confirmLabel ?? "Algorithmus anwenden",
+);
+
+const modalTitle = computed(() => props.modalTitle ?? "Algorithmus anwenden");
+
+const algorithmInfo = computed(() => {
+  if (algorithm.value === "roundRobin") {
+    return {
+      title: "Round Robin",
+      description:
+        "Alle Prozesse erhalten reihum CPU-Zeit. Nach Ablauf des Quantums wird der laufende Prozess, falls nicht fertig, wieder hinten in die Ready Queue eingeordnet.",
+      parameterImpact: [
+        "Zeitscheibe (Quantum): Kleinere Werte erhoehen Reaktionsfaehigkeit, aber auch Kontextwechsel.",
+        "Zeitscheibe (Quantum): Groessere Werte reduzieren Kontextwechsel, koennen aber lange Wartezeiten fuer andere Prozesse erzeugen.",
+      ],
+      note: "Snapshot-Intervall beeinflusst nur die Dichte der Visualisierungs-Snapshots. Queue-Stufen werden fuer Round Robin derzeit nicht verwendet.",
+    };
+  }
+
+  if (algorithm.value === "lcfs") {
+    return {
+      title: "LCFS",
+      description:
+        "Last Come, First Served bevorzugt den zuletzt eingetroffenen Prozess. Das kann frische Jobs schnell machen, aber aeltere Prozesse benachteiligen.",
+      parameterImpact: [
+        "Derzeit sind keine zusaetzlichen Steuerparameter aktiv.",
+        "Snapshot-Intervall/Queue-Stufen sind momentan ohne Einfluss auf die Berechnung.",
+      ],
+      note: "LCFS ist als Auswahl bereits vorhanden, die vollständige Simulationslogik folgt in einem spaeteren Schritt.",
+    };
+  }
+
+  if (algorithm.value === "strictPriority") {
+    return {
+      title: "Strict Priority",
+      description:
+        "Prozesse mit hoeherer Prioritaet werden strikt vor niedrigeren priorisiert. Das verbessert kritische Jobs, kann aber Starvation verursachen.",
+      parameterImpact: [
+        "Derzeit sind keine zusaetzlichen Steuerparameter aktiv.",
+        "Snapshot-Intervall/Queue-Stufen sind momentan ohne Einfluss auf die Berechnung.",
+      ],
+      note: "Strict Priority ist vorbereitet und wird nach Round Robin vollstaendig integriert.",
+    };
+  }
+
+  return {
+    title: "MLFQ",
+    description:
+      "Multi-Level Feedback Queue verteilt Prozesse auf mehrere Warteschlangen je nach Laufverhalten und priorisiert kuerzere/interaktive Jobs.",
+    parameterImpact: [
+      "Queue-Stufen sind konzeptionell zentral fuer MLFQ, im aktuellen Build aber noch nicht aktiv.",
+      "Snapshot-Intervall beeinflusst nur die Visualisierungsdichte.",
+    ],
+    note: "MLFQ ist als naechster Ausbaupfad vorgesehen; die Kernparameter werden mit der finalen MLFQ-Logik freigeschaltet.",
+  };
+});
 
 function submitForm() {
   emit("confirm", {
@@ -119,12 +196,71 @@ watch(
 
 <style scoped>
 .algorithm-modal {
-  max-width: 540px;
+  max-width: 980px;
   margin: 0 auto;
+}
+
+.algorithm-modal-layout {
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+}
+
+.algorithm-form {
+  align-content: start;
+}
+
+.algorithm-form .submit-row {
+  justify-content: flex-start;
+}
+
+.algorithm-field {
+  width: min(100%, 560px);
+}
+
+.algorithm-control {
+  min-height: 42px;
+  padding: 0.58rem 0.72rem;
+  border-radius: 11px;
 }
 
 .subtitle {
   margin: 4px 0 0;
   color: #94a3b8;
+}
+
+.subtitle-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+}
+
+.algorithm-info-panel {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.algorithm-info-panel h3,
+.algorithm-info-panel h4 {
+  margin: 0;
+}
+
+.algorithm-info-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.4rem;
+  color: #cbd5e1;
+}
+
+.algorithm-info-note {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 1100px) {
+  .algorithm-modal-layout {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
