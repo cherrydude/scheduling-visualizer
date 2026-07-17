@@ -41,10 +41,30 @@
             />
           </label>
 
-          <p v-else class="subtitle">
-            Fuer diesen Algorithmus sind im aktuellen Stand keine zusaetzlichen
-            Einstellwerte aktiv.
-          </p>
+          <template v-else-if="algorithm === 'lcfs'">
+            <label class="algorithm-field">
+              <span>Variante</span>
+              <select v-model="lcfsMode" class="algorithm-control">
+                <option value="preemptive">Preemptive</option>
+                <option value="nonPreemptive">Non-preemptive</option>
+              </select>
+            </label>
+
+            <label class="algorithm-field">
+              <span>Tie-Break</span>
+              <select v-model="lcfsTieBreak" class="algorithm-control">
+                <option value="stack">Stack-Reihenfolge</option>
+                <option value="id">Prozess-ID</option>
+              </select>
+            </label>
+          </template>
+
+          <template v-else>
+            <p class="subtitle">
+              Fuer diesen Algorithmus sind im aktuellen Stand keine
+              zusaetzlichen Einstellwerte aktiv.
+            </p>
+          </template>
 
           <div class="button-row submit-row">
             <button class="primary-button" type="submit">
@@ -85,6 +105,8 @@ const props = defineProps<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    lcfsMode?: "preemptive" | "nonPreemptive";
+    lcfsTieBreak?: "stack" | "id";
   };
   confirmLabel?: string;
 }>();
@@ -99,6 +121,8 @@ const emit = defineEmits<{
         timeQuantum: number;
         snapshotInterval: number;
         queueLevels: number;
+        lcfsMode?: "preemptive" | "nonPreemptive";
+        lcfsTieBreak?: "stack" | "id";
       };
     },
   ): void;
@@ -108,6 +132,8 @@ const algorithm = ref<AlgorithmType>("roundRobin");
 const timeQuantum = ref(2);
 const snapshotInterval = ref(1);
 const queueLevels = ref(3);
+const lcfsMode = ref<"preemptive" | "nonPreemptive">("preemptive");
+const lcfsTieBreak = ref<"stack" | "id">("stack");
 
 const confirmLabel = computed(
   () => props.confirmLabel ?? "Algorithmus anwenden",
@@ -133,12 +159,12 @@ const algorithmInfo = computed(() => {
     return {
       title: "LCFS",
       description:
-        "Last Come, First Served bevorzugt den zuletzt eingetroffenen Prozess. Das kann frische Jobs schnell machen, aber aeltere Prozesse benachteiligen.",
+        "Last Come, First Served bevorzugt den zuletzt eingetroffenen Prozess. Neue Ankünfte werden wie bei einem Stack behandelt und koennen den laufenden Prozess je nach Variante direkt verdrängen.",
       parameterImpact: [
-        "Derzeit sind keine zusaetzlichen Steuerparameter aktiv.",
-        "Snapshot-Intervall/Queue-Stufen sind momentan ohne Einfluss auf die Berechnung.",
+        "Variante: Preemptive LCFS unterbricht den laufenden Prozess bei neuer Ankunft, Non-preemptive erst nach Abschluss.",
+        "Tie-Break: Stack-Reihenfolge bevorzugt die zuletzt eingefuegten Prozesse, ID sorgt fuer stabile, alphabetische Entscheidung bei Gleichstand.",
       ],
-      note: "LCFS ist als Auswahl bereits vorhanden, die vollständige Simulationslogik folgt in einem spaeteren Schritt.",
+      note: "LCFS ist als Auswahl bereits vorhanden; die hier gewaehlten Optionen sind fuer die spaetere Simulationslogik vorgesehen.",
     };
   }
 
@@ -174,6 +200,8 @@ function submitForm() {
       timeQuantum: Math.max(1, Math.floor(timeQuantum.value || 1)),
       snapshotInterval: Math.max(1, Math.floor(snapshotInterval.value || 1)),
       queueLevels: Math.max(1, Math.floor(queueLevels.value || 1)),
+      lcfsMode: lcfsMode.value,
+      lcfsTieBreak: lcfsTieBreak.value,
     },
   });
 }
@@ -190,6 +218,8 @@ watch(
     snapshotInterval.value =
       props.initialAlgorithmParams?.snapshotInterval ?? 1;
     queueLevels.value = props.initialAlgorithmParams?.queueLevels ?? 3;
+    lcfsMode.value = props.initialAlgorithmParams?.lcfsMode ?? "preemptive";
+    lcfsTieBreak.value = props.initialAlgorithmParams?.lcfsTieBreak ?? "stack";
   },
 );
 </script>

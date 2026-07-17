@@ -654,6 +654,8 @@ const algorithmModalSeed = ref<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    lcfsMode?: 'preemptive' | 'nonPreemptive';
+    lcfsTieBreak?: 'stack' | 'id';
   };
 } | null>(null);
 const generatorModalRef = ref<HTMLElement | null>(null);
@@ -1230,6 +1232,9 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           snapshotInterval:
             activeRun.value.algorithmParams.snapshotInterval ?? 1,
           queueLevels: activeRun.value.algorithmParams.queueLevels ?? 3,
+          lcfsMode: activeRun.value.algorithmParams.lcfsMode ?? 'preemptive',
+          lcfsTieBreak:
+            activeRun.value.algorithmParams.lcfsTieBreak ?? 'stack',
         },
       }
     : {
@@ -1238,6 +1243,8 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           timeQuantum: 2,
           snapshotInterval: 1,
           queueLevels: 3,
+          lcfsMode: 'preemptive',
+          lcfsTieBreak: 'stack',
         },
       };
   showAlgorithmModal.value = true;
@@ -1249,6 +1256,8 @@ function confirmAlgorithm(payload: {
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    lcfsMode?: 'preemptive' | 'nonPreemptive';
+    lcfsTieBreak?: 'stack' | 'id';
   };
 }): void {
   if (!activeScenario.value) {
@@ -1388,6 +1397,8 @@ function formatAlgorithmParams(
     timeQuantum?: number;
     snapshotInterval?: number;
     queueLevels?: number;
+    lcfsMode?: 'preemptive' | 'nonPreemptive';
+    lcfsTieBreak?: 'stack' | 'id';
   },
 ): string {
   if (algorithm === "roundRobin") {
@@ -1396,6 +1407,12 @@ function formatAlgorithmParams(
 
   if (algorithm === "mlfq") {
     return `Queue-Stufen: ${params.queueLevels ?? 3}`;
+  }
+
+  if (algorithm === "lcfs") {
+    const mode = params.lcfsMode === 'nonPreemptive' ? 'non-preemptive' : 'preemptive';
+    const tieBreak = params.lcfsTieBreak === 'id' ? 'ID' : 'Stack';
+    return `Variante: ${mode} · Tie-Break: ${tieBreak}`;
   }
 
   return "Keine zusaetzlichen Parameter";

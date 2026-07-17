@@ -160,7 +160,10 @@ function dispatchProcess(
     };
   }
 
-  const nextCurrent = readyQueue.shift() ?? null;
+  const nextCurrent =
+    algorithm === "lcfs"
+      ? (readyQueue.pop() ?? null)
+      : (readyQueue.shift() ?? null);
   if (!nextCurrent) {
     return {
       nextCurrent: null,
@@ -199,7 +202,7 @@ function dispatchProcess(
 }
 
 export function simulateScenario(scenario: Scenario): SimulationRun {
-  if (scenario.algorithm !== "roundRobin") {
+  if (scenario.algorithm !== "roundRobin" && scenario.algorithm !== "lcfs") {
     return {
       snapshots: [],
       events: [],
@@ -235,6 +238,8 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     processes.reduce((sum, process) => Math.max(sum, process.arrivalTime), 0) +
     25;
   const quantum = clampInteger(scenario.algorithmParams.timeQuantum ?? 2, 1, 2);
+  const lcfsMode = scenario.algorithmParams.lcfsMode ?? "preemptive";
+  const lcfsTieBreak = scenario.algorithmParams.lcfsTieBreak ?? "stack";
   const snapshotInterval = clampInteger(
     scenario.algorithmParams.snapshotInterval ?? 1,
     1,
@@ -246,11 +251,43 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   let busyTicks = 0;
   let contextSwitches = 0;
   let time = 0;
-  let remainingQuantum = quantum;
+  let remainingQuantum = scenario.algorithm === "roundRobin" ? quantum : 1;
   let completedCount = 0;
   let idleSegmentStart: number | null = null;
   let lastEvent: ScheduleEvent | null = null;
   let lastSnapshotTime = -1;
+
+  const isLcfs = scenario.algorithm === "lcfs";
+
+  function enqueueProcess(process: ProcessRuntime): void {
+    process.status = "ready";
+    readyQueue.push(process);
+  }
+
+  function preemptCurrentProcess(reason: string): void {
+    if (!currentProcess) {
+      return;
+    }
+
+    currentProcess.status = "preempted";
+    pushSegment(time);
+    readyQueue.unshift(currentProcess);
+    const preemptEvent: ScheduleEvent = {
+      time,
+      type: "preempt",
+      processId: currentProcess.id,
+      processName: currentProcess.name,
+      algorithm: scenario.algorithm,
+      fromStatus: "running",
+      toStatus: "preempted",
+      reason,
+    };
+    events.push(preemptEvent);
+    lastEvent = preemptEvent;
+    currentProcess = null;
+    remainingQuantum = scenario.algorithm === "roundRobin" ? quantum : 1;
+    currentSegmentStart = time;
+  }
 
   function maybeSnapshot(force: boolean) {
     if (
@@ -307,11 +344,18 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     idleSegmentStart = null;
   }
 
-  function enqueueArrivals(atTime: number): void {
+  function enqueueArrivals(atTime: number): boolean {
+    const arrivals: ProcessRuntime[] = [];
     while (pending.length && pending[0].arrivalTime <= atTime) {
-      const process = pending.shift() as ProcessRuntime;
-      process.status = "ready";
-      readyQueue.push(process);
+      arrivals.push(pending.shift() as ProcessRuntime);
+    }
+
+    if (isLcfs && lcfsTieBreak === "id") {
+      arrivals.sort((left, right) => right.id.localeCompare(left.id));
+    }
+
+    for (const process of arrivals) {
+      enqueueProcess(process);
 
       const arrivalEvent: ScheduleEvent = {
         time: atTime,
@@ -326,6 +370,8 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       events.push(arrivalEvent);
       lastEvent = arrivalEvent;
     }
+
+    return arrivals.length > 0;
   }
 
   enqueueArrivals(time);
@@ -406,51 +452,17 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     remainingQuantum -= 1;
     time += 1;
 
-    enqueueArrivals(time);
+    const arrivedNow = enqueueArrivals(time);
 
-    if (currentProcess.remainingTime <= 0) {
-      pushSegment(time);
-      finalizeProcess(currentProcess, time);
-      completedCount += 1;
-      const finishEvent: ScheduleEvent = {
-        time,
-        type: "finish",
-        processId: currentProcess.id,
-        processName: currentProcess.name,
-        algorithm: scenario.algorithm,
-        fromStatus: "running",
-        toStatus: "finished",
-        reason: `Process ${currentProcess.name} completed execution.`,
-      };
-      events.push(finishEvent);
-      lastEvent = finishEvent;
-      currentProcess = null;
-      remainingQuantum = quantum;
-      currentSegmentStart = time;
-      pushIdleSegment(time);
-    } else if (remainingQuantum <= 0) {
-      if (readyQueue.length > 0) {
-        currentProcess.status = "preempted";
-        pushSegment(time);
-        readyQueue.push(currentProcess);
-        const preemptEvent: ScheduleEvent = {
-          time,
-          type: "preempt",
-          processId: currentProcess.id,
-          processName: currentProcess.name,
-          algorithm: scenario.algorithm,
-          fromStatus: "running",
-          toStatus: "preempted",
-          reason: `Time quantum expired for ${currentProcess.name}; it returns to the ready queue.`,
-        };
-        events.push(preemptEvent);
-        lastEvent = preemptEvent;
-        currentProcess = null;
-        remainingQuantum = quantum;
-        currentSegmentStart = time;
-      } else {
-        remainingQuantum = quantum;
-      }
+    if (
+      isLcfs &&
+      lcfsMode === "preemptive" &&
+      arrivedNow &&
+      currentProcess.remainingTime > 0
+    ) {
+      preemptCurrentProcess(
+        `New arrival preempts ${currentProcess.name} in LCFS preemptive mode.`,
+      );
     }
 
     if (!currentProcess) {
@@ -483,6 +495,54 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         };
         events.push(startEvent);
         lastEvent = startEvent;
+      }
+
+      maybeSnapshot(false);
+      continue;
+    }
+
+    if (currentProcess.remainingTime <= 0) {
+      pushSegment(time);
+      finalizeProcess(currentProcess, time);
+      completedCount += 1;
+      const finishEvent: ScheduleEvent = {
+        time,
+        type: "finish",
+        processId: currentProcess.id,
+        processName: currentProcess.name,
+        algorithm: scenario.algorithm,
+        fromStatus: "running",
+        toStatus: "finished",
+        reason: `Process ${currentProcess.name} completed execution.`,
+      };
+      events.push(finishEvent);
+      lastEvent = finishEvent;
+      currentProcess = null;
+      remainingQuantum = quantum;
+      currentSegmentStart = time;
+      pushIdleSegment(time);
+    } else if (remainingQuantum <= 0 && scenario.algorithm === "roundRobin") {
+      if (readyQueue.length > 0) {
+        currentProcess.status = "preempted";
+        pushSegment(time);
+        readyQueue.push(currentProcess);
+        const preemptEvent: ScheduleEvent = {
+          time,
+          type: "preempt",
+          processId: currentProcess.id,
+          processName: currentProcess.name,
+          algorithm: scenario.algorithm,
+          fromStatus: "running",
+          toStatus: "preempted",
+          reason: `Time quantum expired for ${currentProcess.name}; it returns to the ready queue.`,
+        };
+        events.push(preemptEvent);
+        lastEvent = preemptEvent;
+        currentProcess = null;
+        remainingQuantum = quantum;
+        currentSegmentStart = time;
+      } else {
+        remainingQuantum = quantum;
       }
     }
 

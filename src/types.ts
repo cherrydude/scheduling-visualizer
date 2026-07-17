@@ -1,4 +1,4 @@
-export type AlgorithmType = 'roundRobin' | 'lcfs' | 'strictPriority' | 'mlfq';
+export type AlgorithmType = "roundRobin" | "lcfs" | "strictPriority" | "mlfq";
 
 export interface ProcessInput {
   id: string;
@@ -15,6 +15,8 @@ export interface AlgorithmParams {
   /** Anzahl Ticks zwischen automatischen Snapshots (1 = jeder Tick) */
   snapshotInterval?: number;
   queueLevels?: number;
+  lcfsMode?: "preemptive" | "nonPreemptive";
+  lcfsTieBreak?: "stack" | "id";
 }
 
 export interface Scenario {
@@ -28,7 +30,14 @@ export interface Scenario {
   processes: ProcessInput[];
 }
 
-export type ProcessStatus = 'pending' | 'ready' | 'running' | 'waiting' | 'blocked' | 'preempted' | 'finished';
+export type ProcessStatus =
+  | "pending"
+  | "ready"
+  | "running"
+  | "waiting"
+  | "blocked"
+  | "preempted"
+  | "finished";
 
 export interface ProcessRuntime extends ProcessInput {
   remainingTime: number;
@@ -41,7 +50,15 @@ export interface ProcessRuntime extends ProcessInput {
   finishedAt: number | null;
 }
 
-export type EventType = 'arrival' | 'dispatch' | 'start' | 'preempt' | 'finish' | 'idle' | 'quantumExpired' | 'contextSwitch';
+export type EventType =
+  | "arrival"
+  | "dispatch"
+  | "start"
+  | "preempt"
+  | "finish"
+  | "idle"
+  | "quantumExpired"
+  | "contextSwitch";
 
 export interface ScheduleEvent {
   time: number;
@@ -49,8 +66,8 @@ export interface ScheduleEvent {
   processId: string | null;
   processName: string | null;
   algorithm: AlgorithmType;
-  fromStatus?: ProcessStatus | 'idle';
-  toStatus?: ProcessStatus | 'idle';
+  fromStatus?: ProcessStatus | "idle";
+  toStatus?: ProcessStatus | "idle";
   reason: string;
 }
 

@@ -57,6 +57,8 @@ function normalizeAlgorithmAttachment(
       timeQuantum: attachment.algorithmParams?.timeQuantum ?? 2,
       snapshotInterval: attachment.algorithmParams?.snapshotInterval ?? 1,
       queueLevels: attachment.algorithmParams?.queueLevels ?? 3,
+      lcfsMode: attachment.algorithmParams?.lcfsMode ?? "preemptive",
+      lcfsTieBreak: attachment.algorithmParams?.lcfsTieBreak ?? "stack",
     },
   };
 }
@@ -340,6 +342,9 @@ export function useScenarioWorkspace() {
                   snapshotInterval:
                     attachment.algorithmParams.snapshotInterval ?? 1,
                   queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+                  lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",
+                  lcfsTieBreak:
+                    attachment.algorithmParams.lcfsTieBreak ?? "stack",
                 },
               },
             ],
@@ -351,6 +356,9 @@ export function useScenarioWorkspace() {
                 snapshotInterval:
                   attachment.algorithmParams.snapshotInterval ?? 1,
                 queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+                lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",
+                lcfsTieBreak:
+                  attachment.algorithmParams.lcfsTieBreak ?? "stack",
               },
             },
           }
@@ -386,6 +394,8 @@ export function useScenarioWorkspace() {
           timeQuantum: attachment.algorithmParams.timeQuantum ?? 2,
           snapshotInterval: attachment.algorithmParams.snapshotInterval ?? 1,
           queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+          lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",
+          lcfsTieBreak: attachment.algorithmParams.lcfsTieBreak ?? "stack",
         },
       };
 
