@@ -253,7 +253,17 @@
       <section class="focus-column panel">
         <div class="section-header">
           <h2>Fokusansicht</h2>
-          <span>{{ focusSubtitle }}</span>
+          <div class="section-header-actions">
+            <span>{{ focusSubtitle }}</span>
+            <button
+              v-if="activeScenario && activeRun"
+              class="primary-button"
+              type="button"
+              @click="openAlgorithmModal('create')"
+            >
+              + weiteren Algorithmus
+            </button>
+          </div>
         </div>
 
         <div v-if="!activeScenario" class="empty-state empty-state--actions">
@@ -272,20 +282,11 @@
         </div>
 
         <template v-else>
-          <div class="scenario-banner">
+          <div v-if="!activeRun" class="scenario-banner">
             <div>
               <strong>Szenario geladen</strong>
               <p class="scenario-line">
                 <span>{{ activeScenario.title }}</span>
-                <button
-                  v-if="activeRun"
-                  class="icon-button"
-                  type="button"
-                  aria-label="Aktiven Algorithmus anpassen"
-                  @click="openAlgorithmModal('edit')"
-                >
-                  ✎
-                </button>
               </p>
             </div>
             <button
@@ -293,9 +294,7 @@
               type="button"
               @click="openAlgorithmModal('create')"
             >
-              {{
-                activeRun ? "+ weiteren Algorithmus" : "+ Algorithmus anwenden"
-              }}
+              + Algorithmus anwenden
             </button>
           </div>
 
