@@ -10,7 +10,11 @@
           ? 'Algorithmus bearbeiten'
           : 'Algorithmus anwenden'
       "
-      :runLabel="activeRunIndex >= 0 ? String(activeRunIndex + 1) : undefined"
+      :runLabel="
+        algorithmModalMode === 'edit' && activeRunIndex >= 0
+          ? String(activeRunIndex + 1)
+          : undefined
+      "
       :initialAlgorithm="algorithmModalSeed?.algorithm"
       :initialAlgorithmParams="algorithmModalSeed?.algorithmParams"
       :confirmLabel="
@@ -250,7 +254,16 @@
           @keydown.enter.prevent="handleStatusCardClick(card.label)"
           @keydown.space.prevent="handleStatusCardClick(card.label)"
         >
-          <span class="status-label">{{ card.label }}</span>
+          <span class="status-label">
+            {{ card.label }}
+            <span
+              v-if="card.showEditIcon"
+              class="status-label-edit"
+              aria-hidden="true"
+            >
+              ✎
+            </span>
+          </span>
           <strong>{{ card.value }}</strong>
           <small>{{ card.help }}</small>
         </article>
@@ -520,6 +533,7 @@ interface MetricCard {
   label: string;
   value: string;
   help: string;
+  showEditIcon?: boolean;
 }
 
 interface ComparisonCard {
@@ -999,13 +1013,20 @@ const statusCards = computed<MetricCard[]>(() => [
     value: activeScenario.value?.title ?? "Kein Szenario",
     help:
       activeScenario.value?.description ?? "Noch kein aktives Szenario geladen",
+    showEditIcon: Boolean(activeScenario.value),
   },
   {
     label: "Algorithmus",
     value: activeRun.value
       ? algorithmName(activeRun.value.algorithm)
       : "Kein Algo",
-    help: activeRun.value ? "Aktiver Run" : "Bitte erst Algorithmus anwenden",
+    help: activeRun.value
+      ? formatAlgorithmParams(
+          activeRun.value.algorithm,
+          activeRun.value.algorithmParams,
+        )
+      : "Bitte erst Algorithmus anwenden",
+    showEditIcon: Boolean(activeRun.value),
   },
   {
     label: "Zeit",
@@ -1359,6 +1380,25 @@ function formatMetric(value: number | null | undefined): string {
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
+}
+
+function formatAlgorithmParams(
+  algorithm: AlgorithmType,
+  params: {
+    timeQuantum?: number;
+    snapshotInterval?: number;
+    queueLevels?: number;
+  },
+): string {
+  if (algorithm === "roundRobin") {
+    return `Quantum: ${params.timeQuantum ?? 2}`;
+  }
+
+  if (algorithm === "mlfq") {
+    return `Queue-Stufen: ${params.queueLevels ?? 3}`;
+  }
+
+  return "Keine zusaetzlichen Parameter";
 }
 
 function algorithmName(algorithm: AlgorithmType): string {

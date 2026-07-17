@@ -204,6 +204,13 @@ select {
   color: #94a3b8;
 }
 
+.status-label-edit {
+  margin-left: 0.35rem;
+  color: #7dd3fc;
+  font-size: 0.82rem;
+  vertical-align: baseline;
+}
+
 .status-card strong,
 .metric-panel strong,
 .compare-card strong {
