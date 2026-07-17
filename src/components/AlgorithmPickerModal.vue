@@ -45,8 +45,8 @@
             <label class="algorithm-field">
               <span>Variante</span>
               <select v-model="lcfsMode" class="algorithm-control">
-                <option value="preemptive">Preemptive</option>
-                <option value="nonPreemptive">Non-preemptive</option>
+                <option value="preemptive">Präemptiv</option>
+                <option value="nonPreemptive">Nicht-präemptiv</option>
               </select>
             </label>
 
@@ -61,8 +61,8 @@
 
           <template v-else>
             <p class="subtitle">
-              Fuer diesen Algorithmus sind im aktuellen Stand keine
-              zusaetzlichen Einstellwerte aktiv.
+              Für diesen Algorithmus sind im aktuellen Stand keine zusätzlichen
+              Einstellwerte aktiv.
             </p>
           </template>
 
@@ -148,10 +148,9 @@ const algorithmInfo = computed(() => {
       description:
         "Alle Prozesse erhalten reihum CPU-Zeit. Nach Ablauf des Quantums wird der laufende Prozess, falls nicht fertig, wieder hinten in die Ready Queue eingeordnet.",
       parameterImpact: [
-        "Zeitscheibe (Quantum): Kleinere Werte erhoehen Reaktionsfaehigkeit, aber auch Kontextwechsel.",
-        "Zeitscheibe (Quantum): Groessere Werte reduzieren Kontextwechsel, koennen aber lange Wartezeiten fuer andere Prozesse erzeugen.",
+        "Zeitscheibe (Quantum): Kleinere Werte erhöhen Reaktionsfaehigkeit, aber auch Kontextwechsel.",
+        "Zeitscheibe (Quantum): Grössere Werte reduzieren Kontextwechsel, können aber lange Wartezeiten für andere Prozesse erzeugen.",
       ],
-      note: "Snapshot-Intervall beeinflusst nur die Dichte der Visualisierungs-Snapshots. Queue-Stufen werden fuer Round Robin derzeit nicht verwendet.",
     };
   }
 
@@ -159,12 +158,11 @@ const algorithmInfo = computed(() => {
     return {
       title: "LCFS",
       description:
-        "Last Come, First Served bevorzugt den zuletzt eingetroffenen Prozess. Neue Ankünfte werden wie bei einem Stack behandelt und koennen den laufenden Prozess je nach Variante direkt verdrängen.",
+        "Last Come, First Served bevorzugt den zuletzt eingetroffenen Prozess. Neue Ankünfte werden wie bei einem Stack behandelt und können den laufenden Prozess je nach Variante direkt verdrängen.",
       parameterImpact: [
-        "Variante: Preemptive LCFS unterbricht den laufenden Prozess bei neuer Ankunft, Non-preemptive erst nach Abschluss.",
-        "Tie-Break: Stack-Reihenfolge bevorzugt die zuletzt eingefuegten Prozesse, ID sorgt fuer stabile, alphabetische Entscheidung bei Gleichstand.",
+        "Variante: Präemptiv LCFS unterbricht den laufenden Prozess bei neuer Ankunft, Nicht-präemptiv erst nach Abschluss.",
+        "Tie-Break: Stack-Reihenfolge bevorzugt die zuletzt eingefügten Prozesse, ID sorgt für stabile, alphabetische Entscheidung bei Gleichstand.",
       ],
-      note: "LCFS ist als Auswahl bereits vorhanden; die hier gewaehlten Optionen sind fuer die spaetere Simulationslogik vorgesehen.",
     };
   }
 

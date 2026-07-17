@@ -1,6 +1,11 @@
 <template>
   <div class="burger-shell" ref="menuRef">
-    <button class="burger-button" type="button" aria-label="Menue" @click="toggleMenu">
+    <button
+      class="burger-button"
+      type="button"
+      aria-label="Menue"
+      @click="toggleMenu"
+    >
       <span></span>
       <span></span>
       <span></span>
@@ -10,7 +15,13 @@
       <div class="burger-section">
         <div class="section-heading">
           <strong>Szenarien</strong>
-          <button class="secondary-button compact" type="button" @click="$emit('create')">+</button>
+          <button
+            class="secondary-button compact"
+            type="button"
+            @click="$emit('create')"
+          >
+            +
+          </button>
         </div>
 
         <div v-if="scenarios.length" class="scenario-list">
@@ -23,14 +34,36 @@
             @click="$emit('select', scenario.id)"
           >
             <span class="scenario-title">{{ scenario.title }}</span>
-            <span class="scenario-meta">{{ scenario.runs.length ? `${scenario.runs.length} Run(s)` : 'kein Algo' }}</span>
+            <span class="scenario-meta">{{
+              scenario.runs.length
+                ? `${scenario.runs.length} Run(s)`
+                : "0 Run(s)"
+            }}</span>
           </button>
         </div>
 
         <div v-if="activeScenarioId" class="scenario-actions">
-          <button type="button" class="link-item" @click="$emit('duplicate', activeScenarioId)">Duplizieren</button>
-          <button type="button" class="link-item" @click="$emit('rename', activeScenarioId)">Umbenennen</button>
-          <button type="button" class="link-item danger" @click="$emit('delete', activeScenarioId)">Loeschen</button>
+          <button
+            type="button"
+            class="link-item"
+            @click="$emit('duplicate', activeScenarioId)"
+          >
+            Duplizieren
+          </button>
+          <button
+            type="button"
+            class="link-item"
+            @click="$emit('rename', activeScenarioId)"
+          >
+            Umbenennen
+          </button>
+          <button
+            type="button"
+            class="link-item danger"
+            @click="$emit('delete', activeScenarioId)"
+          >
+            Löschen
+          </button>
         </div>
 
         <p v-else class="menu-note">Noch kein Szenario angelegt.</p>
@@ -41,16 +74,20 @@
           <strong>Information</strong>
         </div>
 
-        <button type="button" class="link-item" @click="$emit('about')">Über mich</button>
-        <button type="button" class="link-item" @click="$emit('knowledge')">Wissen</button>
+        <button type="button" class="link-item" @click="$emit('about')">
+          Über mich
+        </button>
+        <button type="button" class="link-item" @click="$emit('knowledge')">
+          Wissen
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
-import type { ScenarioRecord } from '@/composables/useScenarioWorkspace';
+import { onBeforeUnmount, onMounted, ref } from "vue";
+import type { ScenarioRecord } from "@/composables/useScenarioWorkspace";
 
 defineProps<{
   scenarios: ScenarioRecord[];
@@ -58,13 +95,13 @@ defineProps<{
 }>();
 
 defineEmits<{
-  (e: 'create'): void;
-  (e: 'select', id: string): void;
-  (e: 'duplicate', id: string): void;
-  (e: 'rename', id: string): void;
-  (e: 'delete', id: string): void;
-  (e: 'about'): void;
-  (e: 'knowledge'): void;
+  (e: "create"): void;
+  (e: "select", id: string): void;
+  (e: "duplicate", id: string): void;
+  (e: "rename", id: string): void;
+  (e: "delete", id: string): void;
+  (e: "about"): void;
+  (e: "knowledge"): void;
 }>();
 
 const open = ref(false);
@@ -81,11 +118,11 @@ function closeMenu(ev: MouseEvent) {
 }
 
 onMounted(() => {
-  document.addEventListener('click', closeMenu);
+  document.addEventListener("click", closeMenu);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', closeMenu);
+  document.removeEventListener("click", closeMenu);
 });
 </script>
 
