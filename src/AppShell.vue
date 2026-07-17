@@ -252,17 +252,40 @@
 
       <section class="focus-column panel">
         <div class="section-header">
-          <h2>Fokusansicht</h2>
-          <div class="section-header-actions">
+          <div class="section-header-main">
+            <h2>Fokusansicht</h2>
+            <div class="run-navigation-row">
+              <div
+                v-if="activeScenario && activeScenario.runs.length > 1"
+                class="run-navigation"
+              >
+                <template
+                  v-for="(run, index) in activeScenario.runs"
+                  :key="run.id"
+                >
+                  <span v-if="index > 0" class="run-separator">|</span>
+                  <button
+                    type="button"
+                    class="run-step"
+                    :class="{ active: index === activeRunIndex }"
+                    @click="selectRun(index)"
+                  >
+                    {{ index + 1 }}
+                  </button>
+                </template>
+              </div>
+              <button
+                v-if="activeScenario && activeRun"
+                class="primary-button"
+                type="button"
+                @click="openAlgorithmModal('create')"
+              >
+                + weiteren Algorithmus
+              </button>
+            </div>
+          </div>
+          <div class="section-header-info">
             <span>{{ focusSubtitle }}</span>
-            <button
-              v-if="activeScenario && activeRun"
-              class="primary-button"
-              type="button"
-              @click="openAlgorithmModal('create')"
-            >
-              + weiteren Algorithmus
-            </button>
           </div>
         </div>
 
@@ -295,19 +318,6 @@
               @click="openAlgorithmModal('create')"
             >
               + Algorithmus anwenden
-            </button>
-          </div>
-
-          <div v-if="activeScenario.runs.length > 1" class="run-navigation">
-            <button
-              v-for="(run, index) in activeScenario.runs"
-              :key="run.id"
-              type="button"
-              class="run-step"
-              :class="{ active: index === activeRunIndex }"
-              @click="selectRun(index)"
-            >
-              {{ index + 1 }}
             </button>
           </div>
 

@@ -248,8 +248,69 @@ select {
   margin-bottom: 1rem;
 }
 
+.section-header-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.run-navigation-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.section-header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .section-header.compact {
   margin-bottom: 0.6rem;
+}
+
+.run-navigation {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.run-separator {
+  color: #7dd3fc;
+  opacity: 0.85;
+  font-weight: 700;
+}
+
+.run-step {
+  color: #7dd3fc;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.run-step:hover,
+.run-step:focus-visible {
+  color: #f8fafc;
+}
+
+.run-step.active {
+  color: #f8fafc;
+  border-bottom-color: #f8fafc;
+}
+
+.run-navigation-row .primary-button {
+  padding: 0.52rem 0.82rem;
+  font-size: 0.88rem;
+  border-radius: 12px;
+  white-space: nowrap;
 }
 
 .gantt-wrap {
