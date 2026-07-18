@@ -355,6 +355,25 @@ select {
   flex-wrap: wrap;
 }
 
+.metrics-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.metrics-grid .metric-panel {
+  padding: 0.9rem 1rem;
+}
+
+.metrics-grid .metric-panel strong {
+  font-size: 1rem;
+}
+
 .compare-list,
 .event-list {
   display: grid;

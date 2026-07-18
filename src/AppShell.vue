@@ -352,7 +352,7 @@
               :chartHeight="chartHeight"
               :segmentHeight="segmentHeight"
               :viewBox="ganttViewBox"
-              :activeId="currentSnapshot?.currentProcessId ?? null"
+              :activeId="currentActiveProcessId"
               :currentTime="currentSnapshot?.time ?? 0"
               :tickSize="activeScenario.tickSize"
               @segmentEnter="onSegmentEnter"
@@ -383,6 +383,25 @@
           :currentTime="currentSnapshot?.time ?? 0"
           @seek="seekToTime"
         />
+
+        <section class="panel metrics-panel">
+          <div class="section-header compact">
+            <h2>Kennzahlen</h2>
+            <span>2 x 3 Übersicht</span>
+          </div>
+
+          <div class="metrics-grid">
+            <article
+              class="metric-panel"
+              v-for="metric in metricCards"
+              :key="metric.label"
+            >
+              <span class="status-label">{{ metric.label }}</span>
+              <strong>{{ metric.value }}</strong>
+              <small>{{ metric.help }}</small>
+            </article>
+          </div>
+        </section>
       </section>
 
       <aside class="side-column">
@@ -397,7 +416,7 @@
               v-if="stackItems.length"
               :items="stackItems"
               :maxVisible="6"
-              :activeId="currentSnapshot?.currentProcessId ?? null"
+              :activeId="currentActiveProcessId"
               aria-label="Process queue"
             />
             <div v-else class="empty-state compact">
@@ -409,14 +428,25 @@
           <p class="note-text">{{ simulationNote }}</p>
         </section>
 
-        <section
-          class="panel metric-panel"
-          v-for="metric in metricCards"
-          :key="metric.label"
-        >
-          <span class="status-label">{{ metric.label }}</span>
-          <strong>{{ metric.value }}</strong>
-          <small>{{ metric.help }}</small>
+        <section class="panel detail-panel">
+          <div class="section-header">
+            <h2>Ereignislog</h2>
+            <span>{{ currentEventLabel }}</span>
+          </div>
+
+          <div class="event-list">
+            <article
+              v-for="event in recentEvents"
+              :key="`${event.time}-${event.type}-${event.processId ?? 'idle'}`"
+              class="event-item"
+            >
+              <div>
+                <strong>{{ event.type }}</strong>
+                <p>{{ event.reason }}</p>
+              </div>
+              <span>{{ event.time }}</span>
+            </article>
+          </div>
         </section>
 
         <section class="panel small-panel">
@@ -438,27 +468,6 @@
           </div>
         </section>
       </aside>
-
-      <section class="panel detail-panel">
-        <div class="section-header">
-          <h2>Ereignislog</h2>
-          <span>{{ currentEventLabel }}</span>
-        </div>
-
-        <div class="event-list">
-          <article
-            v-for="event in recentEvents"
-            :key="`${event.time}-${event.type}-${event.processId ?? 'idle'}`"
-            class="event-item"
-          >
-            <div>
-              <strong>{{ event.type }}</strong>
-              <p>{{ event.reason }}</p>
-            </div>
-            <span>{{ event.time }}</span>
-          </article>
-        </div>
-      </section>
 
       <Tooltip
         :x="tooltip.x"
@@ -654,8 +663,8 @@ const algorithmModalSeed = ref<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
-    lcfsMode?: 'preemptive' | 'nonPreemptive';
-    lcfsTieBreak?: 'stack' | 'id';
+    lcfsMode?: "preemptive" | "nonPreemptive";
+    lcfsTieBreak?: "stack" | "id";
   };
 } | null>(null);
 const generatorModalRef = ref<HTMLElement | null>(null);
@@ -756,6 +765,26 @@ const currentSnapshot = computed<SimulationSnapshot | null>(
     null,
 );
 
+function findActiveProcessId(time?: number | null): string | null {
+  if (time === null || time === undefined) {
+    return null;
+  }
+
+  const activeSegment = visibleSegments.value.find(
+    (segment) =>
+      Boolean(segment.processId) &&
+      !segment.idle &&
+      segment.start <= time &&
+      time < segment.end,
+  );
+
+  return activeSegment?.processId ?? null;
+}
+
+const currentActiveProcessId = computed(() =>
+  findActiveProcessId(currentSnapshot.value?.time),
+);
+
 const canStepForward = computed(
   () => currentStepIndex.value < Math.max(totalSnapshots.value - 1, 0),
 );
@@ -827,7 +856,7 @@ function buildInitialOrder(snap: SimulationSnapshot | null, max = 8) {
     ids.push(pid);
   };
 
-  push(snap.currentProcessId);
+  push(findActiveProcessId(snap.time) ?? snap.currentProcessId);
   if (Array.isArray(snap.readyQueue)) {
     for (const pid of snap.readyQueue) {
       if (ids.length >= max) {
@@ -910,7 +939,8 @@ watch(
       return;
     }
 
-    const newTop = snap.currentProcessId ?? null;
+    const newTop =
+      findActiveProcessId(snap.time) ?? snap.currentProcessId ?? null;
     if (newTop === lastTop.value) {
       return;
     }
@@ -930,7 +960,9 @@ watch(
       stableStackIds.value.unshift(newTop);
     }
 
-    const prevTop = prev?.currentProcessId ?? null;
+    const prevTop = prev
+      ? (findActiveProcessId(prev.time) ?? prev.currentProcessId ?? null)
+      : null;
     if (prevTop && prevTop !== newTop) {
       if (!isProcessDone(prevTop, snap)) {
         const pidx = stableStackIds.value.indexOf(prevTop);
@@ -1232,9 +1264,8 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           snapshotInterval:
             activeRun.value.algorithmParams.snapshotInterval ?? 1,
           queueLevels: activeRun.value.algorithmParams.queueLevels ?? 3,
-          lcfsMode: activeRun.value.algorithmParams.lcfsMode ?? 'preemptive',
-          lcfsTieBreak:
-            activeRun.value.algorithmParams.lcfsTieBreak ?? 'stack',
+          lcfsMode: activeRun.value.algorithmParams.lcfsMode ?? "preemptive",
+          lcfsTieBreak: activeRun.value.algorithmParams.lcfsTieBreak ?? "stack",
         },
       }
     : {
@@ -1243,8 +1274,8 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           timeQuantum: 2,
           snapshotInterval: 1,
           queueLevels: 3,
-          lcfsMode: 'preemptive',
-          lcfsTieBreak: 'stack',
+          lcfsMode: "preemptive",
+          lcfsTieBreak: "stack",
         },
       };
   showAlgorithmModal.value = true;
@@ -1256,8 +1287,8 @@ function confirmAlgorithm(payload: {
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
-    lcfsMode?: 'preemptive' | 'nonPreemptive';
-    lcfsTieBreak?: 'stack' | 'id';
+    lcfsMode?: "preemptive" | "nonPreemptive";
+    lcfsTieBreak?: "stack" | "id";
   };
 }): void {
   if (!activeScenario.value) {
@@ -1397,8 +1428,8 @@ function formatAlgorithmParams(
     timeQuantum?: number;
     snapshotInterval?: number;
     queueLevels?: number;
-    lcfsMode?: 'preemptive' | 'nonPreemptive';
-    lcfsTieBreak?: 'stack' | 'id';
+    lcfsMode?: "preemptive" | "nonPreemptive";
+    lcfsTieBreak?: "stack" | "id";
   },
 ): string {
   if (algorithm === "roundRobin") {
@@ -1410,8 +1441,9 @@ function formatAlgorithmParams(
   }
 
   if (algorithm === "lcfs") {
-    const mode = params.lcfsMode === 'nonPreemptive' ? 'non-preemptive' : 'preemptive';
-    const tieBreak = params.lcfsTieBreak === 'id' ? 'ID' : 'Stack';
+    const mode =
+      params.lcfsMode === "nonPreemptive" ? "non-preemptive" : "preemptive";
+    const tieBreak = params.lcfsTieBreak === "id" ? "ID" : "Stack";
     return `Variante: ${mode} · Tie-Break: ${tieBreak}`;
   }
 
