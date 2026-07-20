@@ -403,6 +403,7 @@
               <small>{{ metric.help }}</small>
             </article>
           </div>
+          <MetricsTable />
         </section>
       </section>
 
@@ -453,22 +454,7 @@
         </section>
 
         <section class="panel small-panel">
-          <div class="section-header">
-            <h2>Vergleich</h2>
-            <span>Woche 2 Zielbild</span>
-          </div>
-
-          <div class="compare-list">
-            <article
-              class="compare-card"
-              v-for="comparison in comparisonCards"
-              :key="comparison.label"
-            >
-              <span>{{ comparison.label }}</span>
-              <strong>{{ comparison.value }}</strong>
-              <small>{{ comparison.help }}</small>
-            </article>
-          </div>
+          <ComparisonPanel />
         </section>
       </aside>
 
@@ -529,6 +515,8 @@ import Scrubber from "@/components/Scrubber.vue";
 import Tooltip from "@/components/Tooltip.vue";
 import Gantt from "./components/Gantt.vue";
 import StackList from "./components/StackList.vue";
+import ComparisonPanel from "./components/ComparisonPanel.vue";
+import MetricsTable from "./components/MetricsTable.vue";
 import { usePlayback } from "@/composables/usePlayback";
 import type {
   AlgorithmType,
