@@ -29,6 +29,21 @@
         :key="`${segment.processName}-${segment.start}-${segment.end}`"
       >
         <rect
+          v-if="shouldPulse(segment)"
+          :x="segment.start * cellWidth + offsetX - 5"
+          :y="segmentY(segment) - 5"
+          :width="Math.max((segment.end - segment.start) * cellWidth, 4) + 10"
+          :height="segmentHeight + 10"
+          :rx="12"
+          class="preempt-pulse"
+          :style="{
+            ['--pulse-color']: segment.color,
+            ['--pulse-rgb']: hexToRgb(segment.color),
+          }"
+          aria-hidden="true"
+        />
+
+        <rect
           :x="segment.start * cellWidth + offsetX"
           :y="segmentY(segment)"
           :width="Math.max((segment.end - segment.start) * cellWidth, 4)"
@@ -131,6 +146,8 @@ const props = defineProps<{
   activeId?: string | null;
   currentTime?: number;
   tickSize?: number;
+  preemptedProcessId?: string | null;
+  preemptTime?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -150,6 +167,22 @@ const activeSegments = computed(() =>
       activeSubRect(segment),
   ),
 );
+
+function shouldPulse(segment: TimelineSegment): boolean {
+  if (
+    !props.preemptedProcessId ||
+    props.preemptTime === null ||
+    props.preemptTime === undefined
+  ) {
+    return false;
+  }
+
+  return (
+    !segment.idle &&
+    segment.processId === props.preemptedProcessId &&
+    props.currentTime === props.preemptTime
+  );
+}
 
 function handleEnter(segment: TimelineSegment, ev: Event) {
   emit("segmentEnter", segment, ev as PointerEvent);
@@ -264,6 +297,17 @@ function hexToRgb(hex?: string) {
   pointer-events: none;
 }
 
+.preempt-pulse {
+  fill: transparent;
+  stroke: rgba(var(--pulse-rgb), 0.85);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 12px rgba(var(--pulse-rgb), 0.35));
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: preemptPulse 0.9s ease-out 1;
+  pointer-events: none;
+}
+
 .active-glow {
   fill: none;
   stroke: var(--active-color);
@@ -306,6 +350,21 @@ function hexToRgb(hex?: string) {
   }
   .time-pointer {
     filter: none;
+  }
+}
+
+@keyframes preemptPulse {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.98);
+  }
+  70% {
+    opacity: 0.35;
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03);
   }
 }
 </style>

@@ -355,6 +355,8 @@
               :activeId="currentActiveProcessId"
               :currentTime="currentSnapshot?.time ?? 0"
               :tickSize="activeScenario.tickSize"
+              :preemptedProcessId="currentPreemptEvent?.processId ?? null"
+              :preemptTime="currentPreemptEvent?.time ?? null"
               @segmentEnter="onSegmentEnter"
               @segmentLeave="onSegmentLeave"
               @segmentClick="onSegmentClick"
@@ -417,6 +419,7 @@
               :items="stackItems"
               :maxVisible="6"
               :activeId="currentActiveProcessId"
+              :contextText="stackExplanation"
               aria-label="Process queue"
             />
             <div v-else class="empty-state compact">
@@ -785,6 +788,23 @@ const currentActiveProcessId = computed(() =>
   findActiveProcessId(currentSnapshot.value?.time),
 );
 
+const currentPreemptEvent = computed<ScheduleEvent | null>(() => {
+  const currentTime = currentSnapshot.value?.time;
+  if (currentTime === null || currentTime === undefined) {
+    return null;
+  }
+
+  const events = runState.value?.events ?? [];
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event.time === currentTime && event.type === "preempt") {
+      return event;
+    }
+  }
+
+  return null;
+});
+
 const canStepForward = computed(
   () => currentStepIndex.value < Math.max(totalSnapshots.value - 1, 0),
 );
@@ -805,10 +825,9 @@ type StackItem = {
   title: string;
   subtitle?: string;
   color?: string;
+  status?: "active" | "ready" | "preempted";
 };
-const stableStackIds = ref<string[]>([]);
 const stackItems = ref<StackItem[]>([]);
-const lastTop = ref<string | null>(null);
 const loopLogStart = ref(0);
 
 function isProcessDone(pid: string, snap: SimulationSnapshot | null) {
@@ -839,7 +858,18 @@ function findProcessMeta(pid?: string | null) {
   };
 }
 
-function buildInitialOrder(snap: SimulationSnapshot | null, max = 8) {
+function resolveSnapshotProcessId(
+  snapshot: SimulationSnapshot,
+  nameOrId: string,
+): string {
+  const exactMatch = activeScenario.value?.processes.find(
+    (process) => process.id === nameOrId || process.name === nameOrId,
+  );
+
+  return exactMatch?.id ?? nameOrId;
+}
+
+function buildStackOrder(snap: SimulationSnapshot | null, max = 8) {
   if (!snap) {
     return [];
   }
@@ -858,47 +888,36 @@ function buildInitialOrder(snap: SimulationSnapshot | null, max = 8) {
 
   push(findActiveProcessId(snap.time) ?? snap.currentProcessId);
   if (Array.isArray(snap.readyQueue)) {
-    for (const pid of snap.readyQueue) {
+    for (const nameOrId of snap.readyQueue) {
       if (ids.length >= max) {
         break;
       }
 
-      push(pid);
-    }
-  }
-
-  for (const segment of visibleSegments.value) {
-    if (ids.length >= max) {
-      break;
-    }
-
-    if (
-      segment.processId &&
-      !seen.has(segment.processId) &&
-      segment.end > (snap?.time ?? 0)
-    ) {
-      push(segment.processId);
+      push(resolveSnapshotProcessId(snap, nameOrId));
     }
   }
 
   return ids;
 }
 
-function writeStackFromIds(ids: string[], max = 8) {
-  const snap = currentSnapshot.value;
-  stableStackIds.value = ids
-    .filter((pid) => !isProcessDone(pid, snap))
-    .slice(0, max);
-  stackItems.value = stableStackIds.value.map((pid) => {
+function writeStackFromSnapshot(snap: SimulationSnapshot | null, max = 8) {
+  const activeId = currentActiveProcessId.value;
+  const preemptedId = currentPreemptEvent.value?.processId ?? null;
+  const ids = buildStackOrder(snap, max).filter(
+    (pid) => !isProcessDone(pid, snap),
+  );
+
+  stackItems.value = ids.map((pid) => {
     const meta = findProcessMeta(pid);
     const nextSeg =
       visibleSegments.value.find(
         (segment) =>
-          segment.processId === pid &&
-          segment.end > (currentSnapshot.value?.time ?? 0),
+          segment.processId === pid && segment.end > (snap?.time ?? 0),
       ) ?? visibleSegments.value.find((segment) => segment.processId === pid);
     const subtitle = nextSeg ? `t ${nextSeg.start}–${nextSeg.end}` : "t done";
-    return { id: pid, title: meta.name, subtitle, color: meta.color };
+    const status =
+      pid === activeId ? "active" : pid === preemptedId ? "preempted" : "ready";
+    return { id: pid, title: meta.name, subtitle, color: meta.color, status };
   });
 }
 
@@ -912,9 +931,7 @@ function resetPlayback(): void {
 watch(
   simulationScenario,
   () => {
-    stableStackIds.value = [];
     stackItems.value = [];
-    lastTop.value = null;
     resetPlayback();
   },
   { immediate: true },
@@ -923,10 +940,8 @@ watch(
 watch(
   () => runState.value?.snapshots.length,
   (len) => {
-    if (len && !stableStackIds.value.length) {
-      const snap = currentSnapshot.value;
-      const ids = buildInitialOrder(snap);
-      writeStackFromIds(ids);
+    if (len) {
+      writeStackFromSnapshot(currentSnapshot.value);
     }
   },
   { immediate: true },
@@ -938,63 +953,7 @@ watch(
     if (!snap) {
       return;
     }
-
-    const newTop =
-      findActiveProcessId(snap.time) ?? snap.currentProcessId ?? null;
-    if (newTop === lastTop.value) {
-      return;
-    }
-
-    lastTop.value = newTop;
-
-    if (!stableStackIds.value.length) {
-      writeStackFromIds(buildInitialOrder(snap));
-      return;
-    }
-
-    const idx = stableStackIds.value.indexOf(newTop ?? "");
-    if (idx > -1) {
-      stableStackIds.value.splice(idx, 1);
-    }
-    if (newTop) {
-      stableStackIds.value.unshift(newTop);
-    }
-
-    const prevTop = prev
-      ? (findActiveProcessId(prev.time) ?? prev.currentProcessId ?? null)
-      : null;
-    if (prevTop && prevTop !== newTop) {
-      if (!isProcessDone(prevTop, snap)) {
-        const pidx = stableStackIds.value.indexOf(prevTop);
-        if (pidx > -1) {
-          stableStackIds.value.splice(pidx, 1);
-        }
-        stableStackIds.value.push(prevTop);
-      } else {
-        const pidx = stableStackIds.value.indexOf(prevTop);
-        if (pidx > -1) {
-          stableStackIds.value.splice(pidx, 1);
-        }
-      }
-    }
-
-    const max = 8;
-    const fillIds: string[] = [];
-    for (const segment of visibleSegments.value) {
-      if (stableStackIds.value.length + fillIds.length >= max) {
-        break;
-      }
-
-      if (
-        segment.processId &&
-        stableStackIds.value.indexOf(segment.processId) === -1 &&
-        !fillIds.includes(segment.processId)
-      ) {
-        fillIds.push(segment.processId);
-      }
-    }
-
-    writeStackFromIds(stableStackIds.value.concat(fillIds).slice(0, max));
+    writeStackFromSnapshot(snap);
   },
   { immediate: true },
 );
@@ -1027,9 +986,7 @@ watch(
     }
 
     loopLogStart.value = currentSnapshot.value?.time ?? 0;
-    stableStackIds.value = [];
     stackItems.value = [];
-    lastTop.value = null;
   },
 );
 
@@ -1038,6 +995,29 @@ const currentEventLabel = computed(() =>
     ? `${currentSnapshot.value.lastEvent.type} @ ${currentSnapshot.value.lastEvent.time}`
     : "Keine Ereignisse",
 );
+
+const stackExplanation = computed(() => {
+  const activeName = currentSnapshot.value?.currentProcessName;
+  const preemptEvent = currentPreemptEvent.value;
+
+  if (preemptEvent?.processName) {
+    if (preemptEvent.algorithm === "roundRobin") {
+      return `${preemptEvent.processName} wurde präemptiert, weil sein Zeitquantum aufgebraucht wurde; ${activeName ?? "ein anderer Prozess"} übernimmt nun die CPU.`;
+    }
+
+    if (preemptEvent.algorithm === "lcfs") {
+      return `${preemptEvent.processName} wurde präemptiert, weil ein neuer Prozess eingetroffen ist; der zuletzt Angekommene (${activeName ?? "ein anderer Prozess"}) läuft jetzt.`;
+    }
+
+    return `${preemptEvent.processName} wurde präemptiert; jetzt läuft ${activeName ?? "ein anderer Prozess"}.`;
+  }
+
+  if (activeName) {
+    return `${activeName} ist jetzt aktiv. Die übrigen Prozesse warten in der Queue.`;
+  }
+
+  return "Gerade ist kein Prozess aktiv.";
+});
 
 const simulationNote = computed(() => runState.value?.note ?? "");
 
