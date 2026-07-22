@@ -163,10 +163,18 @@ select {
 
 .status-strip {
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  align-items: stretch;
   gap: 0.9rem;
   padding: 1rem;
+  overflow-x: auto;
+}
+
+.status-strip-menu {
+  grid-column: 1 / 2;
+  display: flex;
+  align-items: center;
+  padding-right: 0.5rem;
 }
 
 .status-card,
@@ -181,6 +189,19 @@ select {
 .status-card {
   padding: 0.9rem 1rem;
   min-height: 92px;
+}
+
+/* make status cards sit in one row and grow/shrink nicely */
+.status-strip .status-card {
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+
+.status-strip-menu {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
 }
 
 .status-card--clickable {

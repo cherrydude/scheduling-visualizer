@@ -409,6 +409,39 @@ export function useScenarioWorkspace() {
     syncPersistence();
   }
 
+  function deleteActiveRun(): void {
+    if (!activeScenario.value) {
+      return;
+    }
+
+    scenarios.value = scenarios.value.map((scenario) => {
+      if (scenario.id !== activeScenario.value?.id) {
+        return scenario;
+      }
+
+      const nextRuns = [...(scenario.runs ?? [])];
+      const currentIndex = Math.max(0, scenario.activeRunIndex);
+      if (!nextRuns[currentIndex]) {
+        return scenario;
+      }
+
+      nextRuns.splice(currentIndex, 1);
+
+      const nextActiveRunIndex = nextRuns.length
+        ? Math.max(0, Math.min(currentIndex, nextRuns.length - 1))
+        : -1;
+
+      return {
+        ...scenario,
+        runs: nextRuns,
+        activeRunIndex: nextActiveRunIndex,
+        appliedAlgorithm: nextRuns[nextActiveRunIndex] ?? null,
+      };
+    });
+
+    syncPersistence();
+  }
+
   function setActiveRun(index: number): void {
     if (!activeScenario.value) {
       return;
@@ -480,6 +513,7 @@ export function useScenarioWorkspace() {
     createRun,
     updateActiveRun,
     setActiveRun,
+    deleteActiveRun,
     clearAlgorithm,
   };
 }

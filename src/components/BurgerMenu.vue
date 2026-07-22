@@ -11,77 +11,84 @@
       <span></span>
     </button>
 
-    <div v-if="open" class="burger-panel panel">
-      <div class="burger-section">
-        <div class="section-heading">
-          <strong>Szenarien</strong>
-          <button
-            class="secondary-button compact"
-            type="button"
-            @click="$emit('create')"
-          >
-            +
-          </button>
+    <teleport to="body">
+      <div
+        v-if="open"
+        ref="panelRef"
+        class="burger-panel panel"
+        :style="panelStyle"
+      >
+        <div class="burger-section">
+          <div class="section-heading">
+            <strong>Szenarien</strong>
+            <button
+              class="secondary-button compact"
+              type="button"
+              @click="$emit('create')"
+            >
+              +
+            </button>
+          </div>
+
+          <div v-if="scenarios.length" class="scenario-list">
+            <button
+              v-for="scenario in scenarios"
+              :key="scenario.id"
+              type="button"
+              class="scenario-item"
+              :class="{ active: scenario.id === activeScenarioId }"
+              @click="$emit('select', scenario.id)"
+            >
+              <span class="scenario-title">{{ scenario.title }}</span>
+              <span class="scenario-meta">{{
+                scenario.runs.length
+                  ? `${scenario.runs.length} Run(s)`
+                  : "0 Run(s)"
+              }}</span>
+            </button>
+          </div>
+
+          <div v-if="activeScenarioId" class="scenario-actions">
+            <button
+              type="button"
+              class="link-item"
+              @click="$emit('duplicate', activeScenarioId)"
+            >
+              Duplizieren
+            </button>
+            <button
+              type="button"
+              class="link-item"
+              @click="$emit('rename', activeScenarioId)"
+            >
+              Umbenennen
+            </button>
+            <button
+              type="button"
+              class="link-item danger"
+              @click="$emit('delete', activeScenarioId)"
+            >
+              Löschen
+            </button>
+          </div>
+
+          <p v-else class="menu-note">Noch kein Szenario angelegt.</p>
         </div>
 
-        <div v-if="scenarios.length" class="scenario-list">
-          <button
-            v-for="scenario in scenarios"
-            :key="scenario.id"
-            type="button"
-            class="scenario-item"
-            :class="{ active: scenario.id === activeScenarioId }"
-            @click="$emit('select', scenario.id)"
-          >
-            <span class="scenario-title">{{ scenario.title }}</span>
-            <span class="scenario-meta">{{
-              scenario.runs.length
-                ? `${scenario.runs.length} Run(s)`
-                : "0 Run(s)"
-            }}</span>
+        <div class="burger-section">
+          <div class="section-heading">
+            <strong>Information</strong>
+          </div>
+
+          <button type="button" class="link-item" @click="$emit('about')">
+            Über mich
+          </button>
+          <button type="button" class="link-item" @click="$emit('knowledge')">
+            Wissen
           </button>
         </div>
-
-        <div v-if="activeScenarioId" class="scenario-actions">
-          <button
-            type="button"
-            class="link-item"
-            @click="$emit('duplicate', activeScenarioId)"
-          >
-            Duplizieren
-          </button>
-          <button
-            type="button"
-            class="link-item"
-            @click="$emit('rename', activeScenarioId)"
-          >
-            Umbenennen
-          </button>
-          <button
-            type="button"
-            class="link-item danger"
-            @click="$emit('delete', activeScenarioId)"
-          >
-            Löschen
-          </button>
-        </div>
-
-        <p v-else class="menu-note">Noch kein Szenario angelegt.</p>
       </div>
-
-      <div class="burger-section">
-        <div class="section-heading">
-          <strong>Information</strong>
-        </div>
-
-        <button type="button" class="link-item" @click="$emit('about')">
-          Über mich
-        </button>
-        <button type="button" class="link-item" @click="$emit('knowledge')">
-          Wissen
-        </button>
-      </div>
-    </div>
+    </teleport>
   </div>
 </template>
 
@@ -106,13 +113,33 @@ defineEmits<{
 
 const open = ref(false);
 const menuRef = ref<HTMLElement | null>(null);
+const panelRef = ref<HTMLElement | null>(null);
+const panelStyle = ref<Record<string, string>>({});
 
 function toggleMenu() {
   open.value = !open.value;
+  // when opening, position panel near the button
+  if (open.value && menuRef.value) {
+    const rect = menuRef.value.getBoundingClientRect();
+    panelStyle.value = {
+      position: "fixed",
+      top: `${rect.bottom + 8}px`,
+      left: `${rect.left}px`,
+      width: `320px`,
+      zIndex: "3000",
+    };
+  }
 }
 
 function closeMenu(ev: MouseEvent) {
-  if (menuRef.value && !menuRef.value.contains(ev.target as Node)) {
+  const target = ev.target as Node;
+  const clickedOutsideMenu = menuRef.value && !menuRef.value.contains(target);
+  const clickedOutsidePanel =
+    panelRef.value && !panelRef.value.contains(target);
+  if (
+    (clickedOutsideMenu && (!panelRef.value || clickedOutsidePanel)) ||
+    (!menuRef.value && (!panelRef.value || clickedOutsidePanel))
+  ) {
     open.value = false;
   }
 }

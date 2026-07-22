@@ -1,39 +1,6 @@
 <template>
   <div class="app-shell">
-    <header class="topbar panel">
-      <div>
-        <p class="eyebrow">Scheduling Visualizer</p>
-        <h1>MVP Dashboard</h1>
-      </div>
-
-      <div class="topbar-actions">
-        <button class="secondary-button" type="button" @click="openGenerator">
-          Szenario
-        </button>
-        <button class="primary-button" type="button" @click="togglePlay">
-          {{ isPlaying ? "Pause" : "Start" }}
-        </button>
-        <button
-          class="secondary-button"
-          type="button"
-          @click="stepBackward"
-          :disabled="currentStepIndex === 0"
-        >
-          Zurueck
-        </button>
-        <button
-          class="secondary-button"
-          type="button"
-          @click="stepForward"
-          :disabled="!canStepForward"
-        >
-          Weiter
-        </button>
-        <button class="secondary-button" type="button" @click="resetPlayback">
-          Reset
-        </button>
-      </div>
-    </header>
+    <!-- Topbar removed: Gantt controls are sufficient -->
 
     <main class="dashboard-grid">
       <section class="panel status-strip">
@@ -59,17 +26,32 @@
         </div>
 
         <div class="gantt-wrap" ref="ganttWrapRef">
-          <Gantt
-            :segments="visibleSegments"
-            :tickMarks="tickMarks"
+          <GanttWithGsap
+            :key="'raw-preview'"
+            :segments="focusSegments"
+            :tickMarks="focusTickMarks"
             :cellWidth="cellWidth"
             :chartHeight="chartHeight"
             :segmentHeight="segmentHeight"
-            :viewBox="ganttViewBox"
-            :activeId="currentSnapshot?.currentProcessId ?? null"
+            :viewBox="focusViewBox"
+            :activeId="focusActiveId"
+            :currentTime="focusCurrentTime"
+            v-model:loop="loopPlayback"
+            :controlsEnabled="focusControlsEnabled"
+            :introAnimation="hasSimulationStarted"
+            @step="(delta) => (delta < 0 ? stepBackward() : stepForward())"
+            @play="handlePlaybackPlay"
+            @pause="handlePlaybackPause"
+            @reset="handlePlaybackReset"
             @segmentEnter="onSegmentEnter"
             @segmentLeave="onSegmentLeave"
             @segmentClick="onSegmentClick"
+            @seek="
+              (time) => {
+                const idx = snapshotsRef.findIndex((s: any) => s.time >= time);
+                if (idx >= 0) playback.seek(idx);
+              }
+            "
           />
           <!--           <svg
             :viewBox="ganttViewBox"
@@ -139,11 +121,7 @@
           <span>Queue: {{ currentSnapshot?.readyQueue.length ?? 0 }}</span>
         </div>
 
-        <Scrubber
-          :total="timelineEnd"
-          :index="currentStepIndex"
-          @seek="seekTo"
-        />
+        <!-- Old Scrubber removed: using Gantt local controls -->
       </section>
 
       <aside class="side-column">
@@ -407,9 +385,8 @@ import {
 } from "vue";
 import gsap from "gsap";
 import { createSeededScenarioProcesses, simulateScenario } from "@/simulation";
-import Scrubber from "@/components/Scrubber.vue";
 import Tooltip from "@/components/Tooltip.vue";
-import Gantt from "./components/Gantt.vue";
+import GanttWithGsap from "./components/GanttWithGsap.vue";
 import StackList from "./components/StackList.vue";
 import { usePlayback } from "@/composables/usePlayback";
 import type {
@@ -559,6 +536,8 @@ const draft = reactive<ScenarioDraft>({
 const customScenario = ref<Scenario | null>(null);
 const currentStepIndex = ref(0);
 const isPlaying = ref(false);
+const hasSimulationStarted = ref(false);
+const loopPlayback = ref(false);
 let playTimer: number | undefined;
 
 const selectedScenario = computed<Scenario>(() => {
@@ -585,6 +564,21 @@ const runState = computed<SimulationRun | null>(() =>
   simulateScenario(selectedScenario.value),
 );
 const totalSnapshots = computed(() => runState.value?.snapshots.length ?? 0);
+const rawPreviewSegments = computed<TimelineSegment[]>(() => {
+  return selectedScenario.value.processes
+    .slice()
+    .sort(
+      (left, right) =>
+        left.arrivalTime - right.arrivalTime || left.id.localeCompare(right.id),
+    )
+    .map((process) => ({
+      processId: process.id,
+      processName: process.name,
+      start: process.arrivalTime,
+      end: process.arrivalTime + process.burstTime,
+      color: process.color,
+    }));
+});
 const currentSnapshot = computed<SimulationSnapshot | null>(
   () =>
     runState.value?.snapshots[currentStepIndex.value] ??
@@ -595,13 +589,46 @@ const visibleSegments = computed(() => runState.value?.segments ?? []);
 const timelineEnd = computed(() =>
   visibleSegments.value.reduce((max, segment) => Math.max(max, segment.end), 0),
 );
+const focusSegments = computed(() => rawPreviewSegments.value);
+const focusTickMarks = computed(() => {
+  const time = Math.max(
+    hasSimulationStarted.value
+      ? (runState.value?.totalTime ?? timelineEnd.value)
+      : rawPreviewSegments.value.reduce(
+          (max, segment) => Math.max(max, segment.end),
+          0,
+        ),
+    8,
+  );
+
+  return Array.from({ length: time + 1 }, (_, index) => index);
+});
+const focusViewBox = computed(
+  () =>
+    `0 0 ${Math.max(
+      (hasSimulationStarted.value
+        ? (runState.value?.totalTime ?? timelineEnd.value)
+        : rawPreviewSegments.value.reduce(
+            (max, segment) => Math.max(max, segment.end),
+            0,
+          )) *
+        cellWidth +
+        100,
+      860,
+    )} ${chartHeight}`,
+);
+const focusCurrentTime = computed(() =>
+  hasSimulationStarted.value ? (currentSnapshot.value?.time ?? 0) : 0,
+);
+const focusActiveId = computed(() =>
+  hasSimulationStarted.value
+    ? (currentSnapshot.value?.currentProcessId ?? null)
+    : null,
+);
+const focusControlsEnabled = computed(() => Boolean(runState.value));
 const canStepForward = computed(
   () => currentStepIndex.value < timelineEnd.value,
 );
-const tickMarks = computed(() => {
-  const time = Math.max(timelineEnd.value, 8);
-  return Array.from({ length: time + 1 }, (_, index) => index);
-});
 // --- Stable stack: initialize once, update only on top-change ---
 type StackItem = {
   id: string;
@@ -821,7 +848,10 @@ const ganttViewBox = computed(
 
 // Playback composable bridges snapshots -> UI index/time
 const snapshotsRef = computed(() => runState.value?.snapshots ?? []);
-const playback = usePlayback(snapshotsRef, { intervalMs: 750 });
+const playback = usePlayback(snapshotsRef, {
+  intervalMs: 750,
+  loop: loopPlayback,
+});
 
 // keep currentStepIndex and playback.index in sync
 watch(
@@ -1042,6 +1072,7 @@ function saveScenario(): void {
 
 function resetPlayback(): void {
   currentStepIndex.value = 0;
+  hasSimulationStarted.value = false;
   pausePlayback();
 }
 
@@ -1057,12 +1088,24 @@ function stepBackward(): void {
   currentStepIndex.value = Math.max(0, currentStepIndex.value - 1);
 }
 
-function togglePlay(): void {
-  playback.toggle();
-}
-
 function pausePlayback(): void {
   playback.pause();
+}
+
+async function handlePlaybackPlay(): Promise<void> {
+  if (!hasSimulationStarted.value) {
+    hasSimulationStarted.value = true;
+  }
+  await nextTick();
+  playback.play();
+}
+
+function handlePlaybackPause(): void {
+  playback.pause();
+}
+
+function handlePlaybackReset(): void {
+  resetPlayback();
 }
 
 function segmentY(segment: TimelineSegment): number {

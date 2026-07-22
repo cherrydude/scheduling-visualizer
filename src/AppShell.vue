@@ -20,8 +20,10 @@
       :confirmLabel="
         algorithmModalMode === 'edit' ? 'Run anpassen' : 'Algorithmus anwenden'
       "
+      :showDeleteButton="algorithmModalMode === 'edit' && Boolean(activeRun)"
       @close="showAlgorithmModal = false"
       @confirm="confirmAlgorithm"
+      @delete-run="deleteCurrentRun"
     />
 
     <section
@@ -165,73 +167,37 @@
               </button>
             </div>
           </form>
+
+          <aside class="modal-preview panel soft-panel">
+            <ScenarioMiniature
+              :processes="draft.processes"
+              :tickSize="draft.tickSize"
+              :title="draft.title || 'Szenario-Vorschau'"
+              subtitle="Miniatur aus den aktuellen Prozessdaten"
+              :compact="true"
+            />
+          </aside>
         </div>
       </div>
     </section>
 
-    <header class="topbar panel">
-      <div class="topbar-left">
-        <BurgerMenu
-          :scenarios="scenarios"
-          :activeScenarioId="activeScenarioId"
-          @create="openGeneratorModal"
-          @select="selectScenarioAndReset"
-          @duplicate="duplicateScenarioAndReset"
-          @rename="renameScenarioFromMenu"
-          @delete="deleteScenarioFromMenu"
-          @about="navigate('/about')"
-          @knowledge="navigate('/wissen')"
-        />
-        <div class="topbar-brand">
-          <strong>{{ headerTitle }}</strong>
-          <span v-if="isHome">Scheduling Visualizer</span>
-          <span v-else>Navigation und Wissen</span>
-        </div>
-      </div>
-
-      <div v-if="isHome" class="topbar-actions">
-        <button
-          class="primary-button"
-          type="button"
-          @click="togglePlay"
-          :disabled="!canPlay"
-        >
-          {{ isPlaying ? "Pause" : "Start" }}
-        </button>
-        <button
-          class="secondary-button"
-          type="button"
-          @click="stepBackward"
-          :disabled="currentStepIndex === 0"
-        >
-          Zurueck
-        </button>
-        <button
-          class="secondary-button"
-          type="button"
-          @click="stepForward"
-          :disabled="!canStepForward"
-        >
-          Weiter
-        </button>
-        <button class="secondary-button" type="button" @click="resetPlayback">
-          Reset
-        </button>
-        <label class="loop-toggle">
-          <input v-model="loopPlayback" type="checkbox" />
-          <span>Endlos-Schleife</span>
-        </label>
-      </div>
-
-      <div v-else class="topbar-actions">
-        <button class="secondary-button" type="button" @click="navigate('/')">
-          Zurueck zur Visualisierung
-        </button>
-      </div>
-    </header>
+    <!-- Topbar removed: Gantt controls provide playback controls now -->
 
     <main v-if="isHome" class="dashboard-grid">
       <section class="panel status-strip">
+        <div class="status-strip-menu">
+          <BurgerMenu
+            :scenarios="scenarios"
+            :activeScenarioId="activeScenarioId"
+            @create="openGeneratorModal"
+            @select="selectScenarioAndReset"
+            @duplicate="duplicateScenarioAndReset"
+            @rename="renameScenarioFromMenu"
+            @delete="deleteScenarioFromMenu"
+            @about="navigate('/about')"
+            @knowledge="navigate('/wissen')"
+          />
+        </div>
         <article
           class="status-card"
           :class="{
@@ -308,6 +274,25 @@
           </div>
         </div>
 
+        <div class="button-row" style="margin-bottom: 8px">
+          <button
+            type="button"
+            class="secondary-button"
+            :class="{ 'primary-button': layoutVariant === 'push' }"
+            @click="layoutVariant = 'push'"
+          >
+            Variante 1: Schieben
+          </button>
+          <button
+            type="button"
+            class="secondary-button"
+            :class="{ 'primary-button': layoutVariant === 'smooth' }"
+            @click="layoutVariant = 'smooth'"
+          >
+            Variante 2: Glätten
+          </button>
+        </div>
+
         <div v-if="!activeScenario" class="empty-state empty-state--actions">
           <strong>Bitte Szenario erstellen</strong>
           <p>
@@ -324,7 +309,10 @@
         </div>
 
         <template v-else>
-          <div v-if="!activeRun" class="scenario-banner">
+          <div
+            v-if="showRawPreview && !activeRun"
+            class="scenario-banner scenario-banner--raw"
+          >
             <div>
               <strong>Szenario geladen</strong>
               <p class="scenario-line">
@@ -340,27 +328,55 @@
             </button>
           </div>
 
-          <div
-            v-if="runState && runState.supported"
-            class="gantt-wrap"
-            ref="ganttWrapRef"
-          >
-            <Gantt
-              :segments="visibleSegments"
-              :tickMarks="tickMarks"
+          <div v-if="activeScenario" class="gantt-wrap" ref="ganttWrapRef">
+            <GanttWithGsap
+              :segments="focusSegments"
+              :transitionFromSegments="rawPreviewSegments"
+              :tickMarks="focusTickMarks"
               :cellWidth="cellWidth"
               :chartHeight="chartHeight"
               :segmentHeight="segmentHeight"
-              :viewBox="ganttViewBox"
-              :activeId="currentActiveProcessId"
-              :currentTime="currentSnapshot?.time ?? 0"
+              :viewBox="focusViewBox"
+              :activeId="focusActiveId"
+              :currentTime="focusCurrentTime"
+              v-model:loop="loopPlayback"
               :tickSize="activeScenario.tickSize"
-              :preemptedProcessId="currentPreemptEvent?.processId ?? null"
-              :preemptTime="currentPreemptEvent?.time ?? null"
+              :controlsEnabled="focusControlsEnabled"
+              :introAnimation="hasSimulationStarted"
+              :layoutVariant="layoutVariant"
+              :layoutPhase="layoutPhase"
+              :preemptedProcessId="
+                hasSimulationStarted
+                  ? (currentPreemptEvent?.processId ?? null)
+                  : null
+              "
+              :preemptTime="
+                hasSimulationStarted
+                  ? (currentPreemptEvent?.time ?? null)
+                  : null
+              "
+              @seek="seekToTime"
+              @play="handlePlaybackPlay"
+              @pause="handlePlaybackPause"
+              @reset="handlePlaybackReset"
+              @step="(delta) => (delta < 0 ? stepBackward() : stepForward())"
               @segmentEnter="onSegmentEnter"
               @segmentLeave="onSegmentLeave"
               @segmentClick="onSegmentClick"
             />
+
+            <div
+              v-if="activeRun && runState && !runState.supported"
+              class="empty-state compact gantt-note"
+            >
+              <strong>{{
+                runState.note ?? "Algorithmus noch nicht unterstützt"
+              }}</strong>
+              <p>
+                Die Rohansicht bleibt sichtbar, aber die Simulation ist fuer
+                diesen Algorithmus noch nicht aktiv.
+              </p>
+            </div>
           </div>
 
           <div v-else class="empty-state compact">
@@ -375,16 +391,11 @@
         </template>
 
         <div class="timeline-caption">
-          <span>Aktuelle Zeit: {{ currentSnapshot?.time ?? 0 }}</span>
-          <span>Queue: {{ currentSnapshot?.readyQueue.length ?? 0 }}</span>
+          <span>{{ timelineCaptionLeft }}</span>
+          <span>{{ timelineCaptionRight }}</span>
         </div>
 
-        <Scrubber
-          v-if="runState && runState.supported"
-          :total="timelineEnd"
-          :currentTime="currentSnapshot?.time ?? 0"
-          @seek="seekToTime"
-        />
+        <!-- Old Scrubber removed: using Gantt local controls -->
 
         <section class="panel metrics-panel">
           <div class="section-header compact">
@@ -511,9 +522,9 @@ import {
 import BurgerMenu from "./components/BurgerMenu.vue";
 import WelcomeModal from "./components/WelcomeModal.vue";
 import AlgorithmPickerModal from "./components/AlgorithmPickerModal.vue";
-import Scrubber from "@/components/Scrubber.vue";
+import ScenarioMiniature from "./components/ScenarioMiniature.vue";
 import Tooltip from "@/components/Tooltip.vue";
-import Gantt from "./components/Gantt.vue";
+import GanttWithGsap from "./components/GanttWithGsap.vue";
 import StackList from "./components/StackList.vue";
 import ComparisonPanel from "./components/ComparisonPanel.vue";
 import MetricsTable from "./components/MetricsTable.vue";
@@ -557,6 +568,7 @@ const {
   createRun,
   updateActiveRun,
   setActiveRun,
+  deleteActiveRun,
 } = workspace;
 
 const scenarioPresets: Record<string, ScenarioDraft> = {
@@ -739,8 +751,14 @@ const runState = computed<SimulationRun | null>(() =>
 );
 
 const totalSnapshots = computed(() => runState.value?.snapshots.length ?? 0);
-const currentStepIndex = ref(0);
 const isPlaying = ref(false);
+const hasSimulationStarted = ref(false);
+const layoutVariant = ref<"push" | "smooth">("push");
+const layoutPhase = ref<"preview" | "activation" | "settle" | "running">(
+  "preview",
+);
+let activationTimer: number | undefined;
+let settleTimer: number | undefined;
 
 const snapshotsRef = computed(() => runState.value?.snapshots ?? []);
 const playback = usePlayback(snapshotsRef, {
@@ -749,11 +767,10 @@ const playback = usePlayback(snapshotsRef, {
 });
 const loopIteration = computed(() => playback.loopIteration.value);
 
+const currentStepIndex = computed(() => playback.index.value);
+
 const currentSnapshot = computed<SimulationSnapshot | null>(
-  () =>
-    runState.value?.snapshots[currentStepIndex.value] ??
-    runState.value?.snapshots[runState.value.snapshots.length - 1] ??
-    null,
+  () => runState.value?.snapshots[currentStepIndex.value] ?? null,
 );
 
 function findActiveProcessId(time?: number | null): string | null {
@@ -803,8 +820,44 @@ const visibleSegments = computed(() => runState.value?.segments ?? []);
 const timelineEnd = computed(() =>
   visibleSegments.value.reduce((max, segment) => Math.max(max, segment.end), 0),
 );
-const tickMarks = computed(() => {
-  const time = Math.max(runState.value?.totalTime ?? 8, 8);
+const rawPreviewSegments = computed<TimelineSegment[]>(() => {
+  const scenario = activeScenario.value;
+  if (!scenario) {
+    return [];
+  }
+
+  return scenario.processes
+    .slice()
+    .sort(
+      (left, right) =>
+        left.arrivalTime - right.arrivalTime || left.id.localeCompare(right.id),
+    )
+    .map((process) => ({
+      processId: process.id,
+      processName: process.name,
+      start: process.arrivalTime,
+      end: process.arrivalTime + process.burstTime,
+      color: process.color,
+    }));
+});
+
+const focusSegments = computed(() =>
+  layoutPhase.value === "running"
+    ? visibleSegments.value
+    : rawPreviewSegments.value,
+);
+
+const focusTickMarks = computed(() => {
+  const time = Math.max(
+    layoutPhase.value === "running"
+      ? (runState.value?.totalTime ?? 8)
+      : rawPreviewSegments.value.reduce(
+          (max, segment) => Math.max(max, segment.end),
+          0,
+        ),
+    8,
+  );
+
   return Array.from({ length: time + 1 }, (_, index) => index);
 });
 
@@ -910,10 +963,44 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null, max = 8) {
 }
 
 function resetPlayback(): void {
-  currentStepIndex.value = 0;
-  playback.seek(0);
+  if (activationTimer !== undefined) {
+    window.clearTimeout(activationTimer);
+    activationTimer = undefined;
+  }
+
+  if (settleTimer !== undefined) {
+    window.clearTimeout(settleTimer);
+    settleTimer = undefined;
+  }
+
   playback.reset();
+  playback.seek(0);
   playback.pause();
+  hasSimulationStarted.value = false;
+  layoutPhase.value = "preview";
+}
+
+function beginLaunchSequence(onReady: () => void): void {
+  if (activationTimer !== undefined) {
+    window.clearTimeout(activationTimer);
+    activationTimer = undefined;
+  }
+
+  if (settleTimer !== undefined) {
+    window.clearTimeout(settleTimer);
+    settleTimer = undefined;
+  }
+
+  layoutPhase.value = "activation";
+  activationTimer = window.setTimeout(() => {
+    layoutPhase.value = "settle";
+    activationTimer = undefined;
+    settleTimer = window.setTimeout(() => {
+      layoutPhase.value = "running";
+      settleTimer = undefined;
+      onReady();
+    }, 140);
+  }, 180);
 }
 
 watch(
@@ -945,19 +1032,6 @@ watch(
   },
   { immediate: true },
 );
-
-watch(
-  () => playback.index.value,
-  (value) => {
-    currentStepIndex.value = value;
-  },
-);
-
-watch(currentStepIndex, (value) => {
-  if (playback.index.value !== value) {
-    playback.seek(value);
-  }
-});
 
 watch(
   () => playback.playing.value,
@@ -1115,9 +1189,35 @@ const recentEvents = computed<ScheduleEvent[]>(() => {
       .reverse() ?? []
   );
 });
-const ganttViewBox = computed(
+const focusViewBox = computed(
   () =>
-    `0 0 ${Math.max((runState.value?.totalTime ?? 12) * cellWidth + 100, 860)} ${chartHeight}`,
+    `0 0 ${Math.max(
+      (showRawPreview.value
+        ? rawPreviewSegments.value.reduce(
+            (max, segment) => Math.max(max, segment.end),
+            0,
+          )
+        : (runState.value?.totalTime ?? 12)) *
+        cellWidth +
+        100,
+      860,
+    )} ${chartHeight}`,
+);
+
+const focusCurrentTime = computed(() =>
+  layoutPhase.value === "running" ? (currentSnapshot.value?.time ?? 0) : 0,
+);
+
+const focusActiveId = computed(() =>
+  layoutPhase.value === "activation" || layoutPhase.value === "settle"
+    ? (runState.value?.snapshots[0]?.currentProcessId ?? null)
+    : layoutPhase.value === "running"
+      ? currentActiveProcessId.value
+      : null,
+);
+
+const focusControlsEnabled = computed(() =>
+  Boolean(activeScenario.value && activeRun.value && runState.value?.supported),
 );
 
 const tooltip = reactive({
@@ -1153,11 +1253,37 @@ const focusSubtitle = computed(() => {
     return "Kein Szenario aktiv";
   }
 
-  if (!activeRun.value) {
-    return "Algorithmus fehlt";
+  const run = activeRun.value;
+
+  if (showRawPreview.value) {
+    return run
+      ? "Rohansicht vor dem Simulationsstart"
+      : "Rohansicht des geladenen Szenarios";
   }
 
-  return algorithmName(activeRun.value.algorithm);
+  return run ? algorithmName(run.algorithm) : "Algorithmus fehlt";
+});
+
+const showRawPreview = computed(
+  () => Boolean(activeScenario.value) && !hasSimulationStarted.value,
+);
+
+const timelineCaptionLeft = computed(() => {
+  if (showRawPreview.value) {
+    return `Rohansicht: ${activeScenario.value?.title ?? "Szenario"}`;
+  }
+
+  return `Aktuelle Zeit: ${currentSnapshot.value?.time ?? 0}`;
+});
+
+const timelineCaptionRight = computed(() => {
+  if (showRawPreview.value) {
+    return activeRun.value
+      ? "Algorithmus geladen, Start über Play"
+      : "Noch kein Algorithmus gestartet";
+  }
+
+  return `Queue: ${currentSnapshot.value?.readyQueue.length ?? 0}`;
 });
 
 function normalizeRoute(pathname: string): RouteName {
@@ -1274,6 +1400,55 @@ function confirmAlgorithm(payload: {
   resetPlayback();
 }
 
+function deleteCurrentRun(): void {
+  if (!activeScenario.value || !activeRun.value) {
+    return;
+  }
+
+  const confirmed = window.confirm("Run wirklich loeschen?");
+  if (!confirmed) {
+    return;
+  }
+
+  deleteActiveRun();
+  algorithmModalMode.value = "create";
+  algorithmModalSeed.value = null;
+  showAlgorithmModal.value = false;
+  resetPlayback();
+}
+
+async function handlePlaybackPlay(): Promise<void> {
+  if (!hasSimulationStarted.value) {
+    hasSimulationStarted.value = true;
+    beginLaunchSequence(() => {
+      playback.play();
+    });
+    return;
+  }
+
+  layoutPhase.value = "running";
+  await nextTick();
+  playback.play();
+}
+
+function handlePlaybackPause(): void {
+  if (activationTimer !== undefined) {
+    window.clearTimeout(activationTimer);
+    activationTimer = undefined;
+  }
+
+  if (settleTimer !== undefined) {
+    window.clearTimeout(settleTimer);
+    settleTimer = undefined;
+  }
+
+  playback.pause();
+}
+
+function handlePlaybackReset(): void {
+  resetPlayback();
+}
+
 function selectRun(index: number): void {
   if (!activeScenario.value) {
     return;
@@ -1367,10 +1542,24 @@ function stepForward(): void {
     return;
   }
 
+  if (!hasSimulationStarted.value) {
+    hasSimulationStarted.value = true;
+    beginLaunchSequence(() => {
+      playback.stepForward();
+    });
+    return;
+  }
+
+  layoutPhase.value = "running";
   playback.stepForward();
 }
 
 function stepBackward(): void {
+  if (!hasSimulationStarted.value && activeRun.value) {
+    hasSimulationStarted.value = true;
+  }
+
+  layoutPhase.value = hasSimulationStarted.value ? "activation" : "preview";
   playback.stepBack();
 }
 
@@ -1568,6 +1757,19 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.scenario-banner--raw {
+  margin-bottom: 0.8rem;
+}
+
+.modal-preview {
+  align-self: start;
+  padding: 0.95rem;
+}
+
+.gantt-wrap--raw {
+  margin-bottom: 0.75rem;
 }
 
 .scenario-banner p {

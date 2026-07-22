@@ -28,43 +28,84 @@
         v-for="segment in segments"
         :key="`${segment.processName}-${segment.start}-${segment.end}`"
       >
-        <rect
-          v-if="shouldPulse(segment)"
-          :x="segment.start * cellWidth + offsetX - 5"
-          :y="segmentY(segment) - 5"
-          :width="Math.max((segment.end - segment.start) * cellWidth, 4) + 10"
-          :height="segmentHeight + 10"
-          :rx="12"
-          class="preempt-pulse"
-          :style="{
-            ['--pulse-color']: segment.color,
-            ['--pulse-rgb']: hexToRgb(segment.color),
-          }"
-          aria-hidden="true"
-        />
-
-        <rect
-          :x="segment.start * cellWidth + offsetX"
-          :y="segmentY(segment)"
-          :width="Math.max((segment.end - segment.start) * cellWidth, 4)"
-          :height="segmentHeight"
-          :rx="7"
-          :fill="segment.idle ? 'url(#idleGradient)' : segment.color"
-          :opacity="segmentOpacity(segment)"
-          :stroke="segment.idle ? '#94a3b8' : 'rgba(255,255,255,0.2)'"
-          style="cursor: pointer"
-          @pointerenter.prevent="handleEnter(segment, $event)"
-          @pointerleave.prevent="handleLeave"
-          @click.prevent="handleClick(segment)"
-        />
-
-        <text
-          :x="segment.start * cellWidth + offsetX + 8"
-          :y="segmentY(segment) + 22"
-          class="gantt-label"
+        <g
+          class="bar-wrap"
+          :data-id="`${segment.processName}-${segment.start}-${segment.end}`"
         >
-          {{ segment.processName }}
-        </text>
+          <rect
+            v-if="shouldPulse(segment)"
+            :x="segmentBaseX(segment) - 5"
+            :y="segmentY(segment) - 5"
+            :width="Math.max((segment.end - segment.start) * cellWidth, 4) + 10"
+            :height="segmentHeight + 10"
+            :rx="12"
+            class="preempt-pulse"
+            :style="{
+              ['--pulse-color']: segment.color,
+              ['--pulse-rgb']: hexToRgb(segment.color),
+            }"
+            aria-hidden="true"
+          />
+
+          <template v-if="shouldSplitSegment(segment)">
+            <rect
+              class="gantt-bar gantt-bar--split gantt-bar--done"
+              :x="segmentBaseX(segment)"
+              :y="segmentY(segment)"
+              :width="splitLeftWidth(segment)"
+              :height="segmentHeight"
+              :rx="7"
+              :fill="segment.idle ? 'url(#idleGradient)' : segment.color"
+              :opacity="segmentOpacity(segment)"
+              :stroke="segment.idle ? '#94a3b8' : 'rgba(255,255,255,0.2)'"
+              style="cursor: pointer"
+              @pointerenter.prevent="handleEnter(segment, $event)"
+              @pointerleave.prevent="handleLeave"
+              @click.prevent="handleClick(segment)"
+            />
+
+            <rect
+              class="gantt-bar gantt-bar--split gantt-bar--remaining"
+              :x="splitRightX(segment)"
+              :y="segmentY(segment)"
+              :width="splitRightWidth(segment)"
+              :height="segmentHeight"
+              :rx="7"
+              :fill="segment.idle ? 'url(#idleGradient)' : segment.color"
+              :opacity="Math.max(segmentOpacity(segment) - 0.16, 0.42)"
+              :stroke="segment.idle ? '#94a3b8' : 'rgba(255,255,255,0.2)'"
+              style="cursor: pointer"
+              @pointerenter.prevent="handleEnter(segment, $event)"
+              @pointerleave.prevent="handleLeave"
+              @click.prevent="handleClick(segment)"
+            />
+          </template>
+
+          <rect
+            v-else
+            class="gantt-bar"
+            :x="segmentBaseX(segment)"
+            :y="segmentY(segment)"
+            :width="segmentWidth(segment)"
+            :height="segmentHeight"
+            :rx="7"
+            :fill="segment.idle ? 'url(#idleGradient)' : segment.color"
+            :opacity="segmentOpacity(segment)"
+            :stroke="segment.idle ? '#94a3b8' : 'rgba(255,255,255,0.2)'"
+            style="cursor: pointer"
+            @pointerenter.prevent="handleEnter(segment, $event)"
+            @pointerleave.prevent="handleLeave"
+            @click.prevent="handleClick(segment)"
+          />
+
+          <text
+            :x="segmentBaseX(segment) + 8"
+            :y="segmentY(segment) + 22"
+            class="gantt-label"
+          >
+            {{ segment.processName }}
+          </text>
+        </g>
       </g>
 
       <g
@@ -72,7 +113,7 @@
         :key="`${segment.processName}-${segment.start}-${segment.end}-active`"
       >
         <rect
-          :x="segment.start * cellWidth + offsetX - 1"
+          :x="segmentBaseX(segment) - 1"
           :y="segmentY(segment) - 2"
           :width="Math.max((segment.end - segment.start) * cellWidth, 4) + 2"
           :height="segmentHeight + 4"
@@ -87,7 +128,14 @@
 
         <rect
           v-if="activeSubRect(segment)"
-          :x="activeSubRect(segment)?.x"
+          :x="
+            segmentBaseX(segment) +
+            Math.max(
+              0,
+              (activeSubRect(segment)?.x ?? 0) -
+                (segment.start * cellWidth + offsetX),
+            )
+          "
           :y="segmentY(segment) - 3"
           :width="activeSubRect(segment)?.width"
           :height="segmentHeight + 6"
@@ -146,6 +194,8 @@ const props = defineProps<{
   activeId?: string | null;
   currentTime?: number;
   tickSize?: number;
+  layoutVariant?: "push" | "smooth";
+  layoutPhase?: "preview" | "activation" | "settle" | "running";
   preemptedProcessId?: string | null;
   preemptTime?: number | null;
 }>();
@@ -220,6 +270,128 @@ const segmentOpacity = (segment: TimelineSegment): number => {
   }
 
   return 0.82;
+};
+
+const isPushVariant = () => props.layoutVariant === "push";
+const isActivationPhase = () => props.layoutPhase === "activation";
+const isSettlePhase = () => props.layoutPhase === "settle";
+const currentTime = () => props.currentTime ?? 0;
+
+const orderedProcessIds = computed(() => {
+  const ids = new Set<string>();
+  for (const segment of segments.value) {
+    if (segment.processId) {
+      ids.add(segment.processId);
+    }
+  }
+  return Array.from(ids);
+});
+
+const activationOffsetByProcess = (segment: TimelineSegment): number => {
+  if (
+    !props.activeId ||
+    !segment.processId ||
+    segment.processId === props.activeId
+  ) {
+    return 0;
+  }
+
+  const activeIndex = orderedProcessIds.value.indexOf(props.activeId);
+  const segmentIndex = orderedProcessIds.value.indexOf(segment.processId);
+  if (activeIndex < 0 || segmentIndex < 0 || segmentIndex <= activeIndex) {
+    return 0;
+  }
+
+  return (segmentIndex - activeIndex) * props.cellWidth;
+};
+
+const segmentBaseX = (segment: TimelineSegment): number => {
+  const time = currentTime();
+  const baseX = segment.start * props.cellWidth + offsetX;
+
+  if (isActivationPhase()) {
+    return baseX;
+  }
+
+  if (isSettlePhase()) {
+    if (segment.processId === props.activeId) {
+      return baseX;
+    }
+
+    return baseX + activationOffsetByProcess(segment);
+  }
+
+  if (!isPushVariant()) {
+    return baseX;
+  }
+
+  if (segment.start <= time) {
+    return baseX;
+  }
+
+  const shift = Math.min(
+    props.cellWidth * 0.35,
+    Math.max(0, (segment.start - time) * props.cellWidth * 0.2),
+  );
+
+  return baseX + shift;
+};
+
+const segmentWidth = (segment: TimelineSegment): number =>
+  Math.max((segment.end - segment.start) * props.cellWidth, 4);
+
+const splitCursor = (segment: TimelineSegment): number | null => {
+  const time = props.currentTime;
+  if (
+    isActivationPhase() ||
+    time === undefined ||
+    time === null ||
+    segment.idle ||
+    time <= segment.start ||
+    time >= segment.end
+  ) {
+    return null;
+  }
+
+  return time;
+};
+
+const shouldSplitSegment = (segment: TimelineSegment): boolean =>
+  splitCursor(segment) !== null;
+
+const splitLeftWidth = (segment: TimelineSegment): number => {
+  const cursor = splitCursor(segment);
+  if (cursor === null) {
+    return segmentWidth(segment);
+  }
+
+  return Math.max((cursor - segment.start) * props.cellWidth, 4);
+};
+
+const splitRightWidth = (segment: TimelineSegment): number => {
+  const cursor = splitCursor(segment);
+  if (cursor === null) {
+    return segmentWidth(segment);
+  }
+
+  return Math.max((segment.end - cursor) * props.cellWidth, 4);
+};
+
+const splitRightX = (segment: TimelineSegment): number => {
+  const cursor = splitCursor(segment);
+  if (cursor === null) {
+    return segmentBaseX(segment);
+  }
+
+  const gap = isPushVariant() ? 6 : 3;
+  const pushOffset = isPushVariant()
+    ? Math.min(
+        props.cellWidth * 0.45,
+        Math.max(0, (segment.end - cursor) * props.cellWidth * 0.12),
+      )
+    : 0;
+
+  return cursor * props.cellWidth + offsetX + gap + pushOffset;
 };
 
 /**
@@ -306,6 +478,10 @@ function hexToRgb(hex?: string) {
   transform-origin: center;
   animation: preemptPulse 0.9s ease-out 1;
   pointer-events: none;
+}
+
+.bar-wrap {
+  transform-origin: 0 0;
 }
 
 .active-glow {

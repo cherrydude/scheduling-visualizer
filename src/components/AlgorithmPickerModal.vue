@@ -70,6 +70,14 @@
             <button class="primary-button" type="submit">
               {{ confirmLabel }}
             </button>
+            <button
+              v-if="showDeleteButton"
+              class="danger-button"
+              type="button"
+              @click="$emit('delete-run')"
+            >
+              Run löschen
+            </button>
           </div>
         </form>
 
@@ -109,6 +117,7 @@ const props = defineProps<{
     lcfsTieBreak?: "stack" | "id";
   };
   confirmLabel?: string;
+  showDeleteButton?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -126,6 +135,7 @@ const emit = defineEmits<{
       };
     },
   ): void;
+  (e: "delete-run"): void;
 }>();
 
 const algorithm = ref<AlgorithmType>("roundRobin");
