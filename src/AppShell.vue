@@ -181,8 +181,6 @@
       </div>
     </section>
 
-    <!-- Topbar removed: Gantt controls provide playback controls now -->
-
     <main v-if="isHome" class="dashboard-grid">
       <section class="panel status-strip">
         <div class="status-strip-menu">
@@ -345,6 +343,12 @@
               :introAnimation="hasSimulationStarted"
               :layoutVariant="layoutVariant"
               :layoutPhase="layoutPhase"
+              :algorithm="activeRun?.algorithm ?? activeScenario.algorithm"
+              :queueLevels="
+                activeRun?.algorithmParams.queueLevels ??
+                activeScenario.algorithmParams?.queueLevels ??
+                3
+              "
               :preemptedProcessId="
                 hasSimulationStarted
                   ? (currentPreemptEvent?.processId ?? null)
@@ -394,8 +398,6 @@
           <span>{{ timelineCaptionLeft }}</span>
           <span>{{ timelineCaptionRight }}</span>
         </div>
-
-        <!-- Old Scrubber removed: using Gantt local controls -->
 
         <section class="panel metrics-panel">
           <div class="section-header compact">
@@ -802,7 +804,7 @@ const currentPreemptEvent = computed<ScheduleEvent | null>(() => {
   const events = runState.value?.events ?? [];
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index];
-    if (event.time === currentTime && event.type === "preempt") {
+    if (event.type === "preempt" && event.time <= currentTime) {
       return event;
     }
   }
@@ -915,50 +917,70 @@ function buildStackOrder(snap: SimulationSnapshot | null, max = 8) {
     return [];
   }
 
-  const ids: string[] = [];
+  const entries: Array<{ id: string; level: number | null }> = [];
   const seen = new Set<string>();
 
-  const push = (pid?: string | null) => {
+  const push = (pid?: string | null, level: number | null = null) => {
     if (!pid || seen.has(pid)) {
       return;
     }
 
     seen.add(pid);
-    ids.push(pid);
+    entries.push({ id: pid, level });
   };
 
-  push(findActiveProcessId(snap.time) ?? snap.currentProcessId);
+  push(
+    findActiveProcessId(snap.time) ?? snap.currentProcessId,
+    snap.currentQueueLevel ?? null,
+  );
   if (Array.isArray(snap.readyQueue)) {
-    for (const nameOrId of snap.readyQueue) {
-      if (ids.length >= max) {
+    for (const [index, nameOrId] of snap.readyQueue.entries()) {
+      if (entries.length >= max) {
         break;
       }
 
-      push(resolveSnapshotProcessId(snap, nameOrId));
+      push(
+        resolveSnapshotProcessId(snap, nameOrId),
+        snap.readyQueueLevels?.[index] ?? null,
+      );
     }
   }
 
-  return ids;
+  return entries;
 }
 
 function writeStackFromSnapshot(snap: SimulationSnapshot | null, max = 8) {
   const activeId = currentActiveProcessId.value;
   const preemptedId = currentPreemptEvent.value?.processId ?? null;
-  const ids = buildStackOrder(snap, max).filter(
-    (pid) => !isProcessDone(pid, snap),
+  const entries = buildStackOrder(snap, max).filter(
+    (entry) => !isProcessDone(entry.id, snap),
   );
 
-  stackItems.value = ids.map((pid) => {
+  stackItems.value = entries.map((entry) => {
+    const pid = entry.id;
     const meta = findProcessMeta(pid);
     const nextSeg =
       visibleSegments.value.find(
         (segment) =>
           segment.processId === pid && segment.end > (snap?.time ?? 0),
       ) ?? visibleSegments.value.find((segment) => segment.processId === pid);
-    const subtitle = nextSeg ? `t ${nextSeg.start}–${nextSeg.end}` : "t done";
+    const levelLabel =
+      entry.level === null || entry.level === undefined ? "" : `L${entry.level + 1} · `;
+    const subtitle = nextSeg
+      ? `${levelLabel}t ${nextSeg.start}–${nextSeg.end}`
+      : entry.level === null || entry.level === undefined
+        ? "t done"
+        : `${levelLabel}t done`;
     const status =
       pid === activeId ? "active" : pid === preemptedId ? "preempted" : "ready";
-    return { id: pid, title: meta.name, subtitle, color: meta.color, status };
+    return {
+      id: pid,
+      title: meta.name,
+      subtitle,
+      color: meta.color,
+      status,
+      level: entry.level,
+    };
   });
 }
 
@@ -1170,13 +1192,13 @@ const metricCards = computed<MetricCard[]>(() => {
 });
 
 const comparisonCards = computed<ComparisonCard[]>(() => [
-  { label: "LCFS", value: "bereit", help: "Wird in Woche 2 integriert" },
+  { label: "LCFS", value: "bereit", help: "Bereits in der Simulation aktiv" },
   {
     label: "Strict Priority",
-    value: "bereit",
-    help: "Wird in Woche 2 integriert",
+    value: "implementiert",
+    help: "Präemptiv mit Prioritäten und FIFO-Tie-Break",
   },
-  { label: "MLFQ", value: "bereit", help: "Wird in Woche 2 integriert" },
+  { label: "MLFQ", value: "implementiert", help: "Queue-Stufen sichtbar im Queue-Panel" },
 ]);
 
 const recentEvents = computed<ScheduleEvent[]>(() => {
@@ -1585,6 +1607,12 @@ function formatAlgorithmParams(
     timeQuantum?: number;
     snapshotInterval?: number;
     queueLevels?: number;
+    strictPriorityTieBreak?:
+      | "fifo"
+      | "arrivalTime"
+      | "remainingTime"
+      | "waitingTime"
+      | "id";
     lcfsMode?: "preemptive" | "nonPreemptive";
     lcfsTieBreak?: "stack" | "id";
   },
@@ -1594,7 +1622,23 @@ function formatAlgorithmParams(
   }
 
   if (algorithm === "mlfq") {
-    return `Queue-Stufen: ${params.queueLevels ?? 3}`;
+    return `Stufen: ${params.queueLevels ?? 3} · Quantum: ${params.timeQuantum ?? 2}`;
+  }
+
+  if (algorithm === "strictPriority") {
+    const tieBreakLabels: Record<
+      NonNullable<typeof params.strictPriorityTieBreak>,
+      string
+    > = {
+      fifo: "FIFO",
+      arrivalTime: "Ankunft",
+      remainingTime: "Restzeit",
+      waitingTime: "Wartezeit",
+      id: "ID",
+    };
+    const tieBreakLabel =
+      tieBreakLabels[params.strictPriorityTieBreak ?? "fifo"];
+    return `Tie-Break: ${tieBreakLabel}`;
   }
 
   if (algorithm === "lcfs") {
@@ -1723,19 +1767,6 @@ onBeforeUnmount(() => {
   isolation: isolate;
 }
 
-.topbar {
-  position: relative;
-  z-index: 100;
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  position: relative;
-  z-index: 101;
-}
-
 .empty-state {
   border: 1px dashed rgba(148, 163, 184, 0.22);
   border-radius: 18px;
@@ -1813,11 +1844,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 900px) {
-  .topbar-left {
-    width: 100%;
-    justify-content: space-between;
-  }
-
   .scenario-banner {
     flex-direction: column;
     align-items: flex-start;

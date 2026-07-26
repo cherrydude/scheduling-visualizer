@@ -59,13 +59,15 @@
       :segments="segments"
       :tickMarks="tickMarks"
       :cellWidth="cellWidth"
-      :chartHeight="chartHeight"
+      :chartHeight="renderChartHeight"
       :segmentHeight="segmentHeight"
-      :viewBox="viewBox"
+      :viewBox="renderViewBox"
       :offsetX="offsetX"
       :currentTime="currentTime"
       :layoutVariant="props.layoutVariant"
       :layoutPhase="props.layoutPhase"
+      :algorithm="props.algorithm"
+      :queueLevels="props.queueLevels"
       :preemptedProcessId="props.preemptedProcessId"
       :preemptTime="props.preemptTime"
       @segmentEnter="onSegmentEnter"
@@ -108,6 +110,8 @@ const props = defineProps<{
   introAnimation?: boolean;
   layoutVariant?: "push" | "smooth";
   layoutPhase?: "preview" | "activation" | "settle" | "running";
+  algorithm?: string;
+  queueLevels?: number;
   preemptedProcessId?: string | null;
   preemptTime?: number | null;
 }>();
@@ -169,9 +173,30 @@ const chartHeight = props.chartHeight ?? 260;
 const segmentHeight = props.segmentHeight ?? 32;
 const viewBox = props.viewBox ?? `0 0 1200 ${chartHeight}`;
 const offsetX = props.offsetX ?? 80;
+const isMlfqLayout = computed(() => props.algorithm === "mlfq");
+const mlfqLevelCount = computed(() => Math.max(2, props.queueLevels ?? 3));
+const laneGap = 14;
+const laneTop = 28;
+const laneStride = segmentHeight + laneGap;
+const renderChartHeight = computed(() =>
+  Math.max(
+    chartHeight,
+    isMlfqLayout.value
+      ? laneTop + (mlfqLevelCount.value - 1) * laneStride + segmentHeight + 22
+      : chartHeight,
+  ),
+);
+const renderViewBox = computed(() => {
+  const width = Number.parseFloat(viewBox.split(" ")[2] ?? "1200") || 1200;
+  return `0 0 ${width} ${renderChartHeight.value}`;
+});
 const controlsEnabled = computed(() => props.controlsEnabled !== false);
 const introAnimation = computed(() => props.introAnimation !== false);
 const debugPreemption = import.meta.env.DEV;
+
+function hasGsapTargets(target: unknown): boolean {
+  return Array.isArray(target) ? target.length > 0 : Boolean(target);
+}
 
 function logPreemptionDebug(
   message: string,
@@ -336,6 +361,15 @@ function runPreemptVariant(mode: string, rootEl: HTMLElement, ptime: number) {
 
   const victimKey = `${victim.processName}-${victim.start}-${victim.end}`;
   const incomingKey = `${incoming.processName}-${incoming.start}-${incoming.end}`;
+  if (victimKey === incomingKey) {
+    logPreemptionDebug("skip: identical victim/incoming segment", {
+      victimKey,
+      incomingKey,
+      ptime,
+      mode,
+    });
+    return;
+  }
   const victimWrap = svgEl.querySelector(
     `[data-id="${victimKey}"]`,
   ) as SVGGElement | null;
@@ -406,7 +440,9 @@ function doCutOutAndFlyIn(
   incomingClone.style.transform = "translateY(-44px) scale(0.96)";
   svgEl.appendChild(incomingClone);
 
-  gsap.to(victimWrap, { opacity: 0.66, duration: 0.12, ease: "power1.out" });
+  if (hasGsapTargets(victimWrap)) {
+    gsap.to(victimWrap, { opacity: 0.66, duration: 0.12, ease: "power1.out" });
+  }
 
   const tl = gsap.timeline();
   tl.to(cutPiece, {
@@ -487,15 +523,17 @@ function doFlipPush(
     el.style.transform = `translateX(${delta}px)`;
   });
 
-  gsap.to(barWraps as any, {
-    x: 0,
-    duration: 0.7,
-    ease: "power2.out",
-    stagger: 0.02,
-    onComplete: () => {
-      barWraps.forEach((el) => (el.style.transform = ""));
-    },
-  });
+  if (barWraps.length) {
+    gsap.to(barWraps as any, {
+      x: 0,
+      duration: 0.7,
+      ease: "power2.out",
+      stagger: 0.02,
+      onComplete: () => {
+        barWraps.forEach((el) => (el.style.transform = ""));
+      },
+    });
+  }
 }
 
 function doOverlay(
@@ -547,43 +585,49 @@ function doOverlay(
     affectedCount: affected.length,
   });
 
-  gsap.fromTo(
-    cutPiece as any,
-    { y: victimY, opacity: 0.96 },
-    {
-      y: victimY - 36,
-      opacity: 0,
-      duration: 0.58,
+  if (hasGsapTargets(cutPiece)) {
+    gsap.fromTo(
+      cutPiece as any,
+      { y: victimY, opacity: 0.96 },
+      {
+        y: victimY - 36,
+        opacity: 0,
+        duration: 0.58,
+        ease: "power2.out",
+        onComplete: () => {
+          try {
+            cutPiece.remove();
+          } catch {}
+        },
+      },
+    );
+  }
+  if (hasGsapTargets(incomingClone)) {
+    gsap.fromTo(
+      incomingClone as any,
+      { y: incomingY - 40, opacity: 0 },
+      {
+        y: incomingY,
+        opacity: 0.96,
+        duration: 0.62,
+        ease: "back.out(1.2)",
+        onComplete: () => {
+          try {
+            incomingClone.remove();
+          } catch {}
+        },
+      },
+    );
+  }
+  if (affected.length) {
+    gsap.to(affected as any, {
+      x: dx * 0.6,
+      duration: 0.5,
       ease: "power2.out",
-      onComplete: () => {
-        try {
-          cutPiece.remove();
-        } catch {}
-      },
-    },
-  );
-  gsap.fromTo(
-    incomingClone as any,
-    { y: incomingY - 40, opacity: 0 },
-    {
-      y: incomingY,
-      opacity: 0.96,
-      duration: 0.62,
-      ease: "back.out(1.2)",
-      onComplete: () => {
-        try {
-          incomingClone.remove();
-        } catch {}
-      },
-    },
-  );
-  gsap.to(affected as any, {
-    x: dx * 0.6,
-    duration: 0.5,
-    ease: "power2.out",
-    yoyo: true,
-    repeat: 1,
-  });
+      yoyo: true,
+      repeat: 1,
+    });
+  }
 }
 
 function createOverlayPiece(
@@ -635,6 +679,15 @@ function createMorphPiece(
 
 function getLaneIndex(pid?: string | null): number {
   if (!pid) return 0;
+  if (isMlfqLayout.value) {
+    const matching = segments.value.find((segment) => segment.processId === pid);
+    if (matching) {
+      return Math.min(
+        mlfqLevelCount.value - 1,
+        Math.max(0, matching.queueLevel ?? 0),
+      );
+    }
+  }
   const ordered = Array.from(
     new Set(segments.value.map((segment) => segment.processId).filter(Boolean)),
   ) as string[];
@@ -642,7 +695,7 @@ function getLaneIndex(pid?: string | null): number {
 }
 
 function getLaneY(pid?: string | null): number {
-  return 28 + getLaneIndex(pid) * (segmentHeight + 14);
+  return laneTop + getLaneIndex(pid) * laneStride;
 }
 
 function getSegmentKey(segment: TimelineSegment): string {
@@ -660,9 +713,15 @@ function getSegmentYFor(
   segmentsList: TimelineSegment[],
 ): number {
   if (segment.idle) return 180;
+  if (isMlfqLayout.value) {
+    return laneTop + Math.min(
+      mlfqLevelCount.value - 1,
+      Math.max(0, segment.queueLevel ?? 0),
+    ) * laneStride;
+  }
   const order = getProcessOrder(segmentsList);
   const index = order.indexOf(segment.processId ?? "");
-  return 28 + Math.max(index, 0) * (segmentHeight + 14);
+  return laneTop + Math.max(index, 0) * laneStride;
 }
 
 function getSegmentXFor(segment: TimelineSegment): number {
@@ -763,7 +822,9 @@ function runLaunchMorph() {
     morphPieces.push(piece);
     fadeTargets.push(wrap);
 
-    gsap.set(wrap, { autoAlpha: 0 });
+    if (hasGsapTargets(wrap)) {
+      gsap.set(wrap, { autoAlpha: 0 });
+    }
     gsap.fromTo(
       piece,
       { opacity: sourceOpacity },
@@ -788,18 +849,18 @@ function runLaunchMorph() {
     return;
   }
 
-  gsap.to(fadeTargets as any, {
-    autoAlpha: 1,
-    duration: 0.18,
-    delay: 0.1,
-    ease: "power1.out",
-  });
+  if (fadeTargets.length) {
+    gsap.to(fadeTargets as any, {
+      autoAlpha: 1,
+      duration: 0.18,
+      delay: 0.1,
+      ease: "power1.out",
+    });
+  }
 }
 
 function handlePlay() {
   if (!controlsEnabled.value) return;
-  // The actual timeline progression comes from AppShell/playback snapshots.
-  // Keeping the local GSAP timeline paused avoids pointer/scrubber drift.
   emit("play");
 }
 
@@ -845,28 +906,31 @@ onMounted(() => {
     tl.current = gsap.timeline({ paused: true });
     if (introAnimation.value) {
       // entry animation (stagger)
-      tl.current.from(
-        rootEl.querySelectorAll(barSelector),
-        {
-          x: -12,
-          autoAlpha: 0,
-          duration: 0.45,
-          stagger: 0.04,
-          ease: "power2.out",
-        },
-        0,
-      );
+      const barTargets = rootEl.querySelectorAll(barSelector);
+      if (barTargets.length) {
+        tl.current.from(
+          barTargets,
+          {
+            x: -12,
+            autoAlpha: 0,
+            duration: 0.45,
+            stagger: 0.04,
+            ease: "power2.out",
+          },
+          0,
+        );
+      }
     } else {
-      gsap.set(rootEl.querySelectorAll(barSelector), {
-        clearProps: "all",
-        autoAlpha: 1,
-        x: 0,
-      });
+      const barTargets = rootEl.querySelectorAll(barSelector);
+      if (barTargets.length) {
+        gsap.set(barTargets, {
+          clearProps: "all",
+          autoAlpha: 1,
+          x: 0,
+        });
+      }
     }
 
-    // NOTE: removed ScrollTrigger-based scroll sync to prevent mousewheel
-    // from controlling the timeline. Instead, intercept wheel events
-    // on the gantt root so they don't affect page scroll handlers.
     onWheel = (ev: WheelEvent) => {
       ev.stopPropagation();
     };

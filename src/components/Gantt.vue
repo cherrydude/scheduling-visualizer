@@ -13,12 +13,34 @@
     </defs>
 
     <g v-if="segments && segments.length">
+      <g v-if="isMlfqLayout">
+        <line
+          v-for="level in mlfqLevelCount - 1"
+          :key="`guide-${level}`"
+          :x1="offsetX"
+          :x2="offsetX + 2000"
+          :y1="laneTop + level * laneStride - 9"
+          :y2="laneTop + level * laneStride - 9"
+          class="level-guide"
+          aria-hidden="true"
+        />
+        <text
+          v-for="level in mlfqLevelCount"
+          :key="`label-${level}`"
+          :x="22"
+          :y="laneTop + (level - 1) * laneStride + 11"
+          class="level-label"
+        >
+          {{ levelLabel(level - 1) }}
+        </text>
+      </g>
+
       <rect
         v-if="completedOverlayWidth > 0"
         :x="offsetX"
         y="16"
         :width="completedOverlayWidth"
-        :height="chartHeight - 34"
+        :height="renderChartHeight - 34"
         rx="14"
         class="completed-overlay"
         aria-hidden="true"
@@ -154,7 +176,7 @@
         :x1="pointerX"
         y1="16"
         :x2="pointerX"
-        :y2="chartHeight - 18"
+        :y2="renderChartHeight - 18"
         class="time-pointer"
         aria-hidden="true"
       />
@@ -170,9 +192,9 @@
         :x1="tick * cellWidth + offsetX"
         y1="16"
         :x2="tick * cellWidth + offsetX"
-        :y2="chartHeight - 18"
+        :y2="renderChartHeight - 18"
       />
-      <text :x="tick * cellWidth + offsetX" :y="chartHeight - 4">
+      <text :x="tick * cellWidth + offsetX" :y="renderChartHeight - 4">
         {{ tick }}
       </text>
     </g>
@@ -196,6 +218,8 @@ const props = defineProps<{
   tickSize?: number;
   layoutVariant?: "push" | "smooth";
   layoutPhase?: "preview" | "activation" | "settle" | "running";
+  algorithm?: string;
+  queueLevels?: number;
   preemptedProcessId?: string | null;
   preemptTime?: number | null;
 }>();
@@ -207,6 +231,19 @@ const emit = defineEmits<{
 }>();
 
 const offsetX = props.offsetX ?? 80;
+const laneGap = 14;
+const laneTop = 28;
+const isMlfqLayout = computed(() => props.algorithm === "mlfq");
+const mlfqLevelCount = computed(() => Math.max(2, props.queueLevels ?? 3));
+const laneStride = props.segmentHeight + laneGap;
+const renderChartHeight = computed(() =>
+  Math.max(
+    props.chartHeight,
+    isMlfqLayout.value
+      ? laneTop + (mlfqLevelCount.value - 1) * laneStride + props.segmentHeight + 22
+      : props.chartHeight,
+  ),
+);
 
 const activeSegments = computed(() =>
   props.segments.filter(
@@ -246,14 +283,26 @@ function handleClick(segment: TimelineSegment) {
   emit("segmentClick", segment);
 }
 
-const segmentY = (segment: TimelineSegment): number => {
-  if (segment.idle) return 180;
+const levelLabel = (level: number): string => `L${level + 1}`;
+
+const getSegmentLevel = (segment: TimelineSegment): number => {
+  if (isMlfqLayout.value) {
+    return Math.min(
+      mlfqLevelCount.value - 1,
+      Math.max(0, segment.queueLevel ?? 0),
+    );
+  }
+
   const segmentsByProcess = props.segments
     .map((s) => s.processId)
     .filter(Boolean)
     .filter((v, i, arr) => arr.indexOf(v) === i);
-  const index = segmentsByProcess.indexOf(segment.processId);
-  return 28 + Math.max(index, 0) * (props.segmentHeight + 14);
+  return Math.max(0, segmentsByProcess.indexOf(segment.processId));
+};
+
+const segmentY = (segment: TimelineSegment): number => {
+  if (segment.idle) return 180;
+  return laneTop + getSegmentLevel(segment) * laneStride;
 };
 
 const segmentOpacity = (segment: TimelineSegment): number => {

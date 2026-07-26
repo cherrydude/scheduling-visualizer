@@ -60,7 +60,50 @@
           </template>
 
           <template v-else>
-            <p class="subtitle">
+            <template v-if="algorithm === 'strictPriority'">
+              <label class="algorithm-field">
+                <span>Tie-Break</span>
+                <select v-model="strictPriorityTieBreak" class="algorithm-control">
+                  <option value="fifo">FIFO</option>
+                  <option value="arrivalTime">Früheste Ankunft</option>
+                  <option value="remainingTime">Kürzeste Restzeit</option>
+                  <option value="waitingTime">Längste Wartezeit</option>
+                  <option value="id">Prozess-ID</option>
+                </select>
+              </label>
+
+              <p class="subtitle">
+                Kleine Prioritätszahlen werden zuerst behandelt. Gleichstand wird
+                über die ausgewählte Tie-Break-Regel aufgelöst.
+              </p>
+            </template>
+            <template v-else-if="algorithm === 'mlfq'">
+              <label class="algorithm-field">
+                <span>Queue-Stufen</span>
+                <input
+                  v-model.number="queueLevels"
+                  class="algorithm-control"
+                  type="number"
+                  min="2"
+                />
+              </label>
+
+              <label class="algorithm-field">
+                <span>Basis-Quantum</span>
+                <input
+                  v-model.number="timeQuantum"
+                  class="algorithm-control"
+                  type="number"
+                  min="1"
+                />
+              </label>
+
+              <p class="subtitle">
+                Prozesse starten in der obersten Ebene. Bei Quantum-Ende werden
+                sie in die nächstniedrigere Ebene verschoben.
+              </p>
+            </template>
+            <p v-else class="subtitle">
               Für diesen Algorithmus sind im aktuellen Stand keine zusätzlichen
               Einstellwerte aktiv.
             </p>
@@ -113,6 +156,12 @@ const props = defineProps<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    strictPriorityTieBreak?:
+      | "fifo"
+      | "arrivalTime"
+      | "remainingTime"
+      | "waitingTime"
+      | "id";
     lcfsMode?: "preemptive" | "nonPreemptive";
     lcfsTieBreak?: "stack" | "id";
   };
@@ -130,6 +179,12 @@ const emit = defineEmits<{
         timeQuantum: number;
         snapshotInterval: number;
         queueLevels: number;
+        strictPriorityTieBreak?:
+          | "fifo"
+          | "arrivalTime"
+          | "remainingTime"
+          | "waitingTime"
+          | "id";
         lcfsMode?: "preemptive" | "nonPreemptive";
         lcfsTieBreak?: "stack" | "id";
       };
@@ -142,6 +197,9 @@ const algorithm = ref<AlgorithmType>("roundRobin");
 const timeQuantum = ref(2);
 const snapshotInterval = ref(1);
 const queueLevels = ref(3);
+const strictPriorityTieBreak = ref<
+  "fifo" | "arrivalTime" | "remainingTime" | "waitingTime" | "id"
+>("fifo");
 const lcfsMode = ref<"preemptive" | "nonPreemptive">("preemptive");
 const lcfsTieBreak = ref<"stack" | "id">("stack");
 
@@ -182,10 +240,23 @@ const algorithmInfo = computed(() => {
       description:
         "Prozesse mit hoeherer Prioritaet werden strikt vor niedrigeren priorisiert. Das verbessert kritische Jobs, kann aber Starvation verursachen.",
       parameterImpact: [
-        "Derzeit sind keine zusaetzlichen Steuerparameter aktiv.",
-        "Snapshot-Intervall/Queue-Stufen sind momentan ohne Einfluss auf die Berechnung.",
+        "Kleinere Prioritätszahlen werden zuerst behandelt.",
+        "Der Tie-Break steuert, was bei gleicher Priorität als Nächstes läuft.",
       ],
-      note: "Strict Priority ist vorbereitet und wird nach Round Robin vollstaendig integriert.",
+      note: "Strict Priority ist präemptiv implementiert und reagiert auf höher priorisierte Ankünfte.",
+    };
+  }
+
+  if (algorithm.value === "mlfq") {
+    return {
+      title: "MLFQ",
+      description:
+        "Multi-Level Feedback Queue verteilt Prozesse auf mehrere Ebenen. Kurze oder interaktive Prozesse bleiben oben, lange Jobs werden mit der Zeit nach unten verschoben.",
+      parameterImpact: [
+        "Queue-Stufen bestimmen, wie fein das Feedback-System aufgeteilt ist.",
+        "Das Basis-Quantum wächst pro niedrigerer Ebene, damit lange Jobs seltener unterbrechen.",
+      ],
+      note: "Die aktuelle Ebene wird im Queue-Panel sichtbar gemacht.",
     };
   }
 
@@ -194,10 +265,10 @@ const algorithmInfo = computed(() => {
     description:
       "Multi-Level Feedback Queue verteilt Prozesse auf mehrere Warteschlangen je nach Laufverhalten und priorisiert kuerzere/interaktive Jobs.",
     parameterImpact: [
-      "Queue-Stufen sind konzeptionell zentral fuer MLFQ, im aktuellen Build aber noch nicht aktiv.",
+      "Queue-Stufen sind konzeptionell zentral für MLFQ.",
       "Snapshot-Intervall beeinflusst nur die Visualisierungsdichte.",
     ],
-    note: "MLFQ ist als naechster Ausbaupfad vorgesehen; die Kernparameter werden mit der finalen MLFQ-Logik freigeschaltet.",
+    note: "MLFQ nutzt Queue-Stufen und ein wachsendes Quantum pro Ebene.",
   };
 });
 
@@ -208,6 +279,7 @@ function submitForm() {
       timeQuantum: Math.max(1, Math.floor(timeQuantum.value || 1)),
       snapshotInterval: Math.max(1, Math.floor(snapshotInterval.value || 1)),
       queueLevels: Math.max(1, Math.floor(queueLevels.value || 1)),
+      strictPriorityTieBreak: strictPriorityTieBreak.value,
       lcfsMode: lcfsMode.value,
       lcfsTieBreak: lcfsTieBreak.value,
     },
@@ -226,6 +298,8 @@ watch(
     snapshotInterval.value =
       props.initialAlgorithmParams?.snapshotInterval ?? 1;
     queueLevels.value = props.initialAlgorithmParams?.queueLevels ?? 3;
+    strictPriorityTieBreak.value =
+      props.initialAlgorithmParams?.strictPriorityTieBreak ?? "fifo";
     lcfsMode.value = props.initialAlgorithmParams?.lcfsMode ?? "preemptive";
     lcfsTieBreak.value = props.initialAlgorithmParams?.lcfsTieBreak ?? "stack";
   },

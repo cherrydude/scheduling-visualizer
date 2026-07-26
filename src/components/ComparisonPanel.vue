@@ -23,8 +23,6 @@
     />
 
     <RankingList :rows="rows" :has-runs="hasRuns" />
-
-    <!-- Weights moved to the edit modal; inline sliders removed -->
   </div>
 </template>
 

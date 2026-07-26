@@ -120,16 +120,23 @@ onMounted(async () => {
     container.value.querySelectorAll<HTMLElement>(".card"),
   );
   // entrance: gentle staggered reveal
-  gsap.set(els, { opacity: 0, y: 8, scale: 0.98, transformOrigin: "50% 100%" });
-  gsap.to(els, {
-    opacity: 1,
-    y: (i) => i * P.value.Y_STEP,
-    x: (i) => i * P.value.X_STEP,
-    scale: 1,
-    stagger: 0.05,
-    duration: P.value.duration,
-    ease: "power3.out",
-  });
+  if (els.length) {
+    gsap.set(els, {
+      opacity: 0,
+      y: 8,
+      scale: 0.98,
+      transformOrigin: "50% 100%",
+    });
+    gsap.to(els, {
+      opacity: 1,
+      y: (i) => i * P.value.Y_STEP,
+      x: (i) => i * P.value.X_STEP,
+      scale: 1,
+      stagger: 0.05,
+      duration: P.value.duration,
+      ease: "power3.out",
+    });
+  }
 });
 
 // Keep previous id order
@@ -196,30 +203,32 @@ watch(
       }
 
       // animate only those two into their new positions (others remain static)
-      gsap.to(animatedEls, {
-        x: 0,
-        y: (i, el) => {
-          const id = (el as HTMLElement).dataset.id!;
-          const idx = nextIds.indexOf(id);
-          return idx * P.value.Y_STEP;
-        },
-        rotation: (i, el) => {
-          const id = (el as HTMLElement).dataset.id!;
-          const idx = nextIds.indexOf(id);
-          return idx * P.value.ROT_STEP;
-        },
-        scale: (i, el) => {
-          const id = (el as HTMLElement).dataset.id!;
-          const idx = nextIds.indexOf(id);
-          return 1 - idx * P.value.SCALE_STEP;
-        },
-        duration: P.value.duration,
-        ease: "power2.out",
-        onComplete: () => {
-          // clear temporary transforms
-          newEls.forEach((el) => gsap.set(el, { clearProps: "x,y" }));
-        },
-      });
+      if (animatedEls.length) {
+        gsap.to(animatedEls, {
+          x: 0,
+          y: (i, el) => {
+            const id = (el as HTMLElement).dataset.id!;
+            const idx = nextIds.indexOf(id);
+            return idx * P.value.Y_STEP;
+          },
+          rotation: (i, el) => {
+            const id = (el as HTMLElement).dataset.id!;
+            const idx = nextIds.indexOf(id);
+            return idx * P.value.ROT_STEP;
+          },
+          scale: (i, el) => {
+            const id = (el as HTMLElement).dataset.id!;
+            const idx = nextIds.indexOf(id);
+            return 1 - idx * P.value.SCALE_STEP;
+          },
+          duration: P.value.duration,
+          ease: "power2.out",
+          onComplete: () => {
+            // clear temporary transforms
+            newEls.forEach((el) => gsap.set(el, { clearProps: "x,y" }));
+          },
+        });
+      }
 
       prevIds = nextIds;
       return;

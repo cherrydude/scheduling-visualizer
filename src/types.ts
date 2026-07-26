@@ -15,6 +15,12 @@ export interface AlgorithmParams {
   /** Anzahl Ticks zwischen automatischen Snapshots (1 = jeder Tick) */
   snapshotInterval?: number;
   queueLevels?: number;
+  strictPriorityTieBreak?:
+    | "fifo"
+    | "arrivalTime"
+    | "remainingTime"
+    | "waitingTime"
+    | "id";
   lcfsMode?: "preemptive" | "nonPreemptive";
   lcfsTieBreak?: "stack" | "id";
 }
@@ -48,6 +54,7 @@ export interface ProcessRuntime extends ProcessInput {
   executedTime: number;
   startedAt: number | null;
   finishedAt: number | null;
+  queueLevel?: number;
 }
 
 export type EventType =
@@ -78,6 +85,7 @@ export interface TimelineSegment {
   end: number;
   color: string;
   idle?: boolean;
+  queueLevel?: number;
 }
 
 export interface SimulationMetrics {
@@ -95,7 +103,9 @@ export interface SimulationSnapshot {
   time: number;
   currentProcessId: string | null;
   currentProcessName: string | null;
+  currentQueueLevel?: number | null;
   readyQueue: string[];
+  readyQueueLevels?: number[];
   remainingQuantum: number;
   lastEvent: ScheduleEvent | null;
   metrics: SimulationMetrics;

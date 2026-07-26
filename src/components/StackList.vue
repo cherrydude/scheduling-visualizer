@@ -23,6 +23,12 @@
         <div class="content">
           <div class="title-row">
             <div class="title">{{ item.title }}</div>
+            <span
+              v-if="item.level !== undefined && item.level !== null"
+              class="level-badge"
+            >
+              L{{ item.level + 1 }}
+            </span>
             <span class="state-badge">{{ statusLabel(item) }}</span>
           </div>
           <div class="sub">{{ item.subtitle }}</div>
@@ -47,6 +53,7 @@ type Item = {
   subtitle?: string;
   color?: string;
   status?: ItemStatus;
+  level?: number | null;
 };
 
 const props = defineProps<{
@@ -194,6 +201,19 @@ function itemClasses(item: Item, index: number) {
   border: 1px solid rgba(148, 163, 184, 0.16);
   color: #cbd5e1;
   background: rgba(148, 163, 184, 0.08);
+}
+
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  color: #7dd3fc;
+  background: rgba(125, 211, 252, 0.08);
 }
 
 .item.active {

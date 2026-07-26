@@ -17,13 +17,13 @@
       </div>
       <div v-else>
         <div class="fallback-item">
-          LCFS — bereit — Wird in Woche 2 integriert
+          LCFS — bereit — Bereits in der Simulation aktiv
         </div>
         <div class="fallback-item">
-          Strict Priority — bereit — Wird in Woche 2 integriert
+          Strict Priority — implementiert — Präemptiv mit FIFO bei gleicher Priorität
         </div>
         <div class="fallback-item">
-          MLFQ — bereit — Wird in Woche 2 integriert
+          MLFQ — implementiert — Queue-Stufen sichtbar im Queue-Panel
         </div>
       </div>
     </div>
