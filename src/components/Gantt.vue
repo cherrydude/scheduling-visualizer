@@ -53,6 +53,7 @@
         <g
           class="bar-wrap"
           :data-id="`${segment.processName}-${segment.start}-${segment.end}`"
+          :data-lane-index="getSegmentLevel(segment)"
         >
           <rect
             v-if="shouldPulse(segment)"
