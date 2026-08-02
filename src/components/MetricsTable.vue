@@ -1,5 +1,5 @@
 <template>
-  <div class="metrics-table">
+  <div>
     <div class="section-header compact">
       <h3>Vergleichstabelle</h3>
       <small>Runs im aktuellen Szenario</small>

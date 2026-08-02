@@ -181,7 +181,12 @@
       </div>
     </section>
 
-    <main v-if="isHome" class="dashboard-grid">
+    <main
+      v-if="isHome"
+      ref="dashboardGridRef"
+      class="dashboard-grid"
+      :class="{ 'dashboard-grid--multi': activeView === 'multi' }"
+    >
       <section class="panel status-strip">
         <div class="status-strip-menu">
           <BurgerMenu
@@ -231,13 +236,38 @@
           <strong>{{ card.value }}</strong>
           <small>{{ card.help }}</small>
         </article>
+
+        <article class="status-card status-card--switcher" aria-label="Ansicht wechseln">
+          <span class="status-label">Ansicht</span>
+          <div class="view-toggle view-toggle--compact">
+            <button
+              type="button"
+              class="secondary-button"
+              :class="{ 'primary-button': activeView === 'focus' }"
+              @click="setActiveView('focus')"
+            >
+              Fokusansicht
+            </button>
+            <button
+              type="button"
+              class="secondary-button"
+              :class="{ 'primary-button': activeView === 'multi' }"
+              @click="setActiveView('multi')"
+            >
+              Multi‑View
+            </button>
+          </div>
+          <small>Wechselt zwischen Detail- und Vergleichsansicht</small>
+        </article>
       </section>
 
-      <section class="focus-column panel">
+      <section ref="focusColumnRef" class="focus-column panel">
         <div class="section-header">
           <div class="section-header-main">
-            <h2>Fokusansicht</h2>
-            <div class="run-navigation-row">
+              <div class="view-header-row">
+                <h2>{{ activeView === 'focus' ? 'Fokusansicht' : 'Multi‑View' }}</h2>
+              </div>
+              <div class="run-navigation-row">
               <div
                 v-if="activeScenario && activeScenario.runs.length > 1"
                 class="run-navigation"
@@ -270,25 +300,6 @@
           <div class="section-header-info">
             <span>{{ focusSubtitle }}</span>
           </div>
-        </div>
-
-        <div class="button-row" style="margin-bottom: 8px">
-          <button
-            type="button"
-            class="secondary-button"
-            :class="{ 'primary-button': layoutVariant === 'push' }"
-            @click="layoutVariant = 'push'"
-          >
-            Variante 1: Schieben
-          </button>
-          <button
-            type="button"
-            class="secondary-button"
-            :class="{ 'primary-button': layoutVariant === 'smooth' }"
-            @click="layoutVariant = 'smooth'"
-          >
-            Variante 2: Glätten
-          </button>
         </div>
 
         <div v-if="!activeScenario" class="empty-state empty-state--actions">
@@ -328,6 +339,7 @@
 
           <div v-if="activeScenario" class="gantt-wrap" ref="ganttWrapRef">
             <GanttWithGsap
+              v-if="activeView === 'focus'"
               :segments="focusSegments"
               :transitionFromSegments="rawPreviewSegments"
               :tickMarks="focusTickMarks"
@@ -369,6 +381,12 @@
               @segmentClick="onSegmentClick"
             />
 
+            <MultiView
+              v-else
+              :scenario="activeScenario"
+              :cellWidth="cellWidth"
+            />
+
             <div
               v-if="activeRun && runState && !runState.supported"
               class="empty-state compact gantt-note"
@@ -400,27 +418,32 @@
         </div>
 
         <section class="panel metrics-panel">
-          <div class="section-header compact">
-            <h2>Kennzahlen</h2>
-            <span>2 x 3 Übersicht</span>
-          </div>
+          <template v-if="activeView === 'focus'">
+            <div class="section-header compact">
+              <h2>Kennzahlen</h2>
+              <span>2 x 3 Übersicht</span>
+            </div>
 
-          <div class="metrics-grid">
-            <article
-              class="metric-panel"
-              v-for="metric in metricCards"
-              :key="metric.label"
-            >
-              <span class="status-label">{{ metric.label }}</span>
-              <strong>{{ metric.value }}</strong>
-              <small>{{ metric.help }}</small>
-            </article>
-          </div>
-          <MetricsTable />
+            <div class="metrics-grid">
+              <article
+                class="metric-panel"
+                v-for="metric in metricCards"
+                :key="metric.label"
+              >
+                <span class="status-label">{{ metric.label }}</span>
+                <strong>{{ metric.value }}</strong>
+                <small>{{ metric.help }}</small>
+              </article>
+            </div>
+          </template>
+
+          <template v-else>
+            <ComparisonPanel :scenario="activeScenario" />
+          </template>
         </section>
       </section>
 
-      <aside class="side-column">
+      <aside v-if="activeView === 'focus'" class="side-column">
         <section class="panel small-panel">
           <div class="section-header">
             <h2>Stack-Simulation</h2>
@@ -466,9 +489,6 @@
           </div>
         </section>
 
-        <section class="panel small-panel">
-          <ComparisonPanel />
-        </section>
       </aside>
 
       <Tooltip
@@ -527,9 +547,9 @@ import AlgorithmPickerModal from "./components/AlgorithmPickerModal.vue";
 import ScenarioMiniature from "./components/ScenarioMiniature.vue";
 import Tooltip from "@/components/Tooltip.vue";
 import GanttWithGsap from "./components/GanttWithGsap.vue";
+import MultiView from "./components/MultiView.vue";
 import StackList from "./components/StackList.vue";
 import ComparisonPanel from "./components/ComparisonPanel.vue";
-import MetricsTable from "./components/MetricsTable.vue";
 import { usePlayback } from "@/composables/usePlayback";
 import type {
   AlgorithmType,
@@ -674,8 +694,23 @@ const algorithmModalSeed = ref<{
 } | null>(null);
 const generatorModalRef = ref<HTMLElement | null>(null);
 const ganttWrapRef = ref<HTMLElement | null>(null);
+const dashboardGridRef = ref<HTMLElement | null>(null);
+const focusColumnRef = ref<HTMLElement | null>(null);
 const currentRoute = ref<RouteName>("home");
 const loopPlayback = ref(false);
+
+const activeView = ref<string>(
+  typeof window !== "undefined"
+    ? window.localStorage.getItem("scheduling-visualizer.activeView") ?? "focus"
+    : "focus",
+);
+
+function setActiveView(view: string) {
+  activeView.value = view;
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem("scheduling-visualizer.activeView", view);
+  }
+}
 
 const draft = reactive<ScenarioDraft>(createBlankScenarioDraft());
 
@@ -755,7 +790,7 @@ const runState = computed<SimulationRun | null>(() =>
 const totalSnapshots = computed(() => runState.value?.snapshots.length ?? 0);
 const isPlaying = ref(false);
 const hasSimulationStarted = ref(false);
-const layoutVariant = ref<"push" | "smooth">("push");
+const layoutVariant = ref<"push" | "smooth">("smooth");
 const layoutPhase = ref<"preview" | "activation" | "settle" | "running">(
   "preview",
 );
@@ -1074,6 +1109,28 @@ watch(
   },
 );
 
+watch(activeView, async (view, previousView) => {
+  if (view === previousView) {
+    return;
+  }
+
+  await nextTick();
+
+  const grid = dashboardGridRef.value;
+  if (grid) {
+    grid.classList.toggle("dashboard-grid--multi", view === "multi");
+  }
+
+  const focusColumn = focusColumnRef.value;
+  if (focusColumn) {
+    gsap.fromTo(
+      focusColumn,
+      { opacity: 0.9, y: 4, scale: view === "multi" ? 0.992 : 0.996 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.36, ease: "power2.out" },
+    );
+  }
+});
+
 const currentEventLabel = computed(() =>
   currentSnapshot.value?.lastEvent
     ? `${currentSnapshot.value.lastEvent.type} @ ${currentSnapshot.value.lastEvent.time}`
@@ -1125,16 +1182,6 @@ const statusCards = computed<MetricCard[]>(() => [
         )
       : "Bitte erst Algorithmus anwenden",
     showEditIcon: Boolean(activeRun.value),
-  },
-  {
-    label: "Zeit",
-    value: String(currentSnapshot.value?.time ?? 0),
-    help: "Aktuelle Simulationszeit",
-  },
-  {
-    label: "Laufstatus",
-    value: isPlaying.value ? "Running" : activeRun.value ? "Paused" : "Bereit",
-    help: "Steuerung per Toolbar",
   },
 ]);
 

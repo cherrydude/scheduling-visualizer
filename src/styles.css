@@ -159,6 +159,11 @@ select {
   grid-template-columns: minmax(0, 1.9fr) minmax(280px, 0.82fr);
   gap: 1rem;
   margin-top: 1rem;
+  transition: grid-template-columns 0.36s ease;
+}
+
+.dashboard-grid--multi {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .status-strip {
@@ -189,6 +194,19 @@ select {
 .status-card {
   padding: 0.9rem 1rem;
   min-height: 92px;
+}
+
+.status-card--switcher {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.view-toggle--compact {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 /* make status cards sit in one row and grow/shrink nicely */
@@ -252,6 +270,10 @@ select {
 .focus-column,
 .detail-panel {
   padding: 1rem;
+}
+
+.focus-column {
+  min-width: 0;
 }
 
 .side-column {
