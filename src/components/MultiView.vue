@@ -1,5 +1,5 @@
 <template>
-  <div class="multi-view">
+  <div class="multi-view" ref="multiViewRef">
     <div class="multi-controls">
       <button class="secondary-button" @click="togglePlay">
         {{ playback.playing.value ? 'Pause' : 'Play' }}
@@ -32,7 +32,7 @@
         </div>
         <MiniGantt
           :segments="rs.segments"
-          :cellWidth="cellWidth"
+          :cellWidth="multiViewCellWidth"
           :chartHeight="92"
           :segmentHeight="15"
           :currentTime="playbackTime"
@@ -43,20 +43,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onUnmounted, watch } from "vue";
+import { computed, ref, onUnmounted } from "vue";
 import MiniGantt from "./MiniGantt.vue";
 import { simulateScenario } from "@/simulation";
 import { usePlayback } from "@/composables/usePlayback";
+import { useGanttZoom } from "@/composables/useGanttZoom";
 import type { Scenario, SimulationRun } from "@/types";
 
 const props = defineProps<{
   scenario: Scenario | null;
-  cellWidth?: number;
 }>();
 
-const cellWidth = props.cellWidth ?? 28;
-const currentTime = ref(0);
-const playing = ref(false);
+const multiViewRef = ref<HTMLElement | null>(null);
 
 const runStates = computed(() => {
   if (!props.scenario) return [] as Array<SimulationRun & { runId: string; algorithmName: string }>;
@@ -83,6 +81,17 @@ const runStates = computed(() => {
 
 const maxTime = computed(() => Math.max(8, ...(runStates.value.map((r) => r.totalTime ?? 8) ?? [8])));
 
+const { cellWidth: multiViewCellWidth } = useGanttZoom(
+  multiViewRef,
+  maxTime,
+  {
+    baseCellWidth: 28,
+    minCellWidth: 18,
+    viewportPadding: 56,
+    minViewportWidth: 320,
+  },
+);
+
 // usePlayback expects a ref with .value array -> create snapshot list for times 0..maxTime
 const snapshotsRef = computed(() => Array.from({ length: maxTime.value + 1 }, (_, i) => ({ time: i })));
 
@@ -108,10 +117,6 @@ const runCards = computed(() =>
     },
   })),
 );
-
-watch(playbackTime, (t) => {
-  currentTime.value = t;
-});
 
 function togglePlay() {
   playback.toggle();

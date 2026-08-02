@@ -343,7 +343,7 @@
               :segments="focusSegments"
               :transitionFromSegments="rawPreviewSegments"
               :tickMarks="focusTickMarks"
-              :cellWidth="cellWidth"
+              :cellWidth="focusCellWidth"
               :chartHeight="chartHeight"
               :segmentHeight="segmentHeight"
               :viewBox="focusViewBox"
@@ -384,7 +384,6 @@
             <MultiView
               v-else
               :scenario="activeScenario"
-              :cellWidth="cellWidth"
             />
 
             <div
@@ -696,6 +695,9 @@ const generatorModalRef = ref<HTMLElement | null>(null);
 const ganttWrapRef = ref<HTMLElement | null>(null);
 const dashboardGridRef = ref<HTMLElement | null>(null);
 const focusColumnRef = ref<HTMLElement | null>(null);
+const focusViewportWidth = ref(
+  typeof window !== "undefined" ? window.innerWidth : 0,
+);
 const currentRoute = ref<RouteName>("home");
 const loopPlayback = ref(false);
 
@@ -857,6 +859,17 @@ const visibleSegments = computed(() => runState.value?.segments ?? []);
 const timelineEnd = computed(() =>
   visibleSegments.value.reduce((max, segment) => Math.max(max, segment.end), 0),
 );
+const focusTimelineLength = computed(() =>
+  Math.max(
+    layoutPhase.value === "running"
+      ? (runState.value?.totalTime ?? 8)
+      : rawPreviewSegments.value.reduce(
+          (max, segment) => Math.max(max, segment.end),
+          0,
+        ),
+    8,
+  ),
+);
 const rawPreviewSegments = computed<TimelineSegment[]>(() => {
   const scenario = activeScenario.value;
   if (!scenario) {
@@ -884,18 +897,22 @@ const focusSegments = computed(() =>
     : rawPreviewSegments.value,
 );
 
-const focusTickMarks = computed(() => {
-  const time = Math.max(
-    layoutPhase.value === "running"
-      ? (runState.value?.totalTime ?? 8)
-      : rawPreviewSegments.value.reduce(
-          (max, segment) => Math.max(max, segment.end),
-          0,
-        ),
-    8,
-  );
+const focusZoomCutoffTicks = 30;
 
-  return Array.from({ length: time + 1 }, (_, index) => index);
+const focusCellWidth = computed(() => {
+  const timelineLength = Math.max(focusTimelineLength.value, 1);
+  if (timelineLength > focusZoomCutoffTicks) {
+    return 44;
+  }
+
+  const availableWidth = Math.max(focusViewportWidth.value - 120, 320);
+  const fittedWidth = Math.floor(availableWidth / timelineLength);
+
+  return Math.max(12, Math.min(44, fittedWidth));
+});
+
+const focusTickMarks = computed(() => {
+  return Array.from({ length: focusTimelineLength.value + 1 }, (_, index) => index);
 });
 
 type StackItem = {
@@ -1110,6 +1127,7 @@ watch(
 );
 
 watch(activeView, async (view, previousView) => {
+
   if (view === previousView) {
     return;
   }
@@ -1130,6 +1148,18 @@ watch(activeView, async (view, previousView) => {
     );
   }
 });
+
+watch(
+  [activeScenario, activeView],
+  async () => {
+    await nextTick();
+
+    focusViewportWidth.value = Math.floor(
+      ganttWrapRef.value?.clientWidth ?? window.innerWidth,
+    );
+  },
+  { immediate: true, flush: "post" },
+);
 
 const currentEventLabel = computed(() =>
   currentSnapshot.value?.lastEvent
@@ -1261,15 +1291,8 @@ const recentEvents = computed<ScheduleEvent[]>(() => {
 const focusViewBox = computed(
   () =>
     `0 0 ${Math.max(
-      (showRawPreview.value
-        ? rawPreviewSegments.value.reduce(
-            (max, segment) => Math.max(max, segment.end),
-            0,
-          )
-        : (runState.value?.totalTime ?? 12)) *
-        cellWidth +
-        100,
-      860,
+      focusTimelineLength.value * focusCellWidth.value + 180,
+      focusViewportWidth.value || 860,
     )} ${chartHeight}`,
 );
 
@@ -1296,8 +1319,6 @@ const tooltip = reactive({
   title: "",
   subtitle: "",
 });
-
-const cellWidth = 44;
 const segmentHeight = 34;
 const chartHeight = 260;
 
@@ -1628,7 +1649,7 @@ function stepBackward(): void {
     hasSimulationStarted.value = true;
   }
 
-  layoutPhase.value = hasSimulationStarted.value ? "activation" : "preview";
+  layoutPhase.value = hasSimulationStarted.value ? "running" : "preview";
   playback.stepBack();
 }
 
@@ -1664,21 +1685,10 @@ function formatAlgorithmParams(
     lcfsTieBreak?: "stack" | "id";
   },
 ): string {
-  if (algorithm === "roundRobin") {
-    return `Quantum: ${params.timeQuantum ?? 2}`;
-  }
-
-  if (algorithm === "mlfq") {
-    return `Stufen: ${params.queueLevels ?? 3} · Quantum: ${params.timeQuantum ?? 2}`;
-  }
-
   if (algorithm === "strictPriority") {
-    const tieBreakLabels: Record<
-      NonNullable<typeof params.strictPriorityTieBreak>,
-      string
-    > = {
+    const tieBreakLabels = {
       fifo: "FIFO",
-      arrivalTime: "Ankunft",
+      arrivalTime: "Ankunftszeit",
       remainingTime: "Restzeit",
       waitingTime: "Wartezeit",
       id: "ID",

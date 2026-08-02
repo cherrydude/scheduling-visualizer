@@ -364,7 +364,8 @@ select {
 }
 
 .gantt-wrap {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.14);
   background: linear-gradient(180deg, rgba(2, 6, 23, 0.46), rgba(15, 23, 42, 0.66));
@@ -372,7 +373,8 @@ select {
 
 .gantt-svg {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: none;
   min-height: 260px;
 }
 

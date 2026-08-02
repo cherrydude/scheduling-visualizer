@@ -1,6 +1,10 @@
 <template>
   <svg
     :viewBox="viewBox"
+    :width="svgWidth"
+    :height="svgHeight"
+    :style="{ width: `${svgWidth}px` }"
+    preserveAspectRatio="none"
     class="gantt-svg"
     role="img"
     aria-label="Gantt-Diagramm"
@@ -232,6 +236,11 @@ const emit = defineEmits<{
 }>();
 
 const offsetX = props.offsetX ?? 80;
+const svgWidth = computed(() => {
+  const width = Number.parseFloat(props.viewBox.split(/\s+/)[2] ?? "0");
+  return Number.isFinite(width) && width > 0 ? width : 1200;
+});
+const svgHeight = computed(() => renderChartHeight.value);
 const laneGap = 14;
 const laneTop = 28;
 const isMlfqLayout = computed(() => props.algorithm === "mlfq");
