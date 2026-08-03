@@ -1,9 +1,9 @@
 <template>
   <svg
-    :viewBox="viewBox"
+    :viewBox="resolvedViewBox"
     :width="svgWidth"
     :height="svgHeight"
-    :style="{ width: `${svgWidth}px` }"
+    :style="{ width: `${svgWidth}px`, height: `${svgHeight}px` }"
     preserveAspectRatio="none"
     class="gantt-svg"
     role="img"
@@ -192,16 +192,30 @@
       Simulation.
     </text>
 
-    <g v-for="tick in tickMarks" :key="tick" class="tick-mark">
-      <line
-        :x1="tick * cellWidth + offsetX"
-        y1="16"
-        :x2="tick * cellWidth + offsetX"
-        :y2="renderChartHeight - 18"
+    <g class="tick-layer" aria-hidden="true">
+      <rect
+        :x="0"
+        :y="Math.max(18, renderChartHeight - 54)"
+        :width="svgWidth"
+        :height="32"
+        fill="rgba(2, 6, 23, 0.85)"
       />
-      <text :x="tick * cellWidth + offsetX" :y="renderChartHeight - 4">
-        {{ tick }}
-      </text>
+      <g v-for="tick in safeTickMarks" :key="tick" class="tick-mark">
+        <line
+          :x1="tick * cellWidth + offsetX"
+          y1="16"
+          :x2="tick * cellWidth + offsetX"
+          :y2="Math.max(44, renderChartHeight - 28)"
+        />
+        <text
+          :x="tick * cellWidth + offsetX"
+          :y="Math.max(24, renderChartHeight - 40)"
+          text-anchor="middle"
+          dominant-baseline="hanging"
+        >
+          {{ tick }}
+        </text>
+      </g>
     </g>
   </svg>
 </template>
@@ -241,19 +255,44 @@ const svgWidth = computed(() => {
   return Number.isFinite(width) && width > 0 ? width : 1200;
 });
 const svgHeight = computed(() => renderChartHeight.value);
+const resolvedViewBox = computed(
+  () => `0 0 ${svgWidth.value} ${svgHeight.value}`,
+);
+const safeTickMarks = computed(() => {
+  const uniqueTicks = new Set<number>();
+
+  for (const tick of props.tickMarks) {
+    if (Number.isInteger(tick) && tick >= 0) {
+      uniqueTicks.add(tick);
+    }
+  }
+
+  return Array.from(uniqueTicks).sort((left, right) => left - right);
+});
 const laneGap = 14;
 const laneTop = 28;
+const minLaneCountForHeight = 8;
 const isMlfqLayout = computed(() => props.algorithm === "mlfq");
 const mlfqLevelCount = computed(() => Math.max(2, props.queueLevels ?? 3));
 const laneStride = props.segmentHeight + laneGap;
-const renderChartHeight = computed(() =>
-  Math.max(
-    props.chartHeight,
-    isMlfqLayout.value
-      ? laneTop + (mlfqLevelCount.value - 1) * laneStride + props.segmentHeight + 22
-      : props.chartHeight,
-  ),
-);
+const visibleProcessCount = computed(() => {
+  const ids = new Set<string>();
+  for (const segment of props.segments) {
+    if (segment.processId) {
+      ids.add(segment.processId);
+    }
+  }
+  return ids.size;
+});
+const renderChartHeight = computed(() => {
+  const baseHeight = Math.max(props.chartHeight, 260);
+  const laneCount = Math.max(
+    minLaneCountForHeight,
+    isMlfqLayout.value ? mlfqLevelCount.value : visibleProcessCount.value,
+  );
+  const neededHeight = laneTop + (laneCount - 1) * laneStride + props.segmentHeight + 24;
+  return Math.max(baseHeight, neededHeight);
+});
 
 const activeSegments = computed(() =>
   props.segments.filter(
@@ -307,7 +346,8 @@ const getSegmentLevel = (segment: TimelineSegment): number => {
     .map((s) => s.processId)
     .filter(Boolean)
     .filter((v, i, arr) => arr.indexOf(v) === i);
-  return Math.max(0, segmentsByProcess.indexOf(segment.processId));
+  const index = segmentsByProcess.indexOf(segment.processId);
+  return Math.max(0, index >= 0 ? index : 0);
 };
 
 const segmentY = (segment: TimelineSegment): number => {
@@ -338,7 +378,7 @@ const currentTime = () => props.currentTime ?? 0;
 
 const orderedProcessIds = computed(() => {
   const ids = new Set<string>();
-  for (const segment of segments.value) {
+  for (const segment of props.segments) {
     if (segment.processId) {
       ids.add(segment.processId);
     }
@@ -514,12 +554,20 @@ function hexToRgb(hex?: string) {
 .gantt-label,
 .tick-mark text,
 .empty-gantt {
-  fill: #e2e8f0;
+  fill: #f8fafc;
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 .tick-mark line {
-  stroke: rgba(148, 163, 184, 0.18);
+  stroke: rgba(125, 211, 252, 0.24);
   stroke-width: 1;
+}
+.tick-mark text {
+  paint-order: stroke;
+  stroke: rgba(2, 6, 23, 0.7);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 .completed-overlay {

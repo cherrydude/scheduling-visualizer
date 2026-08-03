@@ -21,6 +21,78 @@ function clampInteger(
   return Math.max(minimum, Math.floor(value));
 }
 
+function clampPositiveInteger(value: unknown, fallback: number): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.max(1, Math.floor(parsed));
+}
+
+function isAlgorithmType(value: unknown): value is AlgorithmType {
+  return (
+    value === "roundRobin" ||
+    value === "lcfs" ||
+    value === "strictPriority" ||
+    value === "mlfq"
+  );
+}
+
+function normalizeScenarioInput(scenario: Scenario): Scenario {
+  const normalizedAlgorithm = isAlgorithmType(scenario.algorithm)
+    ? scenario.algorithm
+    : "roundRobin";
+
+  const normalizedProcesses = Array.isArray(scenario.processes)
+    ? scenario.processes.map((process, index) => ({
+        id:
+          typeof process.id === "string" && process.id.trim()
+            ? process.id
+            : `P${index + 1}`,
+        name:
+          typeof process.name === "string" && process.name.trim()
+            ? process.name
+            : `P${index + 1}`,
+        arrivalTime: Math.max(
+          0,
+          Math.floor(Number(process.arrivalTime) || 0),
+        ),
+        burstTime: Math.max(1, Math.floor(Number(process.burstTime) || 1)),
+        priority: Math.max(0, Math.floor(Number(process.priority) || 0)),
+        color:
+          typeof process.color === "string" && process.color.trim()
+            ? process.color
+            : "#60a5fa",
+        group:
+          typeof process.group === "string" && process.group.trim()
+            ? process.group
+            : undefined,
+      }))
+    : [];
+
+  return {
+    ...scenario,
+    algorithm: normalizedAlgorithm,
+    algorithmParams: {
+      timeQuantum: clampPositiveInteger(scenario.algorithmParams?.timeQuantum, 2),
+      snapshotInterval: clampPositiveInteger(
+        scenario.algorithmParams?.snapshotInterval,
+        1,
+      ),
+      queueLevels: Math.max(
+        2,
+        clampPositiveInteger(scenario.algorithmParams?.queueLevels, 3),
+      ),
+      strictPriorityTieBreak:
+        scenario.algorithmParams?.strictPriorityTieBreak ?? "fifo",
+      lcfsMode: scenario.algorithmParams?.lcfsMode ?? "preemptive",
+      lcfsTieBreak: scenario.algorithmParams?.lcfsTieBreak ?? "stack",
+    },
+    processes: normalizedProcesses,
+  };
+}
+
 function seededRandom(seed: number): () => number {
   let state = seed % 2147483647;
   if (state <= 0) {
@@ -370,11 +442,13 @@ function selectStrictPriorityProcess(
 }
 
 export function simulateScenario(scenario: Scenario): SimulationRun {
+  const simulationScenario = normalizeScenarioInput(scenario);
+
   if (
-    scenario.algorithm !== "roundRobin" &&
-    scenario.algorithm !== "lcfs" &&
-    scenario.algorithm !== "strictPriority" &&
-    scenario.algorithm !== "mlfq"
+    simulationScenario.algorithm !== "roundRobin" &&
+    simulationScenario.algorithm !== "lcfs" &&
+    simulationScenario.algorithm !== "strictPriority" &&
+    simulationScenario.algorithm !== "mlfq"
   ) {
     return {
       snapshots: [],
@@ -390,14 +464,14 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         fairnessIndex: null,
         completedCount: 0,
       },
-      processStates: createRuntime(scenario.processes),
+      processStates: createRuntime(simulationScenario.processes),
       totalTime: 0,
       supported: false,
-      note: `Der Algorithmus ${scenario.algorithm} ist fuer den ersten MVP-Schritt noch nicht implementiert.`,
+      note: `Der Algorithmus ${simulationScenario.algorithm} ist fuer den ersten MVP-Schritt noch nicht implementiert.`,
     };
   }
 
-  const processes = createRuntime(scenario.processes);
+  const processes = createRuntime(simulationScenario.processes);
   const pending = [...processes].sort(
     (left, right) =>
       left.arrivalTime - right.arrivalTime || left.id.localeCompare(right.id),
@@ -410,15 +484,27 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     processes.reduce((sum, process) => sum + process.burstTime, 0) +
     processes.reduce((sum, process) => Math.max(sum, process.arrivalTime), 0) +
     25;
-  const quantum = clampInteger(scenario.algorithmParams.timeQuantum ?? 2, 1, 2);
-  const lcfsMode = scenario.algorithmParams.lcfsMode ?? "preemptive";
-  const lcfsTieBreak = scenario.algorithmParams.lcfsTieBreak ?? "stack";
+  const quantum = clampInteger(
+    simulationScenario.algorithmParams.timeQuantum ?? 2,
+    1,
+    2,
+  );
+  const lcfsMode = simulationScenario.algorithmParams.lcfsMode ?? "preemptive";
+  const lcfsTieBreak = simulationScenario.algorithmParams.lcfsTieBreak ?? "stack";
   const strictPriorityTieBreak =
-    scenario.algorithmParams.strictPriorityTieBreak ?? "fifo";
-  const mlfqQueueLevels = clampInteger(scenario.algorithmParams.queueLevels ?? 3, 2, 3);
-  const mlfqBaseQuantum = clampInteger(scenario.algorithmParams.timeQuantum ?? 2, 1, 2);
+    simulationScenario.algorithmParams.strictPriorityTieBreak ?? "fifo";
+  const mlfqQueueLevels = clampInteger(
+    simulationScenario.algorithmParams.queueLevels ?? 3,
+    2,
+    3,
+  );
+  const mlfqBaseQuantum = clampInteger(
+    simulationScenario.algorithmParams.timeQuantum ?? 2,
+    1,
+    2,
+  );
   const snapshotInterval = clampInteger(
-    scenario.algorithmParams.snapshotInterval ?? 1,
+    simulationScenario.algorithmParams.snapshotInterval ?? 1,
     1,
     1,
   );
@@ -430,9 +516,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   let contextSwitches = 0;
   let time = 0;
   let remainingQuantum =
-    scenario.algorithm === "roundRobin"
+    simulationScenario.algorithm === "roundRobin"
       ? quantum
-      : scenario.algorithm === "mlfq"
+      : simulationScenario.algorithm === "mlfq"
         ? quantumForLevel(mlfqBaseQuantum, 0)
         : 1;
   let completedCount = 0;
@@ -440,8 +526,8 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   let lastEvent: ScheduleEvent | null = null;
   let lastSnapshotTime = -1;
 
-  const isLcfs = scenario.algorithm === "lcfs";
-  const isStrictPriority = scenario.algorithm === "strictPriority";
+  const isLcfs = simulationScenario.algorithm === "lcfs";
+  const isStrictPriority = simulationScenario.algorithm === "strictPriority";
 
   function preemptCurrentProcess(reason: string): void {
     if (!currentProcess) {
@@ -451,13 +537,18 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     const currentLevel = currentProcess.queueLevel ?? 0;
     currentProcess.status = "preempted";
     pushSegment(time);
-    enqueueReadyProcess(currentProcess, scenario.algorithm, readyQueue, mlfqQueueLevels);
+    enqueueReadyProcess(
+      currentProcess,
+      simulationScenario.algorithm,
+      readyQueue,
+      mlfqQueueLevels,
+    );
     const preemptEvent: ScheduleEvent = {
       time,
       type: "preempt",
       processId: currentProcess.id,
       processName: currentProcess.name,
-      algorithm: scenario.algorithm,
+      algorithm: simulationScenario.algorithm,
       fromStatus: "running",
       toStatus: "preempted",
       reason,
@@ -467,9 +558,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     currentProcess = null;
     currentSegmentLevel = null;
     remainingQuantum =
-      scenario.algorithm === "roundRobin"
+      simulationScenario.algorithm === "roundRobin"
         ? quantum
-        : scenario.algorithm === "mlfq"
+        : simulationScenario.algorithm === "mlfq"
           ? quantumForLevel(mlfqBaseQuantum, currentLevel)
           : 1;
     currentSegmentStart = time;
@@ -505,7 +596,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     }
 
     const segmentQueueLevel =
-      scenario.algorithm === "mlfq"
+      simulationScenario.algorithm === "mlfq"
         ? (currentSegmentLevel ?? currentProcess.queueLevel ?? 0)
         : currentProcess.queueLevel;
 
@@ -548,14 +639,19 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
 
     for (const process of arrivals) {
       process.queueLevel = 0;
-      enqueueReadyProcess(process, scenario.algorithm, readyQueue, mlfqQueueLevels);
+      enqueueReadyProcess(
+        process,
+        simulationScenario.algorithm,
+        readyQueue,
+        mlfqQueueLevels,
+      );
 
       const arrivalEvent: ScheduleEvent = {
         time: atTime,
         type: "arrival",
         processId: process.id,
         processName: process.name,
-        algorithm: scenario.algorithm,
+        algorithm: simulationScenario.algorithm,
         fromStatus: "pending",
         toStatus: "ready",
         reason: `Process ${process.name} arrived and joined the ready queue.`,
@@ -581,7 +677,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
 
     if (!currentProcess) {
       const dispatch = dispatchProcess(
-        scenario.algorithm,
+        simulationScenario.algorithm,
         time,
         currentProcess,
         readyQueue,
@@ -609,7 +705,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
           type: "contextSwitch",
           processId: currentProcess?.id ?? null,
           processName: currentProcess?.name ?? null,
-          algorithm: scenario.algorithm,
+          algorithm: simulationScenario.algorithm,
           reason: `Context switch to ${currentProcess?.name ?? "idle"}.`,
         };
         events.push(contextSwitchEvent);
@@ -624,7 +720,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
           type: "start",
           processId: currentProcess.id,
           processName: currentProcess.name,
-          algorithm: scenario.algorithm,
+          algorithm: simulationScenario.algorithm,
           fromStatus: "ready",
           toStatus: "running",
           reason: `Process ${currentProcess.name} begins execution.`,
@@ -674,7 +770,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     }
 
     if (
-      scenario.algorithm === "mlfq" &&
+      simulationScenario.algorithm === "mlfq" &&
       currentProcess.remainingTime > 0 &&
       shouldPreemptMlfq(currentProcess, readyQueue)
     ) {
@@ -685,7 +781,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
 
     if (!currentProcess) {
       const dispatch = dispatchProcess(
-        scenario.algorithm,
+        simulationScenario.algorithm,
         time,
         currentProcess,
         readyQueue,
@@ -709,7 +805,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
           type: "start",
           processId: currentProcess.id,
           processName: currentProcess.name,
-          algorithm: scenario.algorithm,
+          algorithm: simulationScenario.algorithm,
           fromStatus: "ready",
           toStatus: "running",
           reason: `Process ${currentProcess.name} takes the CPU.`,
@@ -731,7 +827,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         type: "finish",
         processId: currentProcess.id,
         processName: currentProcess.name,
-        algorithm: scenario.algorithm,
+        algorithm: simulationScenario.algorithm,
         fromStatus: "running",
         toStatus: "finished",
         reason: `Process ${currentProcess.name} completed execution.`,
@@ -740,23 +836,28 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       lastEvent = finishEvent;
       currentProcess = null;
       remainingQuantum =
-        scenario.algorithm === "mlfq" ? mlfqBaseQuantum : quantum;
+        simulationScenario.algorithm === "mlfq" ? mlfqBaseQuantum : quantum;
       currentSegmentStart = time;
       currentSegmentLevel = null;
       pushIdleSegment(time);
-    } else if (remainingQuantum <= 0 && scenario.algorithm === "mlfq") {
+    } else if (remainingQuantum <= 0 && simulationScenario.algorithm === "mlfq") {
       const currentLevel = currentProcess.queueLevel ?? 0;
       const nextLevel = Math.min(currentLevel + 1, mlfqQueueLevels - 1);
       currentProcess.queueLevel = nextLevel;
       currentProcess.status = "preempted";
       pushSegment(time);
-      enqueueReadyProcess(currentProcess, scenario.algorithm, readyQueue, mlfqQueueLevels);
+      enqueueReadyProcess(
+        currentProcess,
+        simulationScenario.algorithm,
+        readyQueue,
+        mlfqQueueLevels,
+      );
       const quantumExpiredEvent: ScheduleEvent = {
         time,
         type: "quantumExpired",
         processId: currentProcess.id,
         processName: currentProcess.name,
-        algorithm: scenario.algorithm,
+        algorithm: simulationScenario.algorithm,
         fromStatus: "running",
         toStatus: "preempted",
         reason: `Time quantum expired for ${currentProcess.name}; demoted to queue level ${nextLevel + 1}.`,
@@ -768,17 +869,22 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       currentSegmentStart = time;
       currentSegmentLevel = null;
       pushIdleSegment(time);
-    } else if (remainingQuantum <= 0 && scenario.algorithm === "roundRobin") {
+    } else if (remainingQuantum <= 0 && simulationScenario.algorithm === "roundRobin") {
       if (readyQueue.length > 0) {
         currentProcess.status = "preempted";
         pushSegment(time);
-        enqueueReadyProcess(currentProcess, scenario.algorithm, readyQueue, mlfqQueueLevels);
+        enqueueReadyProcess(
+          currentProcess,
+          simulationScenario.algorithm,
+          readyQueue,
+          mlfqQueueLevels,
+        );
         const preemptEvent: ScheduleEvent = {
           time,
           type: "preempt",
           processId: currentProcess.id,
           processName: currentProcess.name,
-          algorithm: scenario.algorithm,
+          algorithm: simulationScenario.algorithm,
           fromStatus: "running",
           toStatus: "preempted",
           reason: `Time quantum expired for ${currentProcess.name}; it returns to the ready queue.`,

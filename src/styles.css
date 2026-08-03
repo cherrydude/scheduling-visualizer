@@ -369,6 +369,18 @@ select {
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.14);
   background: linear-gradient(180deg, rgba(2, 6, 23, 0.46), rgba(15, 23, 42, 0.66));
+  padding: 0.4rem 0.45rem 0.55rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 211, 252, 0.28) transparent;
+}
+
+.gantt-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+
+.gantt-wrap::-webkit-scrollbar-thumb {
+  background: rgba(125, 211, 252, 0.28);
+  border-radius: 999px;
 }
 
 .gantt-svg {
@@ -376,6 +388,7 @@ select {
   width: auto;
   max-width: none;
   min-height: 260px;
+  padding-top: 0.1rem;
 }
 
 .gantt-label,

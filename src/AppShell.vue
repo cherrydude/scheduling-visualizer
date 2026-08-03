@@ -79,14 +79,35 @@
                 type="button"
                 @click="loadPreset('classroom')"
               >
-                Preset 1
+                Klassisch
               </button>
               <button
                 class="secondary-button"
                 type="button"
                 @click="loadPreset('staggered')"
               >
-                Preset 2
+                Versetzt
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                @click="loadPreset('longTimeline')"
+              >
+                Lang
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                @click="loadPreset('manyProcesses')"
+              >
+                Viele
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                @click="loadPreset('burstChaos')"
+              >
+                Chaos
               </button>
               <button
                 class="secondary-button"
@@ -355,10 +376,14 @@
               :introAnimation="hasSimulationStarted"
               :layoutVariant="layoutVariant"
               :layoutPhase="layoutPhase"
-              :algorithm="activeRun?.algorithm ?? activeScenario.algorithm"
+              :algorithm="
+                activeRun?.algorithm ??
+                activeScenario.appliedAlgorithm?.algorithm ??
+                'roundRobin'
+              "
               :queueLevels="
                 activeRun?.algorithmParams.queueLevels ??
-                activeScenario.algorithmParams?.queueLevels ??
+                activeScenario.appliedAlgorithm?.algorithmParams.queueLevels ??
                 3
               "
               :preemptedProcessId="
@@ -537,6 +562,8 @@ import gsap from "gsap";
 import { createSeededScenarioProcesses, simulateScenario } from "@/simulation";
 import {
   createBlankScenarioDraft,
+  buildSimulationScenario,
+  getActiveRun,
   useScenarioWorkspace,
   type ScenarioDraft,
 } from "@/composables/useScenarioWorkspace";
@@ -550,6 +577,7 @@ import MultiView from "./components/MultiView.vue";
 import StackList from "./components/StackList.vue";
 import ComparisonPanel from "./components/ComparisonPanel.vue";
 import { usePlayback } from "@/composables/usePlayback";
+import { createTimelineLayout } from "./utils/timelineLayout";
 import type {
   AlgorithmType,
   ScheduleEvent,
@@ -674,6 +702,86 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
       },
     ],
   },
+  longTimeline: {
+    title: "Extrem lang",
+    description:
+      "Langer Zeitstrahl mit wenigen, aber sehr ausgedehnten Bursts für die Zoom- und Scroll-Tests.",
+    seed: 101,
+    tickSize: 1,
+    processes: [
+      {
+        id: "L1",
+        name: "L1",
+        arrivalTime: 0,
+        burstTime: 14,
+        priority: 2,
+        color: "#38bdf8",
+        group: "A",
+      },
+      {
+        id: "L2",
+        name: "L2",
+        arrivalTime: 6,
+        burstTime: 12,
+        priority: 1,
+        color: "#818cf8",
+        group: "A",
+      },
+      {
+        id: "L3",
+        name: "L3",
+        arrivalTime: 12,
+        burstTime: 10,
+        priority: 3,
+        color: "#f59e0b",
+        group: "B",
+      },
+      {
+        id: "L4",
+        name: "L4",
+        arrivalTime: 19,
+        burstTime: 9,
+        priority: 4,
+        color: "#34d399",
+        group: "C",
+      },
+    ],
+  },
+  manyProcesses: {
+    title: "Viele Prozesse",
+    description:
+      "Ein dichtes Szenario mit 11 Prozessen, um die Reihen- und Höhenlogik zu prüfen.",
+    seed: 202,
+    tickSize: 1,
+    processes: [
+      { id: "P1", name: "P1", arrivalTime: 0, burstTime: 4, priority: 2, color: "#38bdf8", group: "A" },
+      { id: "P2", name: "P2", arrivalTime: 1, burstTime: 3, priority: 1, color: "#60a5fa", group: "A" },
+      { id: "P3", name: "P3", arrivalTime: 1, burstTime: 5, priority: 3, color: "#34d399", group: "A" },
+      { id: "P4", name: "P4", arrivalTime: 2, burstTime: 4, priority: 2, color: "#f59e0b", group: "B" },
+      { id: "P5", name: "P5", arrivalTime: 3, burstTime: 6, priority: 4, color: "#f472b6", group: "B" },
+      { id: "P6", name: "P6", arrivalTime: 4, burstTime: 3, priority: 1, color: "#fb7185", group: "C" },
+      { id: "P7", name: "P7", arrivalTime: 5, burstTime: 4, priority: 2, color: "#a78bfa", group: "C" },
+      { id: "P8", name: "P8", arrivalTime: 6, burstTime: 5, priority: 3, color: "#22c55e", group: "D" },
+      { id: "P9", name: "P9", arrivalTime: 7, burstTime: 3, priority: 1, color: "#fbbf24", group: "D" },
+      { id: "P10", name: "P10", arrivalTime: 8, burstTime: 4, priority: 2, color: "#2dd4bf", group: "E" },
+      { id: "P11", name: "P11", arrivalTime: 9, burstTime: 3, priority: 4, color: "#94a3b8", group: "E" },
+    ],
+  },
+  burstChaos: {
+    title: "Burst-Chaos",
+    description:
+      "Viele kurze Bursts und viele Kontextwechsel für den Stress-Test der Animationen.",
+    seed: 303,
+    tickSize: 1,
+    processes: [
+      { id: "C1", name: "C1", arrivalTime: 0, burstTime: 2, priority: 1, color: "#38bdf8", group: "A" },
+      { id: "C2", name: "C2", arrivalTime: 0, burstTime: 1, priority: 2, color: "#f59e0b", group: "A" },
+      { id: "C3", name: "C3", arrivalTime: 1, burstTime: 2, priority: 3, color: "#34d399", group: "B" },
+      { id: "C4", name: "C4", arrivalTime: 2, burstTime: 1, priority: 4, color: "#f472b6", group: "B" },
+      { id: "C5", name: "C5", arrivalTime: 2, burstTime: 2, priority: 2, color: "#fb7185", group: "C" },
+      { id: "C6", name: "C6", arrivalTime: 3, burstTime: 1, priority: 1, color: "#818cf8", group: "C" },
+    ],
+  },
 };
 
 const showWelcomeModal = ref(false);
@@ -759,30 +867,12 @@ const activeRunIndex = computed<number>(
 );
 const activeRun = computed(() => {
   const scenario = activeScenario.value;
-  if (!scenario || scenario.activeRunIndex < 0) {
-    return null;
-  }
-
-  return scenario.runs[scenario.activeRunIndex] ?? null;
+  return scenario ? getActiveRun(scenario) : null;
 });
 
 const simulationScenario = computed<Scenario | null>(() => {
   const scenario = activeScenario.value;
-  const run = activeRun.value;
-  if (!scenario || !run) {
-    return null;
-  }
-
-  return {
-    id: `${scenario.id}:${run.id}`,
-    title: scenario.title,
-    description: scenario.description,
-    algorithm: run.algorithm,
-    algorithmParams: run.algorithmParams,
-    seed: scenario.seed,
-    tickSize: scenario.tickSize,
-    processes: scenario.processes.map((process) => ({ ...process })),
-  };
+  return scenario ? buildSimulationScenario(scenario, activeRun.value) : null;
 });
 
 const runState = computed<SimulationRun | null>(() =>
@@ -897,18 +987,18 @@ const focusSegments = computed(() =>
     : rawPreviewSegments.value,
 );
 
-const focusZoomCutoffTicks = 30;
-
 const focusCellWidth = computed(() => {
-  const timelineLength = Math.max(focusTimelineLength.value, 1);
-  if (timelineLength > focusZoomCutoffTicks) {
-    return 44;
-  }
+  const layout = createTimelineLayout({
+    timelineLength: focusTimelineLength.value,
+    containerWidth: focusViewportWidth.value,
+    padding: 140,
+    comfortTicks: 28,
+    minCellWidth: 10,
+    maxCellWidth: 44,
+    lockedCellWidth: 24,
+  });
 
-  const availableWidth = Math.max(focusViewportWidth.value - 120, 320);
-  const fittedWidth = Math.floor(availableWidth / timelineLength);
-
-  return Math.max(12, Math.min(44, fittedWidth));
+  return layout.cellWidth;
 });
 
 const focusTickMarks = computed(() => {
@@ -1288,13 +1378,23 @@ const recentEvents = computed<ScheduleEvent[]>(() => {
       .reverse() ?? []
   );
 });
-const focusViewBox = computed(
-  () =>
-    `0 0 ${Math.max(
-      focusTimelineLength.value * focusCellWidth.value + 180,
-      focusViewportWidth.value || 860,
-    )} ${chartHeight}`,
-);
+const focusViewBox = computed(() => {
+  const layout = createTimelineLayout({
+    timelineLength: focusTimelineLength.value,
+    containerWidth: focusViewportWidth.value,
+    padding: 140,
+    comfortTicks: 28,
+    minCellWidth: 10,
+    maxCellWidth: 44,
+    lockedCellWidth: 24,
+  });
+
+  return `0 0 ${Math.max(
+    focusTimelineLength.value * layout.cellWidth + 180,
+    layout.svgWidth,
+    focusViewportWidth.value || 860,
+  )} ${chartHeight.value}`;
+});
 
 const focusCurrentTime = computed(() =>
   layoutPhase.value === "running" ? (currentSnapshot.value?.time ?? 0) : 0,
@@ -1320,7 +1420,11 @@ const tooltip = reactive({
   subtitle: "",
 });
 const segmentHeight = 34;
-const chartHeight = 260;
+const chartHeight = computed(() => {
+  const processCount = Math.max(activeScenario.value?.processes.length ?? 1, 1);
+  const extraHeight = Math.max(0, processCount - 6) * 18;
+  return 260 + extraHeight;
+});
 
 const headerTitle = computed(() => {
   if (currentRoute.value === "about") {

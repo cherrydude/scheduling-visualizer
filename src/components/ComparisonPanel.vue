@@ -81,12 +81,14 @@
 import { computed } from "vue";
 import RankingList from "./RankingList.vue";
 import RankingEditModal from "./RankingEditModal.vue";
-import { useScenarioWorkspace } from "@/composables/useScenarioWorkspace";
+import {
+  useScenarioWorkspace,
+  type ScenarioRecord,
+} from "@/composables/useScenarioWorkspace";
 import { useComparison } from "@/composables/useComparison";
-import type { Scenario } from "@/types";
 
 const props = defineProps<{
-  scenario?: Scenario | null;
+  scenario?: ScenarioRecord | null;
 }>();
 
 const workspace = useScenarioWorkspace();
@@ -108,6 +110,8 @@ const availableColumns = [
 ];
 
 const selectedColumns = ref(availableColumns.map(c => c.key));
+
+const activeScenario = computed(() => props.scenario ?? workspace.activeScenario.value);
 
 const bestRowId = computed(() => rows.value[0]?.id ?? null);
 const worstRowId = computed(() => rows.value[rows.value.length - 1]?.id ?? null);
@@ -186,16 +190,13 @@ function exportCsv() {
 }
 
 const rows = computed(() => {
-  const scenario = props.scenario ?? workspace.activeScenario.value;
-  if (!scenario || !scenario.runs.length) return [];
+  const scenario = activeScenario.value;
+  if (!scenario?.runs.length) return [];
   return comparison.buildForScenario(scenario);
 });
 
 const hasRuns = computed(() =>
-  Boolean(
-    (props.scenario ?? workspace.activeScenario.value) &&
-    ((props.scenario ?? workspace.activeScenario.value)?.runs ?? []).length > 0,
-  ),
+  Boolean(activeScenario.value?.runs.length),
 );
 
 const weights = comparison.state.weights as Record<string, number>;

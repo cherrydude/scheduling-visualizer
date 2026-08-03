@@ -1,5 +1,10 @@
 import { computed, ref, watch } from "vue";
-import type { AlgorithmParams, AlgorithmType, ProcessInput } from "@/types";
+import type {
+  AlgorithmParams,
+  AlgorithmType,
+  ProcessInput,
+  Scenario,
+} from "@/types";
 
 export interface AlgorithmAttachment {
   algorithm: AlgorithmType;
@@ -32,6 +37,15 @@ export interface ScenarioRecord extends ScenarioDraft {
 const STORAGE_KEY = "scheduling-visualizer.scenarios.v1";
 const ACTIVE_KEY = "scheduling-visualizer.active-scenario.v1";
 
+const DEFAULT_ALGORITHM_PARAMS: AlgorithmParams = {
+  timeQuantum: 2,
+  snapshotInterval: 1,
+  queueLevels: 3,
+  strictPriorityTieBreak: "fifo",
+  lcfsMode: "preemptive",
+  lcfsTieBreak: "stack",
+};
+
 function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -44,25 +58,109 @@ function cloneProcesses(processes: ProcessInput[]): ProcessInput[] {
   return processes.map((process) => ({ ...process }));
 }
 
+function toFiniteNumber(value: unknown, fallback: number): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toPositiveInteger(value: unknown, fallback: number): number {
+  return Math.max(1, Math.floor(toFiniteNumber(value, fallback)));
+}
+
+function normalizeProcessInput(
+  process: Partial<ProcessInput> | null | undefined,
+  fallbackIndex: number,
+): ProcessInput {
+  const fallbackId = `P${fallbackIndex + 1}`;
+  return {
+    id:
+      typeof process?.id === "string" && process.id.trim()
+        ? process.id
+        : fallbackId,
+    name:
+      typeof process?.name === "string" && process.name.trim()
+        ? process.name
+        : fallbackId,
+    arrivalTime: Math.max(0, Math.floor(toFiniteNumber(process?.arrivalTime, 0))),
+    burstTime: Math.max(1, toPositiveInteger(process?.burstTime ?? 1, 1)),
+    priority: Math.max(0, Math.floor(toFiniteNumber(process?.priority, 1))),
+    color:
+      typeof process?.color === "string" && process.color.trim()
+        ? process.color
+        : "#60a5fa",
+    group:
+      typeof process?.group === "string" && process.group.trim()
+        ? process.group
+        : undefined,
+  };
+}
+
+function normalizeProcesses(processes: unknown): ProcessInput[] {
+  if (!Array.isArray(processes)) {
+    return [];
+  }
+
+  return processes.map((process, index) =>
+    normalizeProcessInput(process as Partial<ProcessInput>, index),
+  );
+}
+
+function isAlgorithmType(value: unknown): value is AlgorithmType {
+  return (
+    value === "roundRobin" ||
+    value === "lcfs" ||
+    value === "strictPriority" ||
+    value === "mlfq"
+  );
+}
+
+function createAlgorithmParams(
+  params: Partial<AlgorithmParams> | null | undefined,
+): AlgorithmParams {
+  return {
+    timeQuantum: toPositiveInteger(
+      params?.timeQuantum,
+      DEFAULT_ALGORITHM_PARAMS.timeQuantum ?? 2,
+    ),
+    snapshotInterval: toPositiveInteger(
+      params?.snapshotInterval,
+      DEFAULT_ALGORITHM_PARAMS.snapshotInterval ?? 1,
+    ),
+    queueLevels: Math.max(
+      2,
+      toPositiveInteger(
+        params?.queueLevels,
+        DEFAULT_ALGORITHM_PARAMS.queueLevels ?? 3,
+      ),
+    ),
+    strictPriorityTieBreak:
+      params?.strictPriorityTieBreak ?? DEFAULT_ALGORITHM_PARAMS.strictPriorityTieBreak,
+    lcfsMode: params?.lcfsMode ?? DEFAULT_ALGORITHM_PARAMS.lcfsMode,
+    lcfsTieBreak: params?.lcfsTieBreak ?? DEFAULT_ALGORITHM_PARAMS.lcfsTieBreak,
+  };
+}
+
+function createAlgorithmAttachment(
+  algorithm: AlgorithmType,
+  params?: Partial<AlgorithmParams> | null,
+): AlgorithmAttachment {
+  return {
+    algorithm,
+    algorithmParams: createAlgorithmParams(params),
+  };
+}
+
 function normalizeAlgorithmAttachment(
   attachment: Partial<AlgorithmAttachment> | null | undefined,
 ): AlgorithmAttachment | null {
-  if (!attachment?.algorithm) {
+  if (!isAlgorithmType(attachment?.algorithm)) {
     return null;
   }
 
-  return {
-    algorithm: attachment.algorithm,
-    algorithmParams: {
-      timeQuantum: attachment.algorithmParams?.timeQuantum ?? 2,
-      snapshotInterval: attachment.algorithmParams?.snapshotInterval ?? 1,
-      queueLevels: attachment.algorithmParams?.queueLevels ?? 3,
-      strictPriorityTieBreak:
-        attachment.algorithmParams?.strictPriorityTieBreak ?? "fifo",
-      lcfsMode: attachment.algorithmParams?.lcfsMode ?? "preemptive",
-      lcfsTieBreak: attachment.algorithmParams?.lcfsTieBreak ?? "stack",
-    },
-  };
+  return createAlgorithmAttachment(
+    attachment.algorithm,
+    attachment.algorithmParams,
+  );
 }
 
 function normalizeRun(
@@ -95,17 +193,42 @@ function normalizeScenarioDraft(
     title: record.title || "Benutzer-Szenario",
     description:
       record.description || "Vom Szenario-Generator erstelltes Beispiel.",
-    seed: Number.isFinite(record.seed) ? Number(record.seed) : 17,
-    tickSize: Number.isFinite(record.tickSize)
-      ? Math.max(1, Number(record.tickSize))
-      : 1,
-    processes: Array.isArray(record.processes)
-      ? cloneProcesses(record.processes)
-      : [],
+    seed: toFiniteNumber(record.seed, 17),
+    tickSize: toPositiveInteger(record.tickSize, 1),
+    processes: normalizeProcesses(record.processes),
   };
 }
 
 function normalizeScenario(record: Partial<ScenarioRecord>): ScenarioRecord {
+  const runs = Array.isArray((record as ScenarioRecord).runs)
+    ? (record as ScenarioRecord).runs
+        .map((run, index) =>
+          normalizeRun(run, `${record.id || "scenario"}-run-${index + 1}`),
+        )
+        .filter((run): run is ScenarioRunRecord => Boolean(run))
+    : record.appliedAlgorithm
+      ? [
+          normalizeRun(
+            record.appliedAlgorithm,
+            `${record.id || "scenario"}-run-1`,
+          ),
+        ].filter((run): run is ScenarioRunRecord => Boolean(run))
+      : [];
+
+  const activeRunIndex = Number.isInteger(
+    (record as ScenarioRecord).activeRunIndex,
+  )
+    ? Math.max(
+        0,
+        Math.min(
+          (record as ScenarioRecord).activeRunIndex,
+          Math.max(runs.length - 1, 0),
+        ),
+      )
+    : record.appliedAlgorithm
+      ? 0
+      : -1;
+
   return {
     id:
       typeof record.id === "string" && record.id
@@ -114,45 +237,42 @@ function normalizeScenario(record: Partial<ScenarioRecord>): ScenarioRecord {
     title: record.title || "Benutzer-Szenario",
     description:
       record.description || "Vom Szenario-Generator erstelltes Beispiel.",
-    seed: Number.isFinite(record.seed) ? Number(record.seed) : 17,
-    tickSize: Number.isFinite(record.tickSize)
-      ? Math.max(1, Number(record.tickSize))
-      : 1,
-    processes: Array.isArray(record.processes)
-      ? cloneProcesses(record.processes)
-      : [],
-    runs: Array.isArray((record as ScenarioRecord).runs)
-      ? (record as ScenarioRecord).runs
-          .map((run, index) =>
-            normalizeRun(run, `${record.id || "scenario"}-run-${index + 1}`),
-          )
-          .filter((run): run is ScenarioRunRecord => Boolean(run))
-      : record.appliedAlgorithm
-        ? [
-            normalizeRun(
-              record.appliedAlgorithm,
-              `${record.id || "scenario"}-run-1`,
-            ),
-          ].filter((run): run is ScenarioRunRecord => Boolean(run))
-        : [],
-    activeRunIndex: Number.isInteger((record as ScenarioRecord).activeRunIndex)
-      ? Math.max(
-          0,
-          Math.min(
-            (record as ScenarioRecord).activeRunIndex,
-            Math.max(
-              (Array.isArray((record as ScenarioRecord).runs)
-                ? (record as ScenarioRecord).runs.length
-                : 0) - 1,
-              0,
-            ),
-          ),
-        )
-      : record.appliedAlgorithm
-        ? 0
-        : -1,
-    appliedAlgorithm: null,
+    seed: toFiniteNumber(record.seed, 17),
+    tickSize: toPositiveInteger(record.tickSize, 1),
+    processes: normalizeProcesses(record.processes),
+    runs,
+    activeRunIndex,
+    appliedAlgorithm:
+      activeRunIndex >= 0 ? runs[activeRunIndex] ?? null : null,
   };
+}
+
+export function buildSimulationScenario(
+  scenario: ScenarioRecord,
+  run: ScenarioRunRecord | null = getActiveRun(scenario),
+): Scenario | null {
+  if (!run) {
+    return null;
+  }
+
+  return {
+    id: `${scenario.id}:${run.id}`,
+    title: scenario.title,
+    description: scenario.description,
+    algorithm: run.algorithm,
+    algorithmParams: run.algorithmParams,
+    seed: scenario.seed,
+    tickSize: scenario.tickSize,
+    processes: cloneProcesses(scenario.processes),
+  };
+}
+
+export function getActiveRun(scenario: ScenarioRecord): ScenarioRunRecord | null {
+  if (scenario.activeRunIndex < 0) {
+    return null;
+  }
+
+  return scenario.runs[scenario.activeRunIndex] ?? null;
 }
 
 function loadScenarios(): ScenarioRecord[] {

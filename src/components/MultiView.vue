@@ -2,18 +2,19 @@
   <div class="multi-view" ref="multiViewRef">
     <div class="multi-controls">
       <button class="secondary-button" @click="togglePlay">
-        {{ playback.playing.value ? 'Pause' : 'Play' }}
+        {{ hasPlayableRuns && playback.playing.value ? 'Pause' : 'Play' }}
       </button>
       <input
         type="range"
         :min="0"
         :max="Math.max(playback.total.value - 1, 0)"
+        :disabled="!hasPlayableRuns"
         v-model.number="currentIndex"
       />
       <span class="time-label">t {{ playbackTime }}</span>
     </div>
 
-    <div class="grid">
+    <div v-if="runCards.length" class="grid">
       <div v-for="(rs, idx) in runCards" :key="rs.runId" class="cell">
         <div class="cell-header">
           <div class="cell-title-row">
@@ -39,6 +40,11 @@
         />
       </div>
     </div>
+
+    <div v-else class="empty-state compact">
+      <strong>Keine Runs verfuegbar</strong>
+      <p>Füge zuerst einen Algorithmus zum Szenario hinzu, um die Multi-View zu sehen.</p>
+    </div>
   </div>
 </template>
 
@@ -48,18 +54,27 @@ import MiniGantt from "./MiniGantt.vue";
 import { simulateScenario } from "@/simulation";
 import { usePlayback } from "@/composables/usePlayback";
 import { useGanttZoom } from "@/composables/useGanttZoom";
-import type { Scenario, SimulationRun } from "@/types";
+import type { AlgorithmParams, SimulationRun } from "@/types";
+import type { ScenarioRecord, ScenarioRunRecord } from "@/composables/useScenarioWorkspace";
 
 const props = defineProps<{
-  scenario: Scenario | null;
+  scenario: ScenarioRecord | null;
 }>();
 
 const multiViewRef = ref<HTMLElement | null>(null);
 
 const runStates = computed(() => {
-  if (!props.scenario) return [] as Array<SimulationRun & { runId: string; algorithmName: string }>;
+  if (!props.scenario) {
+    return [] as Array<
+      SimulationRun & {
+        runId: string;
+        algorithmName: string;
+        algorithmParams: AlgorithmParams;
+      }
+    >;
+  }
 
-  return props.scenario.runs.map((run) => {
+  return props.scenario.runs.map((run: ScenarioRunRecord) => {
     const sim = simulateScenario({
       id: `${props.scenario?.id}:${run.id}`,
       title: props.scenario?.title ?? "",
@@ -75,6 +90,7 @@ const runStates = computed(() => {
       ...(sim as SimulationRun),
       runId: run.id,
       algorithmName: run.algorithm,
+      algorithmParams: run.algorithmParams,
     };
   });
 });
@@ -118,7 +134,13 @@ const runCards = computed(() =>
   })),
 );
 
+const hasPlayableRuns = computed(() => runCards.value.length > 0);
+
 function togglePlay() {
+  if (!hasPlayableRuns.value) {
+    return;
+  }
+
   playback.toggle();
 }
 
@@ -147,7 +169,7 @@ function algorithmLabel(algorithm: string): string {
 
 function formatParamLabel(
   algorithm: string,
-  params?: SimulationRun["algorithmParams"],
+  params?: AlgorithmParams,
 ): string {
   if (!params) {
     return "";

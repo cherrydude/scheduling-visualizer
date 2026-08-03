@@ -1,7 +1,10 @@
 import { computed, reactive, watch } from "vue";
 import { buildComparisonRows } from "@/utils/compare";
 import { simulateScenario } from "@/simulation";
-import type { Scenario } from "@/types";
+import {
+  buildSimulationScenario,
+  type ScenarioRecord,
+} from "@/composables/useScenarioWorkspace";
 
 export function useComparison() {
   const state = reactive({
@@ -30,23 +33,25 @@ export function useComparison() {
     // ignore invalid data
   }
 
-  function buildForScenario(scenario: Scenario) {
-    const runs = (scenario.runs ?? []).map((run, index) => {
-      const sim = simulateScenario({
-        id: `${scenario.id}:${run.id}`,
-        title: scenario.title,
-        description: scenario.description,
-        algorithm: run.algorithm,
-        algorithmParams: run.algorithmParams,
-        seed: scenario.seed,
-        tickSize: scenario.tickSize,
-        processes: scenario.processes.map((p) => ({ ...p })),
-      });
+  function buildForScenario(scenario: ScenarioRecord) {
+    const runs: Array<{
+      id: string;
+      label: string;
+      run: ReturnType<typeof simulateScenario>;
+    }> = [];
+
+    (scenario.runs ?? []).forEach((run, index) => {
+      const simScenario = buildSimulationScenario(scenario, run);
+      const sim = simScenario ? simulateScenario(simScenario) : null;
+
+      if (!sim) {
+        return;
+      }
 
       // Use the 1-based run index as the public run id in comparisons
       // This avoids collisions when multiple runs share the same algorithm name
       // and matches the numbering shown in the navigation.
-      return { id: String(index + 1), label: run.algorithm, run: sim };
+      runs.push({ id: String(index + 1), label: run.algorithm, run: sim });
     });
 
     return buildComparisonRows(runs, state.weights);
