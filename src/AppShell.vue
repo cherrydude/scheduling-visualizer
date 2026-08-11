@@ -230,6 +230,7 @@
           }"
           v-for="card in statusCards"
           :key="card.label"
+          :title="statusCardTitle(card.label)"
           :role="
             card.label === 'Szenario' || card.label === 'Algorithmus'
               ? 'button'
@@ -265,6 +266,7 @@
               type="button"
               class="secondary-button"
               :class="{ 'primary-button': activeView === 'focus' }"
+              :title="viewToggleTitle('focus')"
               @click="setActiveView('focus')"
             >
               Fokusansicht
@@ -273,10 +275,17 @@
               type="button"
               class="secondary-button"
               :class="{ 'primary-button': activeView === 'multi' }"
+              :title="viewToggleTitle('multi')"
               @click="setActiveView('multi')"
             >
               Multi‑View
             </button>
+          </div>
+          <div class="sync-indicator" :class="{ 'sync-active': syncActive }" title="Synchronisiert" aria-hidden="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 12a9 9 0 10-3.2 6.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 3v6h-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </div>
           <small>Wechselt zwischen Detail- und Vergleichsansicht</small>
         </article>
@@ -302,6 +311,7 @@
                     type="button"
                     class="run-step"
                     :class="{ active: index === activeRunIndex }"
+                    :title="runNavigationTitle(index)"
                     @click="selectRun(index)"
                   >
                     {{ index + 1 }}
@@ -312,6 +322,7 @@
                 v-if="activeScenario && activeRun"
                 class="primary-button"
                 type="button"
+                :title="'Einen weiteren Algorithmus für dieses Szenario hinzufügen'"
                 @click="openAlgorithmModal('create')"
               >
                 + weiteren Algorithmus
@@ -364,7 +375,7 @@
               :segments="focusSegments"
               :transitionFromSegments="rawPreviewSegments"
               :tickMarks="focusTickMarks"
-              :cellWidth="focusCellWidth"
+              :cellWidth="focusCellWidthOverride ?? focusCellWidth"
               :chartHeight="chartHeight"
               :segmentHeight="segmentHeight"
               :viewBox="focusViewBox"
@@ -445,7 +456,7 @@
           <template v-if="activeView === 'focus'">
             <div class="section-header compact">
               <h2>Kennzahlen</h2>
-              <span>2 x 3 Übersicht</span>
+
             </div>
 
             <div class="metrics-grid">
@@ -478,14 +489,13 @@
             <StackList
               v-if="stackItems.length"
               :items="stackItems"
-              :maxVisible="6"
               :activeId="currentActiveProcessId"
               :contextText="stackExplanation"
               aria-label="Process queue"
             />
             <div v-else class="empty-state compact">
-              <strong>Keine Daten</strong>
-              <p>Aktiviere zuerst ein Szenario mit Algorithmus.</p>
+              <strong>{{ stackEmptyTitle }}</strong>
+              <p>{{ stackEmptyDescription }}</p>
             </div>
           </div>
 
@@ -533,15 +543,30 @@
       </div>
 
       <div class="route-copy">
-        <p v-if="currentRoute === 'about'">
-          Hier entsteht die Seite ueber mich und die Bachelorarbeit. Diese Route
-          ist bereits als stabiler Einstiegspunkt vorgesehen.
-        </p>
-        <template v-else>
+        <template v-if="currentRoute === 'about'">
           <p>
-            Diese Seite wird spaeter die Kurz-Anleitung zur Nutzung sowie die
-            Erklaerungen zu Prozessen und Algorithmen enthalten.
+            Hier entsteht die Seite ueber mich und die Bachelorarbeit. Diese Route
+            ist bereits als stabiler Einstiegspunkt vorgesehen.
           </p>
+        </template>
+
+        <template v-else>
+          <p class="help-lead">
+            Diese Seite ist der dauerhafte Einstieg in die Nutzung: erst Szenario
+            und Algorithmus wählen, dann die Simulation lesen und die Ergebnisse
+            vergleichen.
+          </p>
+
+          <section class="help-grid">
+            <article v-for="section in helpSections" :key="section.title" class="help-card panel soft-panel">
+              <span class="help-kicker">{{ section.kicker }}</span>
+              <h3>{{ section.title }}</h3>
+              <p>{{ section.summary }}</p>
+              <ul>
+                <li v-for="item in section.items" :key="item">{{ item }}</li>
+              </ul>
+            </article>
+          </section>
         </template>
       </div>
     </main>
@@ -578,6 +603,7 @@ import StackList from "./components/StackList.vue";
 import ComparisonPanel from "./components/ComparisonPanel.vue";
 import { usePlayback } from "@/composables/usePlayback";
 import { createTimelineLayout } from "./utils/timelineLayout";
+import { sharedCellWidth, computeSharedCellWidth } from "@/composables/useTimelineSync";
 import type {
   AlgorithmType,
   ScheduleEvent,
@@ -634,7 +660,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 0,
         burstTime: 4,
         priority: 2,
-        color: "#7dd3fc",
+        color: 'var(--data-1)',
         group: "A",
       },
       {
@@ -643,7 +669,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 1,
         burstTime: 3,
         priority: 1,
-        color: "#60a5fa",
+        color: 'var(--data-2)',
         group: "A",
       },
       {
@@ -652,7 +678,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 2,
         burstTime: 5,
         priority: 3,
-        color: "#34d399",
+        color: 'var(--data-3)',
         group: "B",
       },
     ],
@@ -670,7 +696,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 0,
         burstTime: 6,
         priority: 2,
-        color: "#fbbf24",
+        color: 'var(--data-4)',
         group: "A",
       },
       {
@@ -679,7 +705,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 2,
         burstTime: 4,
         priority: 1,
-        color: "#a78bfa",
+        color: 'var(--data-5)',
         group: "B",
       },
       {
@@ -688,7 +714,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 4,
         burstTime: 3,
         priority: 4,
-        color: "#f87171",
+        color: 'var(--data-6)',
         group: "B",
       },
       {
@@ -697,7 +723,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 5,
         burstTime: 2,
         priority: 2,
-        color: "#22c55e",
+        color: 'var(--data-7)',
         group: "C",
       },
     ],
@@ -715,7 +741,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 0,
         burstTime: 14,
         priority: 2,
-        color: "#38bdf8",
+        color: 'var(--data-8)',
         group: "A",
       },
       {
@@ -724,7 +750,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 6,
         burstTime: 12,
         priority: 1,
-        color: "#818cf8",
+        color: 'var(--data-9)',
         group: "A",
       },
       {
@@ -733,7 +759,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 12,
         burstTime: 10,
         priority: 3,
-        color: "#f59e0b",
+        color: 'var(--data-10)',
         group: "B",
       },
       {
@@ -742,7 +768,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 19,
         burstTime: 9,
         priority: 4,
-        color: "#34d399",
+        color: 'var(--data-3)',
         group: "C",
       },
     ],
@@ -754,17 +780,17 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     seed: 202,
     tickSize: 1,
     processes: [
-      { id: "P1", name: "P1", arrivalTime: 0, burstTime: 4, priority: 2, color: "#38bdf8", group: "A" },
-      { id: "P2", name: "P2", arrivalTime: 1, burstTime: 3, priority: 1, color: "#60a5fa", group: "A" },
-      { id: "P3", name: "P3", arrivalTime: 1, burstTime: 5, priority: 3, color: "#34d399", group: "A" },
-      { id: "P4", name: "P4", arrivalTime: 2, burstTime: 4, priority: 2, color: "#f59e0b", group: "B" },
-      { id: "P5", name: "P5", arrivalTime: 3, burstTime: 6, priority: 4, color: "#f472b6", group: "B" },
-      { id: "P6", name: "P6", arrivalTime: 4, burstTime: 3, priority: 1, color: "#fb7185", group: "C" },
-      { id: "P7", name: "P7", arrivalTime: 5, burstTime: 4, priority: 2, color: "#a78bfa", group: "C" },
-      { id: "P8", name: "P8", arrivalTime: 6, burstTime: 5, priority: 3, color: "#22c55e", group: "D" },
-      { id: "P9", name: "P9", arrivalTime: 7, burstTime: 3, priority: 1, color: "#fbbf24", group: "D" },
-      { id: "P10", name: "P10", arrivalTime: 8, burstTime: 4, priority: 2, color: "#2dd4bf", group: "E" },
-      { id: "P11", name: "P11", arrivalTime: 9, burstTime: 3, priority: 4, color: "#94a3b8", group: "E" },
+      { id: "P1", name: "P1", arrivalTime: 0, burstTime: 4, priority: 2, color: 'var(--data-8)', group: "A" },
+      { id: "P2", name: "P2", arrivalTime: 1, burstTime: 3, priority: 1, color: 'var(--data-2)', group: "A" },
+      { id: "P3", name: "P3", arrivalTime: 1, burstTime: 5, priority: 3, color: 'var(--data-3)', group: "A" },
+      { id: "P4", name: "P4", arrivalTime: 2, burstTime: 4, priority: 2, color: 'var(--data-10)', group: "B" },
+      { id: "P5", name: "P5", arrivalTime: 3, burstTime: 6, priority: 4, color: 'var(--data-11)', group: "B" },
+      { id: "P6", name: "P6", arrivalTime: 4, burstTime: 3, priority: 1, color: 'var(--data-12)', group: "C" },
+      { id: "P7", name: "P7", arrivalTime: 5, burstTime: 4, priority: 2, color: 'var(--data-5)', group: "C" },
+      { id: "P8", name: "P8", arrivalTime: 6, burstTime: 5, priority: 3, color: 'var(--data-7)', group: "D" },
+      { id: "P9", name: "P9", arrivalTime: 7, burstTime: 3, priority: 1, color: 'var(--data-4)', group: "D" },
+      { id: "P10", name: "P10", arrivalTime: 8, burstTime: 4, priority: 2, color: 'var(--data-13)', group: "E" },
+      { id: "P11", name: "P11", arrivalTime: 9, burstTime: 3, priority: 4, color: 'var(--data-14)', group: "E" },
     ],
   },
   burstChaos: {
@@ -774,12 +800,12 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     seed: 303,
     tickSize: 1,
     processes: [
-      { id: "C1", name: "C1", arrivalTime: 0, burstTime: 2, priority: 1, color: "#38bdf8", group: "A" },
-      { id: "C2", name: "C2", arrivalTime: 0, burstTime: 1, priority: 2, color: "#f59e0b", group: "A" },
-      { id: "C3", name: "C3", arrivalTime: 1, burstTime: 2, priority: 3, color: "#34d399", group: "B" },
-      { id: "C4", name: "C4", arrivalTime: 2, burstTime: 1, priority: 4, color: "#f472b6", group: "B" },
-      { id: "C5", name: "C5", arrivalTime: 2, burstTime: 2, priority: 2, color: "#fb7185", group: "C" },
-      { id: "C6", name: "C6", arrivalTime: 3, burstTime: 1, priority: 1, color: "#818cf8", group: "C" },
+      { id: "C1", name: "C1", arrivalTime: 0, burstTime: 2, priority: 1, color: 'var(--data-8)', group: "A" },
+      { id: "C2", name: "C2", arrivalTime: 0, burstTime: 1, priority: 2, color: 'var(--data-10)', group: "A" },
+      { id: "C3", name: "C3", arrivalTime: 1, burstTime: 2, priority: 3, color: 'var(--data-3)', group: "B" },
+      { id: "C4", name: "C4", arrivalTime: 2, burstTime: 1, priority: 4, color: 'var(--data-11)', group: "B" },
+      { id: "C5", name: "C5", arrivalTime: 2, burstTime: 2, priority: 2, color: 'var(--data-12)', group: "C" },
+      { id: "C6", name: "C6", arrivalTime: 3, burstTime: 1, priority: 1, color: 'var(--data-9)', group: "C" },
     ],
   },
 };
@@ -806,6 +832,8 @@ const focusColumnRef = ref<HTMLElement | null>(null);
 const focusViewportWidth = ref(
   typeof window !== "undefined" ? window.innerWidth : 0,
 );
+const savedFocusCellWidth = ref<number | null>(null);
+const focusCellWidthOverride = ref<number | null>(null);
 const currentRoute = ref<RouteName>("home");
 const loopPlayback = ref(false);
 
@@ -814,6 +842,8 @@ const activeView = ref<string>(
     ? window.localStorage.getItem("scheduling-visualizer.activeView") ?? "focus"
     : "focus",
 );
+
+// Theme follows OS; no user control in-app.
 
 function setActiveView(view: string) {
   activeView.value = view;
@@ -918,9 +948,20 @@ function findActiveProcessId(time?: number | null): string | null {
   return activeSegment?.processId ?? null;
 }
 
-const currentActiveProcessId = computed(() =>
-  findActiveProcessId(currentSnapshot.value?.time),
-);
+const currentActiveProcessId = computed(() => {
+  const snapshot = currentSnapshot.value;
+  const fallbackId = findActiveProcessId(snapshot?.time);
+
+  if (!snapshot) {
+    return fallbackId;
+  }
+
+  if (!snapshot.currentProcessId) {
+    return fallbackId;
+  }
+
+  return resolveSnapshotProcessId(snapshot, snapshot.currentProcessId);
+});
 
 const currentPreemptEvent = computed<ScheduleEvent | null>(() => {
   const currentTime = currentSnapshot.value?.time;
@@ -931,7 +972,35 @@ const currentPreemptEvent = computed<ScheduleEvent | null>(() => {
   const events = runState.value?.events ?? [];
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index];
-    if (event.type === "preempt" && event.time <= currentTime) {
+    if (event.time < currentTime) {
+      break;
+    }
+
+    if (event.type === "preempt" && event.time === currentTime) {
+      return event;
+    }
+  }
+
+  return null;
+});
+
+const currentStackPreemptEvent = computed<ScheduleEvent | null>(() => {
+  const currentTime = currentSnapshot.value?.time;
+  if (currentTime === null || currentTime === undefined) {
+    return null;
+  }
+
+  const events = runState.value?.events ?? [];
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event.time < currentTime) {
+      break;
+    }
+
+    if (
+      (event.type === "preempt" || event.type === "quantumExpired") &&
+      event.time === currentTime
+    ) {
       return event;
     }
   }
@@ -949,17 +1018,15 @@ const visibleSegments = computed(() => runState.value?.segments ?? []);
 const timelineEnd = computed(() =>
   visibleSegments.value.reduce((max, segment) => Math.max(max, segment.end), 0),
 );
-const focusTimelineLength = computed(() =>
-  Math.max(
-    layoutPhase.value === "running"
-      ? (runState.value?.totalTime ?? 8)
-      : rawPreviewSegments.value.reduce(
-          (max, segment) => Math.max(max, segment.end),
-          0,
-        ),
-    8,
-  ),
-);
+const focusTimelineLength = computed(() => {
+  const previewMax = rawPreviewSegments.value.reduce(
+    (max, segment) => Math.max(max, segment.end),
+    0,
+  );
+  const simulatedMax = runState.value?.totalTime ?? null;
+  const base = simulatedMax !== null ? simulatedMax : previewMax;
+  return Math.max(Math.max(8, Math.floor(base)), 8);
+});
 const rawPreviewSegments = computed<TimelineSegment[]>(() => {
   const scenario = activeScenario.value;
   if (!scenario) {
@@ -1027,7 +1094,7 @@ function isProcessDone(pid: string, snap: SimulationSnapshot | null) {
 
 function findProcessMeta(pid?: string | null) {
   if (!pid) {
-    return { name: pid ?? "?", color: "#475569" };
+    return { name: pid ?? "?", color: 'var(--data-15)' };
   }
 
   const seg = visibleSegments.value.find(
@@ -1037,9 +1104,9 @@ function findProcessMeta(pid?: string | null) {
     (process) => process.id === pid,
   );
 
-  return {
+    return {
     name: seg?.processName ?? proc?.name ?? pid,
-    color: seg?.color ?? proc?.color ?? "#475569",
+    color: seg?.color ?? proc?.color ?? 'var(--data-15)',
   };
 }
 
@@ -1054,7 +1121,7 @@ function resolveSnapshotProcessId(
   return exactMatch?.id ?? nameOrId;
 }
 
-function buildStackOrder(snap: SimulationSnapshot | null, max = 8) {
+function buildStackOrder(snap: SimulationSnapshot | null) {
   if (!snap) {
     return [];
   }
@@ -1071,16 +1138,13 @@ function buildStackOrder(snap: SimulationSnapshot | null, max = 8) {
     entries.push({ id: pid, level });
   };
 
-  push(
-    findActiveProcessId(snap.time) ?? snap.currentProcessId,
-    snap.currentQueueLevel ?? null,
-  );
+  const snapshotActiveId = snap.currentProcessId
+    ? resolveSnapshotProcessId(snap, snap.currentProcessId)
+    : findActiveProcessId(snap.time);
+
+  push(snapshotActiveId, snap.currentQueueLevel ?? null);
   if (Array.isArray(snap.readyQueue)) {
     for (const [index, nameOrId] of snap.readyQueue.entries()) {
-      if (entries.length >= max) {
-        break;
-      }
-
       push(
         resolveSnapshotProcessId(snap, nameOrId),
         snap.readyQueueLevels?.[index] ?? null,
@@ -1091,12 +1155,43 @@ function buildStackOrder(snap: SimulationSnapshot | null, max = 8) {
   return entries;
 }
 
-function writeStackFromSnapshot(snap: SimulationSnapshot | null, max = 8) {
+function findReadyQueueLevelByProcessId(
+  snap: SimulationSnapshot | null,
+  pid: string | null,
+): number | null {
+  if (!snap || !pid || !Array.isArray(snap.readyQueue)) {
+    return null;
+  }
+
+  const queueIndex = snap.readyQueue.findIndex(
+    (nameOrId) => resolveSnapshotProcessId(snap, nameOrId) === pid,
+  );
+
+  if (queueIndex < 0) {
+    return null;
+  }
+
+  return snap.readyQueueLevels?.[queueIndex] ?? null;
+}
+
+function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
   const activeId = currentActiveProcessId.value;
-  const preemptedId = currentPreemptEvent.value?.processId ?? null;
-  const entries = buildStackOrder(snap, max).filter(
+  const preemptedId = currentStackPreemptEvent.value?.processId ?? null;
+  const entries = buildStackOrder(snap).filter(
     (entry) => !isProcessDone(entry.id, snap),
   );
+
+  if (preemptedId) {
+    const existingIndex = entries.findIndex((entry) => entry.id === preemptedId);
+
+    if (existingIndex < 0) {
+      const derivedLevel = findReadyQueueLevelByProcessId(snap, preemptedId);
+      entries.push({
+        id: preemptedId,
+        level: derivedLevel,
+      });
+    }
+  }
 
   stackItems.value = entries.map((entry) => {
     const pid = entry.id;
@@ -1237,6 +1332,44 @@ watch(activeView, async (view, previousView) => {
       { opacity: 1, y: 0, scale: 1, duration: 0.36, ease: "power2.out" },
     );
   }
+  // when leaving focus, remember its computed cellWidth so we can restore it later
+  if (previousView === 'focus' && view === 'multi') {
+    savedFocusCellWidth.value = focusCellWidth.value;
+    focusCellWidthOverride.value = null;
+  }
+
+  // when coming back from MultiView, restart the focus playback from the beginning
+  if (previousView === 'multi' && view === 'focus') {
+    resetPlayback();
+  }
+});
+
+// keep shared cell width in sync when focus is active
+watch(
+  [
+    () => focusTimelineLength.value,
+    () => focusViewportWidth.value,
+    () => activeView.value,
+  ],
+  ([tlLen, vp, view]) => {
+    if (view === "focus") {
+      computeSharedCellWidth(tlLen, vp);
+    }
+  },
+  { immediate: true },
+);
+
+watch(activeView, async (view) => {
+  if (view === 'focus') {
+    // update viewport width first so computed focusCellWidth uses correct container
+    focusViewportWidth.value = Math.floor(
+      ganttWrapRef.value?.clientWidth ?? window.innerWidth,
+    );
+    focusCellWidthOverride.value =
+      savedFocusCellWidth.value && savedFocusCellWidth.value > 0
+        ? savedFocusCellWidth.value
+        : null;
+  }
 });
 
 watch(
@@ -1258,10 +1391,20 @@ const currentEventLabel = computed(() =>
 );
 
 const stackExplanation = computed(() => {
-  const activeName = currentSnapshot.value?.currentProcessName;
-  const preemptEvent = currentPreemptEvent.value;
+  const activeId = currentActiveProcessId.value;
+  const activeName =
+    currentSnapshot.value?.currentProcessName ??
+    (activeId ? findProcessMeta(activeId).name : null);
+  const preemptEvent = currentStackPreemptEvent.value;
 
   if (preemptEvent?.processName) {
+    if (
+      preemptEvent.algorithm === "mlfq" &&
+      preemptEvent.type === "quantumExpired"
+    ) {
+      return `${preemptEvent.processName} hat sein Quantum auf dieser Queue-Stufe verbraucht und wurde nach unten einsortiert; ${activeName ?? "ein anderer Prozess"} übernimmt jetzt die CPU.`;
+    }
+
     if (preemptEvent.algorithm === "roundRobin") {
       return `${preemptEvent.processName} wurde präemptiert, weil sein Zeitquantum aufgebraucht wurde; ${activeName ?? "ein anderer Prozess"} übernimmt nun die CPU.`;
     }
@@ -1278,6 +1421,34 @@ const stackExplanation = computed(() => {
   }
 
   return "Gerade ist kein Prozess aktiv.";
+});
+
+const stackEmptyTitle = computed(() =>
+  isStackSimulationFinished.value ? "Simulation beendet" : "Keine Daten",
+);
+
+const stackEmptyDescription = computed(() =>
+  isStackSimulationFinished.value
+    ? "Alle Prozesse wurden verarbeitet."
+    : "Aktiviere zuerst ein Szenario mit Algorithmus.",
+);
+
+const isStackSimulationFinished = computed(() => {
+  if (!activeScenario.value || !activeRun.value || !runState.value) {
+    return false;
+  }
+
+  const snapshot = currentSnapshot.value;
+  if (!snapshot) {
+    return false;
+  }
+
+  const processCount = activeScenario.value.processes.length;
+  const completedCount = snapshot.metrics.completedCount ?? 0;
+  const hasActiveProcess = Boolean(currentActiveProcessId.value);
+  const readyQueueSize = snapshot.readyQueue.length;
+
+  return completedCount >= processCount && !hasActiveProcess && readyQueueSize === 0;
 });
 
 const simulationNote = computed(() => runState.value?.note ?? "");
@@ -1368,6 +1539,49 @@ const comparisonCards = computed<ComparisonCard[]>(() => [
   { label: "MLFQ", value: "implementiert", help: "Queue-Stufen sichtbar im Queue-Panel" },
 ]);
 
+const helpSections = computed(() => [
+  {
+    kicker: "Quick Start",
+    title: "Was du zuerst tun solltest",
+    summary: "Diese App ist für einen kurzen Einstieg gebaut: erst Daten laden, dann Algorithmus anwenden, danach Playback starten.",
+    items: [
+      "Nutze das Burgermenü, um ein Szenario zu wählen oder neu anzulegen.",
+      "Wähle im Algorithmus-Dialog den gewünschten Scheduler und die Parameter.",
+      "Starte die Simulation mit Play oder gehe schrittweise mit Pfeilen durch den Verlauf.",
+    ],
+  },
+  {
+    kicker: "Bedienung",
+    title: "Welche Elemente du bedienen kannst",
+    summary: "Die Oberfläche ist in Fokusansicht und Vergleichsansicht aufgeteilt und zeigt dir dazu passende Hilfen per Hover.",
+    items: [
+      "Fokusansicht für den detaillierten Ablauf eines Runs.",
+      "Multi-View zum direkten Vergleichen mehrerer Algorithmen.",
+      "Stack-Simulation und Ereignislog für die aktuelle Zustandslage.",
+    ],
+  },
+  {
+    kicker: "Interpretation",
+    title: "Wie du die Visualisierung liest",
+    summary: "Die Gantt-Leiste zeigt die CPU-Belegung, die Stack-Liste den aktuellen Queue-Zustand und die Kennzahlen den Ergebnisvergleich.",
+    items: [
+      "Preemption wird direkt im Zeitverlauf sichtbar, wenn ein Prozess verdrängt wird.",
+      "Queue-Level und Zustände helfen dir besonders bei MLFQ und LCFS.",
+      "Die Kennzahlen zeigen, welche Strategie fairer oder schneller ist.",
+    ],
+  },
+  {
+    kicker: "Mehrwert",
+    title: "Warum die App nützlich ist",
+    summary: "Du kannst Scheduling nicht nur lesen, sondern Schritt für Schritt beobachten, vergleichen und für die Thesis erklären.",
+    items: [
+      "Algorithmen werden im direkten Verlauf verständlich statt abstrakt beschrieben.",
+      "Vergleiche machen Unterschiede bei Wartezeit, Fairness und Durchsatz sichtbar.",
+      "Die Bedienung bleibt bewusst kompakt, damit du schnell zu belastbaren Aussagen kommst.",
+    ],
+  },
+]);
+
 const recentEvents = computed<ScheduleEvent[]>(() => {
   const currentTime = currentSnapshot.value?.time ?? 0;
   const startTime = loopLogStart.value;
@@ -1379,6 +1593,15 @@ const recentEvents = computed<ScheduleEvent[]>(() => {
   );
 });
 const focusViewBox = computed(() => {
+  // if we have an override cellWidth (restoring previous zoom), use it to compute viewBox
+  if (focusCellWidthOverride.value && focusCellWidthOverride.value > 0) {
+    const w = Math.max(
+      focusTimelineLength.value * focusCellWidthOverride.value + 180,
+      focusViewportWidth.value || 860,
+    );
+    return `0 0 ${w} ${chartHeight.value}`;
+  }
+
   const layout = createTimelineLayout({
     timelineLength: focusTimelineLength.value,
     containerWidth: focusViewportWidth.value,
@@ -1394,6 +1617,23 @@ const focusViewBox = computed(() => {
     layout.svgWidth,
     focusViewportWidth.value || 860,
   )} ${chartHeight.value}`;
+});
+
+const syncActive = ref(false);
+let syncTimer: number | undefined;
+
+function showSyncIndicator(ms = 1200) {
+  syncActive.value = true;
+  if (syncTimer) window.clearTimeout(syncTimer);
+  syncTimer = window.setTimeout(() => {
+    syncActive.value = false;
+    syncTimer = undefined;
+  }, ms);
+}
+
+// show indicator when shared cell width updates
+watch(sharedCellWidth, (v) => {
+  if (v && v > 0) showSyncIndicator(900);
 });
 
 const focusCurrentTime = computed(() =>
@@ -1812,6 +2052,27 @@ function formatAlgorithmParams(
   return "Keine zusaetzlichen Parameter";
 }
 
+function statusCardTitle(label: string): string {
+  switch (label) {
+    case "Szenario":
+      return "Szenario auswählen, erstellen oder bearbeiten";
+    case "Algorithmus":
+      return "Aktiven Algorithmus anwenden oder anpassen";
+    default:
+      return "";
+  }
+}
+
+function viewToggleTitle(view: "focus" | "multi"): string {
+  return view === "focus"
+    ? "Fokusansicht: einen einzelnen Run mit Steuerung und Details lesen"
+    : "Multi-View: mehrere Runs parallel vergleichen";
+}
+
+function runNavigationTitle(index: number): string {
+  return `Run ${index + 1} aktivieren und Verlauf anzeigen`;
+}
+
 function algorithmName(algorithm: AlgorithmType): string {
   switch (algorithm) {
     case "roundRobin":
@@ -1964,18 +2225,18 @@ onBeforeUnmount(() => {
   margin-bottom: 0.75rem;
 }
 
-.scenario-banner p {
+  scenario-banner p {
   margin: 0.25rem 0 0;
-  color: #cbd5e1;
+  color: var(--text);
 }
 
 .stack-area {
   min-height: 120px;
 }
 
-.note-text {
+  .note-text {
   margin: 0.75rem 0 0;
-  color: #94a3b8;
+  color: var(--muted);
 }
 
 .route-panel {
@@ -1983,12 +2244,62 @@ onBeforeUnmount(() => {
   padding: 1rem;
 }
 
-.route-copy {
+  .route-copy {
   max-width: 68ch;
-  color: #cbd5e1;
+  color: var(--text);
 }
 
-.loop-toggle {
+  .help-lead {
+    max-width: 74ch;
+    margin: 0 0 1rem;
+    color: var(--text);
+  }
+
+  .help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.9rem;
+  }
+
+  .help-card {
+    padding: 0.95rem;
+    border-radius: 18px;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .help-card h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .help-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .help-card ul {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.35rem;
+    color: var(--text);
+  }
+
+  .help-kicker {
+    display: inline-flex;
+    width: fit-content;
+    padding: 0.16rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(96, 165, 250, 0.12);
+    color: var(--accent);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .loop-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -1996,7 +2307,7 @@ onBeforeUnmount(() => {
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(148, 163, 184, 0.08);
-  color: #e2e8f0;
+  color: var(--text);
 }
 
 .loop-toggle input {

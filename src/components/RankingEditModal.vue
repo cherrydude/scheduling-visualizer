@@ -157,11 +157,11 @@ function formatKey(key: string) {
   padding-left: 1rem;
   display: grid;
   gap: 0.4rem;
-  color: #cbd5e1;
+  color: var(--muted);
 }
 .algorithm-info-note {
   margin: 0;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 0.92rem;
 }
 @media (max-width: 900px) {

@@ -63,7 +63,7 @@ function normalizeScenarioInput(scenario: Scenario): Scenario {
         color:
           typeof process.color === "string" && process.color.trim()
             ? process.color
-            : "#60a5fa",
+            : 'var(--data-2)',
         group:
           typeof process.group === "string" && process.group.trim()
             ? process.group
@@ -537,12 +537,22 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     const currentLevel = currentProcess.queueLevel ?? 0;
     currentProcess.status = "preempted";
     pushSegment(time);
-    enqueueReadyProcess(
-      currentProcess,
-      simulationScenario.algorithm,
-      readyQueue,
-      mlfqQueueLevels,
-    );
+    // For LCFS we want the newly arrived processes to be on top of the stack.
+    // Since arrivals are enqueued before we call preemptCurrentProcess,
+    // push the preempted process to the front so it does not become the
+    // immediate top element (pop) and re-acquire the CPU.
+    if (simulationScenario.algorithm === "lcfs") {
+      currentProcess.status = "ready";
+      currentProcess.queueLevel = 0;
+      readyQueue.unshift(currentProcess);
+    } else {
+      enqueueReadyProcess(
+        currentProcess,
+        simulationScenario.algorithm,
+        readyQueue,
+        mlfqQueueLevels,
+      );
+    }
     const preemptEvent: ScheduleEvent = {
       time,
       type: "preempt",
@@ -620,7 +630,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       processName: "Idle",
       start: idleSegmentStart,
       end: endTime,
-      color: "#64748b",
+      color: 'var(--data-16)',
       idle: true,
     });
 
@@ -936,12 +946,12 @@ export function createSeededScenarioProcesses(
 ): Scenario["processes"] {
   const random = seededRandom(seed);
   const palette = [
-    "#7dd3fc",
-    "#60a5fa",
-    "#34d399",
-    "#fbbf24",
-    "#f87171",
-    "#a78bfa",
+    'var(--data-1)',
+    'var(--data-2)',
+    'var(--data-3)',
+    'var(--data-4)',
+    'var(--data-6)',
+    'var(--data-5)',
   ];
 
   return Array.from({ length: count }, (_, index) => {

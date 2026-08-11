@@ -226,7 +226,7 @@ input[type="range"] {
 .icon-button {
   background: transparent;
   border: 0;
-  color: #7dd3fc;
+  color: var(--accent);
   font-size: 0.95rem;
   padding: 2px 6px;
   border-radius: 6px;
@@ -247,7 +247,7 @@ input[type="range"] {
   margin-bottom: 0.75rem;
 }
 .table-controls-label {
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -260,7 +260,7 @@ input[type="range"] {
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   background: rgba(15, 23, 42, 0.26);
-  color: #e2e8f0;
+  color: var(--text);
   font-size: 0.8rem;
 }
 .table-toggle input {
@@ -287,7 +287,7 @@ th {
   position: sticky;
   top: 0;
   background: rgba(15, 23, 42, 0.95);
-  color: #cbd5e1;
+  color: var(--muted);
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -311,17 +311,17 @@ tbody tr:hover {
 }
 .status-pill--best {
   background: rgba(125, 211, 252, 0.1);
-  color: #7dd3fc;
+  color: var(--accent);
   border-color: rgba(125, 211, 252, 0.2);
 }
 .status-pill--worst {
   background: rgba(248, 113, 113, 0.12);
-  color: #fca5a5;
+  color: var(--danger);
   border-color: rgba(248, 113, 113, 0.24);
 }
 .status-pill--neutral {
   background: rgba(148, 163, 184, 0.08);
-  color: #94a3b8;
+  color: var(--muted);
   border-color: rgba(148, 163, 184, 0.14);
 }
 </style>

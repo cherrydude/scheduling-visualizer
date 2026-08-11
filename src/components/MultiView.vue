@@ -14,7 +14,11 @@
       <span class="time-label">t {{ playbackTime }}</span>
     </div>
 
-    <div v-if="runCards.length" class="grid">
+    <div
+      v-if="runCards.length"
+      :class="['grid', { 'grid--stacked': stackRuns }]"
+      :style="{ gridTemplateColumns: gridTemplateColumns }"
+    >
       <div v-for="(rs, idx) in runCards" :key="rs.runId" class="cell">
         <div class="cell-header">
           <div class="cell-title-row">
@@ -23,6 +27,9 @@
           </div>
           <div class="cell-meta-row">
             <span class="run-params">{{ rs.paramLabel }}</span>
+            <span v-if="rs.algorithmName === 'mlfq'" class="mlfq-badge">
+              Queue-Lagen {{ rs.algorithmParams.queueLevels ?? 3 }}
+            </span>
             <span class="run-params">t {{ rs.totalTime }}</span>
           </div>
           <div class="cell-stats">
@@ -33,10 +40,12 @@
         </div>
         <MiniGantt
           :segments="rs.segments"
-          :cellWidth="multiViewCellWidth"
-          :chartHeight="92"
-          :segmentHeight="15"
+          :cellWidth="sharedCellWidth"
+          :chartHeight="stackRuns ? 160 : 92"
+          :segmentHeight="stackRuns ? 20 : 15"
           :currentTime="playbackTime"
+          :algorithm="rs.algorithmName"
+          :queueLevels="rs.algorithmParams.queueLevels"
         />
       </div>
     </div>
@@ -49,13 +58,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from "vue";
+import { computed, ref, onUnmounted, watch } from "vue";
 import MiniGantt from "./MiniGantt.vue";
 import { simulateScenario } from "@/simulation";
 import { usePlayback } from "@/composables/usePlayback";
 import { useGanttZoom } from "@/composables/useGanttZoom";
 import type { AlgorithmParams, SimulationRun } from "@/types";
 import type { ScenarioRecord, ScenarioRunRecord } from "@/composables/useScenarioWorkspace";
+import { sharedCellWidth, computeSharedCellWidth } from "@/composables/useTimelineSync";
 
 const props = defineProps<{
   scenario: ScenarioRecord | null;
@@ -97,7 +107,7 @@ const runStates = computed(() => {
 
 const maxTime = computed(() => Math.max(8, ...(runStates.value.map((r) => r.totalTime ?? 8) ?? [8])));
 
-const { cellWidth: multiViewCellWidth } = useGanttZoom(
+const { cellWidth: multiViewCellWidth, viewportWidth: multiViewViewport } = useGanttZoom(
   multiViewRef,
   maxTime,
   {
@@ -106,6 +116,19 @@ const { cellWidth: multiViewCellWidth } = useGanttZoom(
     viewportPadding: 56,
     minViewportWidth: 320,
   },
+);
+
+// when multi view is active, update shared cell width so both views run on same basis
+watch(
+  () => [Number(multiViewCellWidth.value ?? 0), Number(multiViewViewport.value ?? 0), maxTime.value],
+  ([cw, vp, mt]) => {
+    if (cw > 0 && vp > 0) {
+      sharedCellWidth.value = cw;
+      // also compute via helper to keep svg sizing logic consistent
+      computeSharedCellWidth(mt, vp);
+    }
+  },
+  { immediate: true },
 );
 
 // usePlayback expects a ref with .value array -> create snapshot list for times 0..maxTime
@@ -133,6 +156,46 @@ const runCards = computed(() =>
     },
   })),
 );
+
+// When the timeline gets long or the ticks get too dense, stack the runs vertically
+// so each MiniGantt can use the full row width and stay readable.
+const stackRuns = computed(() => {
+  const cw = Number(multiViewCellWidth.value ?? 0);
+  const mt = Number(maxTime.value ?? 0);
+  const vp = Number(multiViewViewport.value ?? 0);
+
+  // Long timelines should switch to a single-column layout early.
+  if (mt >= 28) {
+    return true;
+  }
+
+  // If tick width becomes too small, the rows are hard to read side by side.
+  if (cw > 0 && cw < 24) {
+    return true;
+  }
+
+  // If we know the viewport, stack when the total timeline width fills most of it.
+  if (vp > 0) {
+    const totalWidth = cw * mt;
+    return totalWidth > vp * 0.7;
+  }
+
+  return mt > 18 || cw < 24;
+});
+
+// Compute how many columns should be shown per row so runs wrap to new rows
+const desiredMinPanelWidth = 360; // desired minimum width per panel before wrapping
+const columnsCount = computed(() => {
+  if (stackRuns.value) return 1;
+  const vp = Number(multiViewViewport.value ?? 0);
+  if (vp > 0) {
+    const cols = Math.max(1, Math.floor(vp / desiredMinPanelWidth));
+    return Math.min(2, cols, Math.max(1, runCards.value.length));
+  }
+  return Math.min(2, Math.max(1, runCards.value.length));
+});
+
+const gridTemplateColumns = computed(() => `repeat(${columnsCount.value}, 1fr)`);
 
 const hasPlayableRuns = computed(() => runCards.value.length > 0);
 
@@ -211,14 +274,20 @@ onUnmounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 0.85rem;
 }
+.grid--stacked {
+  grid-template-columns: 1fr;
+  gap: 1.2rem;
+}
+.grid--stacked .cell {
+  padding: 1rem;
+}
 .cell {
   padding: 0.75rem 0.75rem 0.65rem;
   border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.48)),
-    rgba(15, 23, 42, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.18);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  color: var(--text);
 }
 .cell-header {
   margin-bottom: 0.15rem;
@@ -239,23 +308,28 @@ onUnmounted(() => {
 }
 .run-score,
 .run-params,
+.mlfq-badge,
 .cell-stats span {
   border-radius: 999px;
   padding: 0.18rem 0.5rem;
-  background: rgba(148, 163, 184, 0.1);
-  color: #cbd5e1;
+  background: var(--chip-bg, rgba(148, 163, 184, 0.08));
+  color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.2;
 }
 .run-score {
-  color: #7dd3fc;
-  background: rgba(125, 211, 252, 0.08);
+  color: var(--accent);
+  background: var(--chip-accent-bg, rgba(125, 211, 252, 0.08));
+}
+.mlfq-badge {
+  color: var(--text);
+  background: rgba(234, 179, 8, 0.12);
 }
 .cell-stats span {
-  color: #e2e8f0;
+  color: var(--text);
 }
 .cell :deep(.mini-gantt) {
   padding-top: 0.15rem;
 }
-.time-label { color: #cbd5e1; }
+.time-label { color: var(--muted); }
 </style>

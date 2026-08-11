@@ -4,6 +4,7 @@
       <button
         @click="handlePlay"
         aria-label="Play"
+        title="Simulation starten oder fortsetzen"
         :disabled="!controlsEnabled"
       >
         Play
@@ -11,6 +12,7 @@
       <button
         @click="handlePause"
         aria-label="Pause"
+        title="Simulation anhalten"
         :disabled="!controlsEnabled"
       >
         Pause
@@ -18,6 +20,7 @@
       <button
         @click="handleStep(-1)"
         aria-label="Step Back"
+        title="Einen Takt zurück"
         :disabled="!controlsEnabled"
       >
         ←
@@ -25,6 +28,7 @@
       <button
         @click="handleStep(1)"
         aria-label="Step Forward"
+        title="Einen Takt vor"
         :disabled="!controlsEnabled"
       >
         →
@@ -32,6 +36,7 @@
       <button
         @click="handleReset"
         aria-label="Reset"
+        title="Simulation zurücksetzen"
         :disabled="!controlsEnabled"
       >
         Reset
@@ -41,6 +46,7 @@
           type="checkbox"
           v-model="loopPlayback"
           :disabled="!controlsEnabled"
+          title="Simulation im Endlosmodus laufen lassen"
         />
         Endlos
       </label>
@@ -51,6 +57,7 @@
         :max="timelineMax"
         v-model.number="sliderTime"
         :disabled="!controlsEnabled"
+        title="Zeitpunkt manuell wählen"
       />
       <span class="time-label">{{ sliderTime }}</span>
     </div>
@@ -192,6 +199,9 @@ const renderViewBox = computed(() => {
 });
 const controlsEnabled = computed(() => props.controlsEnabled !== false);
 const introAnimation = computed(() => props.introAnimation !== false);
+const prefersReducedMotion = typeof window !== 'undefined' &&
+  (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false);
+const shouldAnimate = computed(() => !prefersReducedMotion && introAnimation.value);
 const debugPreemption = import.meta.env.DEV;
 
 function hasGsapTargets(target: unknown): boolean {
@@ -281,6 +291,10 @@ watch(
     const pulses = Array.from(
       rootEl.querySelectorAll<SVGElement>(".preempt-pulse"),
     );
+    if (!shouldAnimate.value) {
+      logPreemptionDebug('skip animation due to prefers-reduced-motion or introAnimation=false');
+      return;
+    }
     logPreemptionDebug("flare targets", {
       count: pulses.length,
       pid,
@@ -780,6 +794,8 @@ function runLaunchMorph() {
     return;
   }
 
+  if (!shouldAnimate.value) return;
+
   const svgEl = rootEl.querySelector(".gantt-svg") as SVGElement | null;
   if (!svgEl) {
     return;
@@ -1002,8 +1018,8 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 button {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--surface);
+  color: var(--text);
   border: 1px solid rgba(255, 255, 255, 0.04);
   padding: 6px 8px;
   border-radius: 6px;

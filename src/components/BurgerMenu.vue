@@ -24,6 +24,7 @@
             <button
               class="secondary-button compact"
               type="button"
+              title="Neues Szenario anlegen"
               @click="$emit('create')"
             >
               +
@@ -37,6 +38,7 @@
               type="button"
               class="scenario-item"
               :class="{ active: scenario.id === activeScenarioId }"
+              title="Dieses Szenario laden"
               @click="$emit('select', scenario.id)"
             >
               <span class="scenario-title">{{ scenario.title }}</span>
@@ -52,6 +54,7 @@
             <button
               type="button"
               class="link-item"
+              title="Szenario duplizieren"
               @click="$emit('duplicate', activeScenarioId)"
             >
               Duplizieren
@@ -59,6 +62,7 @@
             <button
               type="button"
               class="link-item"
+              title="Szenario umbenennen"
               @click="$emit('rename', activeScenarioId)"
             >
               Umbenennen
@@ -66,6 +70,7 @@
             <button
               type="button"
               class="link-item danger"
+              title="Szenario löschen"
               @click="$emit('delete', activeScenarioId)"
             >
               Löschen
@@ -83,10 +88,12 @@
           <button type="button" class="link-item" @click="$emit('about')">
             Über mich
           </button>
-          <button type="button" class="link-item" @click="$emit('knowledge')">
+          <button type="button" class="link-item" title="Hilfe und Wissen öffnen" @click="$emit('knowledge')">
             Wissen
           </button>
         </div>
+
+        
       </div>
     </teleport>
   </div>
@@ -178,7 +185,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 2px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: var(--text);
 }
 
 .burger-panel {
@@ -218,7 +225,7 @@ onBeforeUnmount(() => {
   width: 100%;
   border: 1px solid rgba(148, 163, 184, 0.14);
   background: rgba(255, 255, 255, 0.02);
-  color: #e2e8f0;
+  color: var(--text);
   border-radius: 12px;
   padding: 10px 12px;
   cursor: pointer;
@@ -238,7 +245,7 @@ onBeforeUnmount(() => {
 .scenario-meta,
 .menu-note {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--muted);
 }
 
 .scenario-actions {
@@ -252,6 +259,6 @@ onBeforeUnmount(() => {
 }
 
 .danger {
-  color: #fca5a5;
+  color: var(--danger);
 }
 </style>

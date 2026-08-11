@@ -1,15 +1,324 @@
+/* Local font-face placeholders: place Atkinson Hyperlegible files at src/assets/fonts/ */
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Strong light-mode overrides for components still using hardcoded dark RGBA */
+html[data-theme="light"] .burger-button,
+html[data-theme="light"] .burger-panel,
+html[data-theme="light"] .scenario-item,
+html[data-theme="light"] .link-item,
+html[data-theme="light"] .tooltip,
+html[data-theme="light"] .comparison-panel,
+html[data-theme="light"] .multi-view,
+html[data-theme="light"] .scenario-miniature,
+html[data-theme="light"] .status-card,
+html[data-theme="light"] .metric-panel,
+html[data-theme="light"] .compare-card,
+html[data-theme="light"] .event-item {
+  background: var(--panel-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--panel-border) !important;
+  box-shadow: var(--panel-shadow) !important;
+}
+
+html[data-theme="light"] .burger-button {
+  border-color: var(--panel-border) !important;
+}
+
+html[data-theme="light"] .burger-button span {
+  background: var(--text) !important;
+}
+
+html[data-theme="light"] .tooltip {
+  box-shadow: 0 4px 10px rgba(2,6,23,0.06) !important;
+}
+
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] textarea {
+  background: var(--input-bg, #fff) !important;
+  color: var(--text) !important;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+/* Italics */
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-RegularItalic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-SemiBoldItalic.woff2') format('woff2');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Semantic tokens - light defaults (follow attached design tokens) */
 :root {
-  color-scheme: dark;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 32%),
-    radial-gradient(circle at top right, rgba(52, 211, 153, 0.12), transparent 28%),
-    linear-gradient(180deg, #07111f 0%, #0b1220 46%, #050913 100%);
-  color: #e2e8f0;
+  --bg: #ffffff; /* page background */
+  --surface: #ffffff; /* card surfaces */
+  --surface-dark: #f1f5f9;
+  --surface-light: #ffffff;
+  --panel: rgba(2,6,23,0.06); /* subtle panel shadow for separation */
+  --panel-bg: #f3f4f6; /* light card background */
+  --panel-border: rgba(2,6,23,0.06);
+  --panel-shadow: 0 6px 18px rgba(2,6,23,0.04);
+  --gantt-bg: var(--panel-bg);
+  --text: #000000; /* stronger text for readability */
+  --muted: #374151; /* darker muted text for contrast */
+  --secondary-bg: #eef2ff;
+  --input-border: #e6e9ef;
+  --interactive: #1152A7; /* primary */
+  --accent: #135fc7; /* primary strong */
+  --on-primary: #ffffff;
+  --warning: #f59e0b;
+  /* Palette for data-driven process colors */
+  --data-1: #7dd3fc;
+  --data-2: #60a5fa;
+  --data-3: #34d399;
+  --data-4: #fbbf24;
+  --data-5: #a78bfa;
+  --data-6: #f87171;
+  --data-7: #22c55e;
+  --data-8: #38bdf8;
+  --data-9: #818cf8;
+  --data-10: #f59e0b;
+  --data-11: #f472b6;
+  --data-12: #fb7185;
+  --data-13: #2dd4bf;
+  --data-14: #94a3b8;
+  --data-15: #475569;
+  --data-16: #64748b;
+  --overlay: rgba(0,0,0,0.06);
+  --tick-overlay: rgba(0,0,0,0.08);
+  --tick-rect-bg: rgba(243,244,246,0.6); /* subtle light strip */
+  --tick-label: var(--text);
+  --success: #34d399;
+  --danger: #f87171;
+  --focus-ring: 3px solid rgba(17,82,167,0.2);
+  color-scheme: light;
+  font-family: 'Atkinson Hyperlegible', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 46%, #ffffff 100%);
+  color: var(--text);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* System dark-mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #07111f;
+    --surface: #0b1220;
+    --surface-dark: #334155;
+    --surface-light: #475569;
+    --panel: rgba(15, 23, 42, 0.94);
+    --panel-bg: #0f1724;
+    --panel-border: rgba(255,255,255,0.06);
+    --panel-shadow: 0 6px 18px rgba(2,6,23,0.6);
+    --text: #e2e8f0;
+    --muted: #b6c2d3;
+    --interactive: #60a5fa;
+    --accent: #7dd3fc;
+    --on-primary: #04111f;
+    --warning: #fbbf24;
+    --overlay: rgba(255,255,255,0.06);
+    --input-bg: #071820;
+    --input-border: rgba(255,255,255,0.06);
+    --gantt-bg: linear-gradient(180deg, rgba(2, 6, 23, 0.46), rgba(15, 23, 42, 0.66));
+    --tick-overlay: rgba(125, 211, 252, 0.24);
+    --tick-rect-bg: rgba(2,6,23,0.85);
+    --tick-label: #ffffff;
+    --focus-ring: 3px solid #60a5fa66;
+    color-scheme: dark;
+    background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 32%), radial-gradient(circle at top right, rgba(52, 211, 153, 0.12), transparent 28%), linear-gradient(180deg, var(--bg) 0%, var(--surface) 46%, #050913 100%);
+  }
+}
+
+/* Theme toggle styling */
+
+/* Also support programmatic theme switching via `html[data-theme]`. This mirrors the
+   system dark-mode token overrides so `setAttribute('data-theme','dark')` takes effect. */
+html[data-theme="dark"] {
+  --bg: #07111f;
+  --surface: #0b1220;
+  --surface-dark: #334155;
+  --surface-light: #475569;
+  --panel: rgba(15, 23, 42, 0.94);
+  --panel-bg: #0f1724;
+  --panel-border: rgba(255,255,255,0.06);
+  --panel-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  --text: #e2e8f0;
+  --muted: #b6c2d3;
+  --interactive: #60a5fa;
+  --accent: #7dd3fc;
+  --on-primary: #04111f;
+  --warning: #fbbf24;
+  --overlay: rgba(255,255,255,0.06);
+  --input-bg: #071820;
+  --input-border: rgba(255,255,255,0.06);
+  --gantt-bg: linear-gradient(180deg, rgba(2, 6, 23, 0.46), rgba(15, 23, 42, 0.66));
+  --tick-overlay: rgba(125, 211, 252, 0.24);
+  --tick-rect-bg: rgba(2,6,23,0.85);
+  --tick-label: #ffffff;
+  --focus-ring: 3px solid #60a5fa66;
+  color-scheme: dark;
+  background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 32%), radial-gradient(circle at top right, rgba(52, 211, 153, 0.12), transparent 28%), linear-gradient(180deg, var(--bg) 0%, var(--surface) 46%, #050913 100%);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 10px;
+}
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.theme-toggle .label {
+  font-size: 0.85rem;
+}
+
+/* Dark-mode: make compact view-toggle readable */
+html[data-theme="dark"] .view-toggle.view-toggle--compact {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  box-shadow: var(--panel-shadow);
+}
+html[data-theme="dark"] .view-toggle.view-toggle--compact button {
+  background: transparent;
+  color: var(--text);
+  border: none;
+}
+
+/* Ensure buttons are visible and use theme tokens in dark mode */
+html[data-theme="dark"] .primary-button {
+  background: linear-gradient(135deg, var(--accent), var(--interactive));
+  color: #04111f; /* dark text for contrast on light gradient */
+  border: none;
+}
+
+html[data-theme="dark"] .secondary-button {
+  background: rgba(255,255,255,0.02);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+}
+
+html[data-theme="dark"] .danger-button {
+  background: linear-gradient(135deg, rgba(248,113,113,0.18), rgba(248,113,113,0.28));
+  color: var(--danger);
+}
+
+/* Make the active toggle button in the compact view clearly primary */
+html[data-theme="dark"] .view-toggle.view-toggle--compact .secondary-button.primary-button,
+html[data-theme="dark"] .view-toggle.view-toggle--compact .primary-button.secondary-button {
+  background: linear-gradient(135deg, var(--accent), var(--interactive));
+  color: var(--on-primary);
+  border: none;
+  box-shadow: 0 6px 14px rgba(2,6,23,0.35);
+}
+
+/* Ensure the inactive toggle button remains subtle but readable */
+html[data-theme="dark"] .view-toggle.view-toggle--compact .secondary-button:not(.primary-button) {
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Use token for small text in status cards so dark-mode picks appropriate color */
+html[data-theme="dark"] .status-card small,
+html[data-theme="dark"] .metric-panel small,
+html[data-theme="dark"] .compare-card small,
+html[data-theme="dark"] .event-item p,
+html[data-theme="dark"] .modal-help p,
+html[data-theme="dark"] .warning-banner {
+  color: var(--muted);
+}
+
+/* Visually-hidden helper for accessible summaries */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Forced-colors / high-contrast support */
+@media (forced-colors: active) {
+  :root {
+    --bg: Window;
+    --surface: WindowFrame;
+    --text: WindowText;
+    --muted: GrayText;
+    --interactive: Highlight;
+  }
+  .primary-button,
+  .secondary-button,
+  .danger-button {
+    forced-color-adjust: none;
+    background: Window;
+    color: WindowText;
+    border-color: Highlight;
+  }
 }
 
 * {
@@ -46,10 +355,10 @@ button:disabled {
 input,
 select {
   width: 100%;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid var(--input-border, rgba(148, 163, 184, 0.2));
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.86);
-  color: #f8fafc;
+  background: var(--input-bg, #fff);
+  color: var(--text);
   padding: 0.75rem 0.85rem;
 }
 
@@ -59,16 +368,16 @@ select {
 }
 
 .panel {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(7, 11, 20, 0.94));
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.35);
-  backdrop-filter: blur(16px);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: none;
   border-radius: 24px;
 }
 
 .soft-panel {
   border-radius: 20px;
-  background: rgba(15, 23, 42, 0.75);
+  background: var(--panel-bg);
 }
 
 .topbar {
@@ -90,15 +399,15 @@ select {
   gap: 0.2rem;
 }
 
-.topbar-brand strong {
+topbar-brand strong {
   font-size: 1rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #7dd3fc;
+  color: var(--accent);
 }
 
 .topbar-brand span {
-  color: #cbd5e1;
+  color: var(--muted);
   font-size: 0.92rem;
 }
 
@@ -107,7 +416,7 @@ select {
   font-size: 0.76rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #7dd3fc;
+  color: var(--accent);
 }
 
 .topbar h1,
@@ -132,20 +441,20 @@ select {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #38bdf8, #60a5fa);
-  color: #04111f;
+  background: linear-gradient(135deg, var(--accent), var(--interactive));
+  color: var(--on-primary);
   font-weight: 700;
 }
 
 .secondary-button {
-  background: rgba(148, 163, 184, 0.12);
-  color: #e2e8f0;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: var(--secondary-bg);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
 }
 
 .danger-button {
   background: rgba(248, 113, 113, 0.18);
-  color: #fecaca;
+  color: var(--danger);
 }
 
 .primary-button:hover,
@@ -187,8 +496,8 @@ select {
 .compare-card,
 .event-item {
   border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
 }
 
 .status-card {
@@ -234,18 +543,33 @@ select {
   box-shadow: 0 14px 28px rgba(2, 6, 23, 0.28);
 }
 
+.sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.6rem;
+  color: var(--muted);
+  opacity: 0.7;
+  transition: transform 180ms ease, opacity 180ms ease, color 180ms ease;
+}
+.sync-indicator.sync-active {
+  color: var(--accent);
+  opacity: 1;
+  transform: scale(1.06) rotate(8deg);
+}
+
 .status-label {
   display: block;
   margin-bottom: 0.5rem;
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--muted);
 }
 
 .status-label-edit {
   margin-left: 0.35rem;
-  color: #7dd3fc;
+  color: var(--accent);
   font-size: 0.82rem;
   vertical-align: baseline;
 }
@@ -255,7 +579,7 @@ select {
 .compare-card strong {
   display: block;
   font-size: 1.08rem;
-  color: #f8fafc;
+  color: var(--text);
 }
 
 .status-card small,
@@ -332,13 +656,13 @@ select {
 }
 
 .run-separator {
-  color: #7dd3fc;
+  color: var(--accent);
   opacity: 0.85;
   font-weight: 700;
 }
 
 .run-step {
-  color: #7dd3fc;
+  color: var(--accent);
   background: transparent;
   padding: 0;
   border-radius: 0;
@@ -348,12 +672,12 @@ select {
 
 .run-step:hover,
 .run-step:focus-visible {
-  color: #f8fafc;
+  color: var(--text);
 }
 
 .run-step.active {
-  color: #f8fafc;
-  border-bottom-color: #f8fafc;
+  color: var(--text);
+  border-bottom-color: var(--text);
 }
 
 .run-navigation-row .primary-button {
@@ -368,7 +692,7 @@ select {
   overflow-y: hidden;
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.14);
-  background: linear-gradient(180deg, rgba(2, 6, 23, 0.46), rgba(15, 23, 42, 0.66));
+  background: var(--gantt-bg);
   padding: 0.4rem 0.45rem 0.55rem;
   scrollbar-width: thin;
   scrollbar-color: rgba(125, 211, 252, 0.28) transparent;
@@ -392,15 +716,24 @@ select {
 }
 
 .gantt-label,
-.tick-mark text,
 .empty-gantt {
-  fill: #e2e8f0;
-  color: #e2e8f0;
+  fill: var(--text);
+  color: var(--text);
   font-size: 12px;
 }
 
+.tick-mark text {
+  fill: var(--tick-label);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gantt-svg .tick-layer rect {
+  fill: var(--tick-rect-bg);
+}
+
 .tick-mark line {
-  stroke: rgba(148, 163, 184, 0.18);
+  stroke: var(--tick-overlay);
   stroke-width: 1;
 }
 
@@ -494,7 +827,7 @@ select {
 
 .form-grid span {
   font-size: 0.84rem;
-  color: #cbd5e1;
+  color: var(--text);
 }
 
 .process-editor {
@@ -517,7 +850,7 @@ select {
 }
 
 .process-head {
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;

@@ -87,7 +87,7 @@ function normalizeProcessInput(
     color:
       typeof process?.color === "string" && process.color.trim()
         ? process.color
-        : "#60a5fa",
+        : 'var(--data-2)',
     group:
       typeof process?.group === "string" && process.group.trim()
         ? process.group

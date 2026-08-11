@@ -14,7 +14,7 @@
       :data-id="item.id"
       :style="cardInlineStyle(i)"
     >
-      <div class="card-inner" :style="{ background: item.color || '#334155' }">
+      <div class="card-inner" :style="{ background: item.color || 'var(--surface-dark)' }">
         <div class="card-title">{{ item.title }}</div>
         <div class="card-sub">{{ item.subtitle }}</div>
       </div>
@@ -290,7 +290,7 @@ watch(
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  color: #fbfdff;
+  color: var(--text);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;

@@ -1,4 +1,5 @@
 <template>
+  <p :id="summaryId" class="visually-hidden">{{ summaryText }}</p>
   <svg
     :viewBox="resolvedViewBox"
     :width="svgWidth"
@@ -7,14 +8,18 @@
     preserveAspectRatio="none"
     class="gantt-svg"
     role="img"
-    aria-label="Gantt-Diagramm"
+    :aria-labelledby="`${titleId} ${descId}`"
+    :aria-describedby="summaryId"
   >
     <defs>
       <linearGradient id="idleGradient" x1="0" x2="1" y1="0" y2="0">
-        <stop offset="0%" stop-color="#334155" />
-        <stop offset="100%" stop-color="#475569" />
+        <stop offset="0%" stop-color="var(--surface-dark)" />
+        <stop offset="100%" stop-color="var(--surface-light)" />
       </linearGradient>
     </defs>
+
+    <title :id="titleId">Gantt chart</title>
+    <desc :id="descId">Timeline showing process execution segments and tick marks.</desc>
 
     <g v-if="segments && segments.length">
       <g v-if="isMlfqLayout">
@@ -23,17 +28,18 @@
           :key="`guide-${level}`"
           :x1="offsetX"
           :x2="offsetX + 2000"
-          :y1="laneTop + level * laneStride - 9"
-          :y2="laneTop + level * laneStride - 9"
-          class="level-guide"
+          :y1="getMlfqGuideY(level)"
+          :y2="getMlfqGuideY(level)"
+          class="level-guide level-guide--mlfq"
           aria-hidden="true"
         />
         <text
           v-for="level in mlfqLevelCount"
           :key="`label-${level}`"
           :x="22"
-          :y="laneTop + (level - 1) * laneStride + 11"
+          :y="getMlfqLevelLabelY(level - 1)"
           class="level-label"
+          dominant-baseline="middle"
         >
           {{ levelLabel(level - 1) }}
         </text>
@@ -84,11 +90,17 @@
               :rx="7"
               :fill="segment.idle ? 'url(#idleGradient)' : segment.color"
               :opacity="segmentOpacity(segment)"
-              :stroke="segment.idle ? '#94a3b8' : 'rgba(255,255,255,0.2)'"
+              :stroke="segment.idle ? 'var(--muted)' : 'rgba(255,255,255,0.2)'"
               style="cursor: pointer"
+              tabindex="0"
+              role="button"
+              @focus="handleEnter(segment, $event)"
+              @blur="handleLeave"
               @pointerenter.prevent="handleEnter(segment, $event)"
               @pointerleave.prevent="handleLeave"
               @click.prevent="handleClick(segment)"
+              @keydown.enter.prevent="handleClick(segment)"
+              @keydown.space.prevent="handleClick(segment)"
             />
 
             <rect
@@ -100,11 +112,17 @@
               :rx="7"
               :fill="segment.idle ? 'url(#idleGradient)' : segment.color"
               :opacity="Math.max(segmentOpacity(segment) - 0.16, 0.42)"
-              :stroke="segment.idle ? '#94a3b8' : 'rgba(255,255,255,0.2)'"
+              :stroke="segment.idle ? 'var(--muted)' : 'rgba(255,255,255,0.2)'"
               style="cursor: pointer"
+              tabindex="0"
+              role="button"
+              @focus="handleEnter(segment, $event)"
+              @blur="handleLeave"
               @pointerenter.prevent="handleEnter(segment, $event)"
               @pointerleave.prevent="handleLeave"
               @click.prevent="handleClick(segment)"
+              @keydown.enter.prevent="handleClick(segment)"
+              @keydown.space.prevent="handleClick(segment)"
             />
           </template>
 
@@ -118,11 +136,17 @@
             :rx="7"
             :fill="segment.idle ? 'url(#idleGradient)' : segment.color"
             :opacity="segmentOpacity(segment)"
-            :stroke="segment.idle ? '#94a3b8' : 'rgba(255,255,255,0.2)'"
+            :stroke="segment.idle ? 'var(--muted)' : 'rgba(255,255,255,0.2)'"
             style="cursor: pointer"
+            tabindex="0"
+            role="button"
+            @focus="handleEnter(segment, $event)"
+            @blur="handleLeave"
             @pointerenter.prevent="handleEnter(segment, $event)"
             @pointerleave.prevent="handleLeave"
             @click.prevent="handleClick(segment)"
+            @keydown.enter.prevent="handleClick(segment)"
+            @keydown.space.prevent="handleClick(segment)"
           />
 
           <text
@@ -195,21 +219,21 @@
     <g class="tick-layer" aria-hidden="true">
       <rect
         :x="0"
-        :y="Math.max(18, renderChartHeight - 54)"
+        :y="Math.max(18, renderChartHeight - footerSpace)"
         :width="svgWidth"
         :height="32"
-        fill="rgba(2, 6, 23, 0.85)"
+        fill="var(--tick-rect-bg)"
       />
       <g v-for="tick in safeTickMarks" :key="tick" class="tick-mark">
         <line
           :x1="tick * cellWidth + offsetX"
           y1="16"
           :x2="tick * cellWidth + offsetX"
-          :y2="Math.max(44, renderChartHeight - 28)"
+          :y2="Math.max(44, renderChartHeight - footerSpace + 20)"
         />
         <text
           :x="tick * cellWidth + offsetX"
-          :y="Math.max(24, renderChartHeight - 40)"
+          :y="Math.max(24, renderChartHeight - footerSpace + 8)"
           text-anchor="middle"
           dominant-baseline="hanging"
         >
@@ -250,6 +274,18 @@ const emit = defineEmits<{
 }>();
 
 const offsetX = props.offsetX ?? 80;
+const uid = Math.random().toString(36).slice(2, 9);
+const titleId = `gantt-title-${uid}`;
+const descId = `gantt-desc-${uid}`;
+const summaryId = `gantt-summary-${uid}`;
+const summaryText = computed(() => {
+  if (!props.segments || props.segments.length === 0) return "Noch keine Segmente vorhanden.";
+  const starts = props.segments.map((s) => s.start ?? 0);
+  const ends = props.segments.map((s) => s.end ?? 0);
+  const min = Math.min(...starts);
+  const max = Math.max(...ends);
+  return `${props.segments.length} Segment(e), Zeitbereich ${min}–${max}.`;
+});
 const svgWidth = computed(() => {
   const width = Number.parseFloat(props.viewBox.split(/\s+/)[2] ?? "0");
   return Number.isFinite(width) && width > 0 ? width : 1200;
@@ -275,6 +311,12 @@ const minLaneCountForHeight = 8;
 const isMlfqLayout = computed(() => props.algorithm === "mlfq");
 const mlfqLevelCount = computed(() => Math.max(2, props.queueLevels ?? 3));
 const laneStride = props.segmentHeight + laneGap;
+const footerSpace = 64;
+const getMlfqRowTop = (level: number): number => laneTop + level * laneStride;
+const getMlfqGuideY = (level: number): number =>
+  getMlfqRowTop(level) - laneGap / 2;
+const getMlfqLevelLabelY = (level: number): number =>
+  getMlfqRowTop(level) + props.segmentHeight / 2;
 const visibleProcessCount = computed(() => {
   const ids = new Set<string>();
   for (const segment of props.segments) {
@@ -290,7 +332,8 @@ const renderChartHeight = computed(() => {
     minLaneCountForHeight,
     isMlfqLayout.value ? mlfqLevelCount.value : visibleProcessCount.value,
   );
-  const neededHeight = laneTop + (laneCount - 1) * laneStride + props.segmentHeight + 24;
+  const neededHeight =
+    laneTop + (laneCount - 1) * laneStride + props.segmentHeight + footerSpace;
   return Math.max(baseHeight, neededHeight);
 });
 
@@ -528,7 +571,21 @@ const completedOverlayWidth = computed(() => {
 
 function hexToRgb(hex?: string) {
   if (!hex) return "70,86,105";
-  const h = hex.replace("#", "");
+  // allow CSS variable references like `var(--data-1)` by resolving them
+  if (hex.trim().startsWith("var(") && typeof window !== "undefined") {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(
+        hex.trim().slice(4, -1).trim(),
+      );
+      if (v) {
+        hex = v.trim();
+      }
+    } catch (e) {
+      // fallthrough to parse input string
+    }
+  }
+
+  const h = hex.replace("#", "").trim();
   const bigint = parseInt(
     h.length === 3
       ? h
@@ -538,6 +595,7 @@ function hexToRgb(hex?: string) {
       : h,
     16,
   );
+  if (!Number.isFinite(bigint)) return "70,86,105";
   const r = (bigint >> 16) & 255;
   const g = (bigint >> 8) & 255;
   const b = bigint & 255;
@@ -554,20 +612,25 @@ function hexToRgb(hex?: string) {
 .gantt-label,
 .tick-mark text,
 .empty-gantt {
-  fill: #f8fafc;
+  fill: var(--text);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 .tick-mark line {
-  stroke: rgba(125, 211, 252, 0.24);
+  stroke: var(--tick-overlay);
   stroke-width: 1;
 }
 .tick-mark text {
   paint-order: stroke;
-  stroke: rgba(2, 6, 23, 0.7);
-  stroke-width: 3px;
-  stroke-linejoin: round;
+}
+
+.level-guide--mlfq {
+  stroke: rgba(255, 255, 255, 0.42);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.18));
 }
 
 .completed-overlay {
@@ -612,7 +675,7 @@ function hexToRgb(hex?: string) {
 }
 
 .time-pointer {
-  stroke: #ef4444;
+  stroke: var(--danger);
   stroke-width: 2.1;
   stroke-linecap: round;
   filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.28));

@@ -58,10 +58,10 @@ const hasRuns = props.hasRuns;
 }
 .meta small {
   display: block;
-  color: #6b7280;
+  color: var(--muted);
 }
 .ranking-fallback {
-  color: #374151;
+  color: var(--surface);
 }
 .fallback-item {
   padding: 6px 0;

@@ -76,7 +76,7 @@ function formatThroughput(row: any) {
 .table th,
 .table td {
   padding: 6px 8px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
   text-align: left;
 }
 </style>

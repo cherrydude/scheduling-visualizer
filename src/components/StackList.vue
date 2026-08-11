@@ -17,7 +17,7 @@
       >
         <div
           class="color"
-          :style="{ background: item.color || '#475569' }"
+          :style="{ background: item.color || 'var(--surface-light)' }"
           aria-hidden="true"
         ></div>
         <div class="content">
@@ -63,10 +63,21 @@ const props = defineProps<{
   contextText?: string;
 }>();
 
-const max = props.maxVisible ?? 6;
-const visibleItems = computed(() =>
-  Array.isArray(props.items) ? props.items.slice(0, max) : [],
-);
+const visibleItems = computed(() => {
+  if (!Array.isArray(props.items)) {
+    return [];
+  }
+
+  if (
+    typeof props.maxVisible === "number" &&
+    Number.isFinite(props.maxVisible) &&
+    props.maxVisible >= 0
+  ) {
+    return props.items.slice(0, props.maxVisible);
+  }
+
+  return props.items;
+});
 
 function itemStatus(item: Item): ItemStatus {
   if (item.status) {
@@ -93,6 +104,16 @@ function statusLabel(item: Item): string {
 
 function hexToRgb(hex?: string) {
   if (!hex) return "70,86,105"; // fallback  #465869-ish
+  if (hex.trim().startsWith("var(") && typeof window !== "undefined") {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(
+        hex.trim().slice(4, -1).trim(),
+      );
+      if (v) hex = v.trim();
+    } catch (e) {
+      // ignore and parse as-is
+    }
+  }
   const h = hex.replace("#", "");
   const bigint = parseInt(
     h.length === 3
@@ -103,6 +124,7 @@ function hexToRgb(hex?: string) {
       : h,
     16,
   );
+  if (!Number.isFinite(bigint)) return "70,86,105";
   const r = (bigint >> 16) & 255;
   const g = (bigint >> 8) & 255;
   const b = bigint & 255;
@@ -113,7 +135,7 @@ const itemStyle = (item: Item) => {
   const isActive = props.activeId && item.id === props.activeId;
   if (!isActive) return {};
   return {
-    ["--active-color"]: item.color ?? "#475569",
+    ["--active-color"]: item.color ?? 'var(--surface-light)',
     ["--active-rgb"]: hexToRgb(item.color),
   } as Record<string, string>;
 };
@@ -199,7 +221,7 @@ function itemClasses(item: Item, index: number) {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   border: 1px solid rgba(148, 163, 184, 0.16);
-  color: #cbd5e1;
+  color: var(--muted);
   background: rgba(148, 163, 184, 0.08);
 }
 
@@ -212,7 +234,7 @@ function itemClasses(item: Item, index: number) {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   border: 1px solid rgba(125, 211, 252, 0.24);
-  color: #7dd3fc;
+  color: var(--accent);
   background: rgba(125, 211, 252, 0.08);
 }
 
@@ -228,13 +250,13 @@ function itemClasses(item: Item, index: number) {
 }
 
 .item.active .state-badge {
-  color: #0b1220;
-  background: linear-gradient(135deg, #7dd3fc, #60a5fa);
+  color: var(--on-primary);
+  background: linear-gradient(135deg, var(--accent), var(--interactive));
   border-color: rgba(125, 211, 252, 0.65);
 }
 
 .item.ready .state-badge {
-  color: #cbd5e1;
+  color: var(--muted);
 }
 
 .item.preempted {
@@ -244,7 +266,7 @@ function itemClasses(item: Item, index: number) {
 }
 
 .item.preempted .state-badge {
-  color: #fde68a;
+  color: var(--warning);
   background: rgba(251, 191, 36, 0.14);
   border-color: rgba(251, 191, 36, 0.38);
 }
@@ -253,7 +275,7 @@ function itemClasses(item: Item, index: number) {
   margin: 0.15rem 0 0;
   padding-top: 0.65rem;
   border-top: 1px solid rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
+  color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.45;
 }

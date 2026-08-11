@@ -173,7 +173,7 @@ function rowY(index: number): number {
 
 .scenario-miniature-header p {
   margin: 0.2rem 0 0;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 0.82rem;
 }
 
@@ -184,7 +184,7 @@ function rowY(index: number): number {
   min-height: 1.65rem;
   padding: 0 0.55rem;
   border-radius: 999px;
-  color: #e2e8f0;
+  color: var(--text);
   background: rgba(59, 130, 246, 0.14);
   border: 1px solid rgba(59, 130, 246, 0.2);
   font-size: 0.72rem;
@@ -201,18 +201,18 @@ function rowY(index: number): number {
 .scenario-miniature-label,
 .scenario-miniature-meta,
 .scenario-miniature-tick-label {
-  fill: #e2e8f0;
+  fill: var(--text);
   font-size: 11px;
 }
 
 .scenario-miniature-label {
-  fill: #cbd5e1;
+  fill: var(--muted);
   font-weight: 600;
 }
 
 .scenario-miniature-meta,
 .scenario-miniature-tick-label {
-  fill: #94a3b8;
+  fill: var(--muted);
   font-size: 10px;
 }
 

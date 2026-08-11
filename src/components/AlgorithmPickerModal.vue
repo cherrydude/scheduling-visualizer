@@ -1,11 +1,12 @@
 <template>
   <section v-if="modelValue" class="modal-overlay" @click.self="$emit('close')">
-    <div
-      class="modal panel algorithm-modal"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="modalTitle"
-    >
+      <div
+        ref="modalRoot"
+        class="modal panel algorithm-modal"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="modalTitle"
+      >
       <div class="section-header">
         <div>
           <h2>{{ modalTitle }}</h2>
@@ -144,6 +145,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 import type { AlgorithmType } from "@/types";
 
 const props = defineProps<{
@@ -194,6 +196,8 @@ const emit = defineEmits<{
 }>();
 
 const algorithm = ref<AlgorithmType>("roundRobin");
+const modalRoot = ref<HTMLElement | null>(null);
+useFocusTrap(modalRoot);
 const timeQuantum = ref(2);
 const snapshotInterval = ref(1);
 const queueLevels = ref(3);
@@ -336,7 +340,7 @@ watch(
 
 .subtitle {
   margin: 4px 0 0;
-  color: #94a3b8;
+  color: var(--muted);
 }
 
 .subtitle-meta {
@@ -361,12 +365,12 @@ watch(
   padding-left: 1rem;
   display: grid;
   gap: 0.4rem;
-  color: #cbd5e1;
+  color: var(--muted);
 }
 
 .algorithm-info-note {
   margin: 0;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 0.92rem;
 }
 

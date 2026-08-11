@@ -1,6 +1,6 @@
 <template>
   <section v-if="modelValue" class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal panel welcome-modal" role="dialog" aria-modal="true" aria-label="Scheduling Visualizer">
+    <div ref="modalRoot" class="modal panel welcome-modal" role="dialog" aria-modal="true" aria-label="Scheduling Visualizer">
       <div class="welcome-copy">
         <p class="eyebrow">Scheduling Visualizer</p>
         <h2>Scheduling Visualizer</h2>
@@ -20,6 +20,12 @@ defineProps<{ modelValue: boolean }>();
 defineEmits<{
   (e: 'close'): void;
 }>();
+
+import { ref } from 'vue';
+import { useFocusTrap } from '@/composables/useFocusTrap';
+
+const modalRoot = ref<HTMLElement | null>(null);
+useFocusTrap(modalRoot);
 </script>
 
 <style scoped>
@@ -39,6 +45,6 @@ defineEmits<{
 
 .welcome-copy p {
   margin: 8px 0 0;
-  color: #cbd5e1;
+  color: var(--muted);
 }
 </style>

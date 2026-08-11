@@ -24,7 +24,7 @@ const props = defineProps<{
 .tooltip {
   position: fixed;
   background: rgba(15, 23, 42, 0.95);
-  color: #e6eef8;
+  color: var(--text);
   padding: 8px 10px;
   border-radius: 6px;
   pointer-events: none;
@@ -34,7 +34,7 @@ const props = defineProps<{
   z-index: 1200;
 }
 .tooltip .sub {
-  color: #cbd5e1;
+  color: var(--muted);
   font-size: 12px;
   margin-top: 4px;
 }

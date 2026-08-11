@@ -40,7 +40,7 @@ function onInput(e: Event) {
 .scrubber-info {
   min-width: 72px;
   text-align: right;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 13px;
 }
 </style>
