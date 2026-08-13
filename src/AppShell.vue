@@ -373,18 +373,23 @@
             </button>
           </div>
 
-          <div v-if="activeScenario" class="gantt-wrap" ref="ganttWrapRef">
+          <div
+            v-if="activeScenario"
+            class="gantt-wrap"
+            ref="ganttWrapRef"
+          >
             <GanttWithGsap
               v-if="activeView === 'focus'"
               :segments="focusSegments"
               :transitionFromSegments="rawPreviewSegments"
               :tickMarks="focusTickMarks"
-              :cellWidth="focusCellWidthOverride ?? focusCellWidth"
+              :cellWidth="focusCellWidth"
               :chartHeight="chartHeight"
               :segmentHeight="segmentHeight"
               :viewBox="focusViewBox"
               :activeId="focusActiveId"
               :currentTime="focusCurrentTime"
+              :stretchWidth="true"
               v-model:loop="loopPlayback"
               :tickSize="activeScenario.tickSize"
               :controlsEnabled="focusControlsEnabled"
@@ -844,7 +849,6 @@ const focusCellWidthOverride = ref<number | null>(null);
 const currentRoute = ref<RouteName>("home");
 const loopPlayback = ref(false);
 let focusViewportObserver: ResizeObserver | null = null;
-const focusViewBoxRightBuffer = 220;
 
 const activeView = ref<string>(
   typeof window !== "undefined"
@@ -1075,14 +1079,26 @@ const visibleSegments = computed(() => runState.value?.segments ?? []);
 const timelineEnd = computed(() =>
   visibleSegments.value.reduce((max, segment) => Math.max(max, segment.end), 0),
 );
-const focusTimelineLength = computed(() => {
-  const previewMax = rawPreviewSegments.value.reduce(
-    (max, segment) => Math.max(max, segment.end),
+const scenarioTimelineLength = computed(() => {
+  const processes = activeScenario.value?.processes ?? [];
+
+  const totalBurst = processes.reduce(
+    (sum, process) => sum + Math.max(1, Math.floor(process.burstTime)),
     0,
   );
-  const simulatedMax = runState.value?.totalTime ?? null;
-  const base = simulatedMax !== null ? simulatedMax : previewMax;
-  return Math.max(Math.max(8, Math.floor(base)), 8);
+
+  const maxArrivalEnd = processes.reduce(
+    (max, process) =>
+      Math.max(max, Math.floor(process.arrivalTime) + Math.max(1, Math.floor(process.burstTime))),
+    0,
+  );
+
+  return Math.max(8, totalBurst, maxArrivalEnd);
+});
+const focusTimelineLength = computed(() => {
+  const simulatedMax = runState.value?.totalTime ?? 0;
+
+  return Math.max(scenarioTimelineLength.value, Math.floor(simulatedMax));
 });
 const rawPreviewSegments = computed<TimelineSegment[]>(() => {
   const scenario = activeScenario.value;
@@ -1111,8 +1127,8 @@ const focusSegments = computed(() =>
     : rawPreviewSegments.value,
 );
 
-const focusCellWidth = computed(() => {
-  const layout = createTimelineLayout({
+const focusLayout = computed(() =>
+  createTimelineLayout({
     timelineLength: focusTimelineLength.value,
     containerWidth: focusViewportWidth.value,
     padding: 140,
@@ -1120,9 +1136,12 @@ const focusCellWidth = computed(() => {
     minCellWidth: 10,
     maxCellWidth: 44,
     lockedCellWidth: 24,
-  });
+    forceFit: true,
+  }),
+);
 
-  return layout.cellWidth;
+const focusCellWidth = computed(() => {
+  return focusLayout.value.cellWidth;
 });
 
 const focusTickMarks = computed(() => {
@@ -1700,9 +1719,9 @@ const metricCards = computed<MetricCard[]>(() => {
       help: "Mittelwert",
     },
     {
-      label: "CPU-Auslastung",
-      value: formatPercent(metrics?.cpuUtilization ?? 0),
-      help: "Busy / Total",
+      label: "Anzahl Preemptionen",
+      value: String(metrics?.preemptionCount ?? 0),
+      help: "preempt + quantumExpired",
     },
     {
       label: "Kontextwechsel",
@@ -1781,30 +1800,7 @@ const recentEvents = computed<ScheduleEvent[]>(() => {
   );
 });
 const focusViewBox = computed(() => {
-  // if we have an override cellWidth (restoring previous zoom), use it to compute viewBox
-  if (focusCellWidthOverride.value && focusCellWidthOverride.value > 0) {
-    const w = Math.max(
-      focusTimelineLength.value * focusCellWidthOverride.value + focusViewBoxRightBuffer,
-      focusViewportWidth.value || 860,
-    );
-    return `0 0 ${w} ${chartHeight.value}`;
-  }
-
-  const layout = createTimelineLayout({
-    timelineLength: focusTimelineLength.value,
-    containerWidth: focusViewportWidth.value,
-    padding: 140,
-    comfortTicks: 28,
-    minCellWidth: 10,
-    maxCellWidth: 44,
-    lockedCellWidth: 24,
-  });
-
-  return `0 0 ${Math.max(
-    focusTimelineLength.value * layout.cellWidth + focusViewBoxRightBuffer,
-    layout.svgWidth,
-    focusViewportWidth.value || 860,
-  )} ${chartHeight.value}`;
+  return `0 0 ${Math.max(focusLayout.value.svgWidth, focusViewportWidth.value || 860)} ${chartHeight.value}`;
 });
 
 const syncActive = ref(false);

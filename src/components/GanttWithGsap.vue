@@ -77,6 +77,7 @@
       :queueLevels="props.queueLevels"
       :preemptedProcessId="props.preemptedProcessId"
       :preemptTime="props.preemptTime"
+      :stretchWidth="props.stretchWidth"
       @segmentEnter="onSegmentEnter"
       @segmentLeave="onSegmentLeave"
       @segmentClick="onSegmentClick"
@@ -121,6 +122,7 @@ const props = defineProps<{
   queueLevels?: number;
   preemptedProcessId?: string | null;
   preemptTime?: number | null;
+  stretchWidth?: boolean;
 }>();
 
 const emit = defineEmits([
@@ -920,30 +922,21 @@ onMounted(() => {
       ".gantt-svg rect:not(.preempt-pulse):not(.completed-overlay):not(.active-glow)";
 
     tl.current = gsap.timeline({ paused: true });
-    if (introAnimation.value) {
-      // entry animation (stagger)
-      const barTargets = rootEl.querySelectorAll(barSelector);
-      if (barTargets.length) {
-        tl.current.from(
-          barTargets,
-          {
-            x: -12,
-            autoAlpha: 0,
-            duration: 0.45,
-            stagger: 0.04,
-            ease: "power2.out",
-          },
-          0,
-        );
-      }
-    } else {
-      const barTargets = rootEl.querySelectorAll(barSelector);
-      if (barTargets.length) {
-        gsap.set(barTargets, {
-          clearProps: "all",
-          autoAlpha: 1,
-          x: 0,
-        });
+    const barTargets = rootEl.querySelectorAll(barSelector);
+    if (barTargets.length) {
+      gsap.set(barTargets, {
+        clearProps: "transform,opacity,visibility,filter",
+        autoAlpha: 1,
+        x: 0,
+        y: 0,
+        scale: 1,
+      });
+
+      if (introAnimation.value) {
+        tl.current.to(barTargets, {
+          opacity: 1,
+          duration: 0,
+        }, 0);
       }
     }
 

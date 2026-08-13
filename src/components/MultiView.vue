@@ -108,10 +108,36 @@ const maxTime = computed(() => Math.max(8, ...(runStates.value.map((r) => r.tota
 
 const multiViewViewport = computed(() => Math.floor(multiViewRef.value?.clientWidth ?? 0));
 
+const shouldStackByTime = computed(() => maxTime.value >= 28);
+
+const columnsCount = computed(() => {
+  if (shouldStackByTime.value) return 1;
+
+  const vp = Number(multiViewViewport.value ?? 0);
+  if (vp > 0) {
+    const cols = Math.max(1, Math.floor(vp / desiredMinPanelWidth));
+    return Math.min(cols, Math.max(1, runCards.value.length));
+  }
+
+  return Math.max(1, runCards.value.length);
+});
+
+const multiViewPanelWidth = computed(() => {
+  const vp = Number(multiViewViewport.value ?? 0);
+  const cols = Math.max(1, columnsCount.value);
+  const totalGap = Math.max(0, cols - 1) * 14;
+
+  if (vp <= 0) {
+    return 0;
+  }
+
+  return Math.max(320, Math.floor((vp - totalGap) / cols));
+});
+
 const multiViewLayout = computed(() =>
   createTimelineLayout({
     timelineLength: maxTime.value,
-    containerWidth: multiViewViewport.value,
+    containerWidth: multiViewPanelWidth.value,
     padding: 140,
     comfortTicks: 28,
     minCellWidth: 10,
@@ -156,7 +182,7 @@ const stackRuns = computed(() => {
   const vp = Number(multiViewViewport.value ?? 0);
 
   // Long timelines should switch to a single-column layout early.
-  if (mt >= 28) {
+  if (shouldStackByTime.value) {
     return true;
   }
 
@@ -176,15 +202,6 @@ const stackRuns = computed(() => {
 
 // Compute how many columns should be shown per row so runs wrap to new rows
 const desiredMinPanelWidth = 360; // desired minimum width per panel before wrapping
-const columnsCount = computed(() => {
-  if (stackRuns.value) return 1;
-  const vp = Number(multiViewViewport.value ?? 0);
-  if (vp > 0) {
-    const cols = Math.max(1, Math.floor(vp / desiredMinPanelWidth));
-    return Math.min(2, cols, Math.max(1, runCards.value.length));
-  }
-  return Math.min(2, Math.max(1, runCards.value.length));
-});
 
 const gridTemplateColumns = computed(() => `repeat(${columnsCount.value}, 1fr)`);
 
@@ -279,6 +296,7 @@ onUnmounted(() => {
   border: 1px solid var(--panel-border);
   box-shadow: var(--panel-shadow);
   color: var(--text);
+  min-width: 0;
 }
 .cell-header {
   margin-bottom: 0.15rem;
@@ -321,6 +339,7 @@ onUnmounted(() => {
 }
 .cell :deep(.mini-gantt) {
   padding-top: 0.15rem;
+  min-width: 0;
 }
 .time-label { color: var(--muted); }
 </style>

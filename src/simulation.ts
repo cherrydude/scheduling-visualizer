@@ -134,6 +134,7 @@ function createMetrics(
   currentTime: number,
   busyTicks: number,
   contextSwitches: number,
+  events: ScheduleEvent[],
 ): SimulationMetrics {
   const completedProcesses = processes.filter(
     (process) => process.finishedAt !== null,
@@ -160,6 +161,9 @@ function createMetrics(
 
   const cpuUtilization = currentTime > 0 ? busyTicks / currentTime : 0;
   const idleShare = 1 - cpuUtilization;
+  const preemptionCount = events.filter(
+    (event) => event.type === "preempt" || event.type === "quantumExpired",
+  ).length;
 
   const fairnessValues = completedProcesses
     .map((process) => process.executedTime || process.burstTime)
@@ -180,6 +184,7 @@ function createMetrics(
     cpuUtilization,
     idleShare,
     contextSwitches,
+    preemptionCount,
     fairnessIndex,
     completedCount: completedProcesses.length,
   };
@@ -198,6 +203,7 @@ function createSnapshot(
   processes: ProcessRuntime[],
   busyTicks: number,
   contextSwitches: number,
+  events: ScheduleEvent[],
   algorithm: AlgorithmType,
   mlfqBaseQuantum: number,
   mlfqMode: "classic" | "simplified",
@@ -233,7 +239,7 @@ function createSnapshot(
     currentQueueLevel: currentProcess?.queueLevel ?? null,
     remainingQuantum,
     lastEvent,
-    metrics: createMetrics(processes, time, busyTicks, contextSwitches),
+    metrics: createMetrics(processes, time, busyTicks, contextSwitches, events),
   };
 }
 
@@ -638,6 +644,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         processes,
         busyTicks,
         contextSwitches,
+        events,
         simulationScenario.algorithm,
         mlfqBaseQuantum,
         mlfqMode,
@@ -987,6 +994,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     time,
     busyTicks,
     contextSwitches,
+    events,
   );
 
   return {

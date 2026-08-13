@@ -13,6 +13,7 @@ export function createTimelineLayout(params: {
   minCellWidth?: number;
   maxCellWidth?: number;
   lockedCellWidth?: number;
+  forceFit?: boolean;
 }): TimelineLayout {
   const {
     timelineLength,
@@ -22,12 +23,23 @@ export function createTimelineLayout(params: {
     minCellWidth = 10,
     maxCellWidth = 44,
     lockedCellWidth = 24,
+    forceFit = false,
   } = params;
 
   const safeLength = Math.max(1, Math.floor(timelineLength));
   const safeWidth = Math.max(containerWidth, 320);
   const usableWidth = Math.max(safeWidth - padding, 320);
   const rawCellWidth = usableWidth / safeLength;
+
+  if (forceFit) {
+    return {
+      cellWidth: Math.max(1, Math.min(maxCellWidth, rawCellWidth)),
+      svgWidth: safeWidth,
+      shouldScroll: false,
+      mode: "fit",
+    };
+  }
+
   const idealCellWidth = Math.max(
     minCellWidth,
     Math.min(maxCellWidth, rawCellWidth),

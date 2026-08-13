@@ -25,7 +25,7 @@
               class="secondary-button compact"
               type="button"
               title="Neues Szenario anlegen"
-              @click="$emit('create')"
+              @click="handleCreate"
             >
               +
             </button>
@@ -39,7 +39,7 @@
               class="scenario-item"
               :class="{ active: scenario.id === activeScenarioId }"
               title="Dieses Szenario laden"
-              @click="$emit('select', scenario.id)"
+              @click="handleSelect(scenario.id)"
             >
               <span class="scenario-title">{{ scenario.title }}</span>
               <span class="scenario-meta">{{
@@ -55,7 +55,7 @@
               type="button"
               class="link-item"
               title="Szenario duplizieren"
-              @click="$emit('duplicate', activeScenarioId)"
+              @click="handleDuplicate(activeScenarioId)"
             >
               Duplizieren
             </button>
@@ -63,7 +63,7 @@
               type="button"
               class="link-item"
               title="Szenario umbenennen"
-              @click="$emit('rename', activeScenarioId)"
+              @click="handleRename(activeScenarioId)"
             >
               Umbenennen
             </button>
@@ -71,7 +71,7 @@
               type="button"
               class="link-item danger"
               title="Szenario löschen"
-              @click="$emit('delete', activeScenarioId)"
+              @click="handleDelete(activeScenarioId)"
             >
               Löschen
             </button>
@@ -85,10 +85,10 @@
             <strong>Information</strong>
           </div>
 
-          <button type="button" class="link-item" @click="$emit('about')">
+          <button type="button" class="link-item" @click="handleAbout">
             Über mich
           </button>
-          <button type="button" class="link-item" title="Hilfe und Wissen öffnen" @click="$emit('knowledge')">
+          <button type="button" class="link-item" title="Hilfe und Wissen öffnen" @click="handleKnowledge">
             Wissen
           </button>
         </div>
@@ -108,7 +108,7 @@ defineProps<{
   activeScenarioId: string | null;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: "create"): void;
   (e: "select", id: string): void;
   (e: "duplicate", id: string): void;
@@ -138,7 +138,49 @@ function toggleMenu() {
   }
 }
 
-function closeMenu(ev: MouseEvent) {
+function closeMenu() {
+  open.value = false;
+}
+
+function handleCreate() {
+  closeMenu();
+  emit("create");
+}
+
+function handleSelect(id: string) {
+  closeMenu();
+  emit("select", id);
+}
+
+function handleDuplicate(id: string | null) {
+  if (!id) return;
+  closeMenu();
+  emit("duplicate", id);
+}
+
+function handleRename(id: string | null) {
+  if (!id) return;
+  closeMenu();
+  emit("rename", id);
+}
+
+function handleDelete(id: string | null) {
+  if (!id) return;
+  closeMenu();
+  emit("delete", id);
+}
+
+function handleAbout() {
+  closeMenu();
+  emit("about");
+}
+
+function handleKnowledge() {
+  closeMenu();
+  emit("knowledge");
+}
+
+function closeOnDocumentClick(ev: MouseEvent) {
   const target = ev.target as Node;
   const clickedOutsideMenu = menuRef.value && !menuRef.value.contains(target);
   const clickedOutsidePanel =
@@ -152,11 +194,11 @@ function closeMenu(ev: MouseEvent) {
 }
 
 onMounted(() => {
-  document.addEventListener("click", closeMenu);
+  document.addEventListener("click", closeOnDocumentClick);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener("click", closeMenu);
+  document.removeEventListener("click", closeOnDocumentClick);
 });
 </script>
 

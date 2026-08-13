@@ -97,6 +97,7 @@ export interface SimulationMetrics {
   cpuUtilization: number;
   idleShare: number;
   contextSwitches: number;
+  preemptionCount: number;
   fairnessIndex: number | null;
   completedCount: number;
 }

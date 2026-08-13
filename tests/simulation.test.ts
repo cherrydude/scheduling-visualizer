@@ -77,6 +77,7 @@ describe("simulateScenario", () => {
     const starts = result.segments.map((segment) => segment.start);
     expect(starts).toEqual([...starts].sort((left, right) => left - right));
     expect(result.finalMetrics.completedCount).toBe(2);
+    expect(result.finalMetrics.preemptionCount).toBe(1);
     expect(result.snapshots.at(-1)?.time).toBe(result.totalTime);
   });
 });

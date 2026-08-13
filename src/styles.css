@@ -659,7 +659,7 @@ topbar-brand strong {
 }
 
 .gantt-wrap {
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.14);

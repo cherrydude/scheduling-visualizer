@@ -2,9 +2,12 @@
   <p :id="summaryId" class="visually-hidden">{{ summaryText }}</p>
   <svg
     :viewBox="resolvedViewBox"
-    :width="svgWidth"
+    :width="stretchWidth ? '100%' : svgWidth"
     :height="svgHeight"
-    :style="{ width: `${svgWidth}px`, height: `${svgHeight}px` }"
+    :style="{
+      width: stretchWidth ? '100%' : `${svgWidth}px`,
+      height: `${svgHeight}px`,
+    }"
     preserveAspectRatio="none"
     class="gantt-svg"
     role="img"
@@ -260,6 +263,7 @@ const props = defineProps<{
   preemptedProcessId?: string | null;
   preemptTime?: number | null;
   labelAlignment?: "start" | "end";
+  stretchWidth?: boolean;
 }>();
 
 const emit = defineEmits<{
