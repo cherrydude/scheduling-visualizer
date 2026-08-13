@@ -27,15 +27,14 @@ export function createTimelineLayout(params: {
   const safeLength = Math.max(1, Math.floor(timelineLength));
   const safeWidth = Math.max(containerWidth, 320);
   const usableWidth = Math.max(safeWidth - padding, 320);
-  const fitTicks = Math.min(safeLength, Math.max(4, comfortTicks));
-  const rawCellWidth = usableWidth / fitTicks;
+  const rawCellWidth = usableWidth / safeLength;
   const idealCellWidth = Math.max(
     minCellWidth,
     Math.min(maxCellWidth, rawCellWidth),
   );
-  const shouldScroll = safeLength > comfortTicks;
+  const shouldScroll = safeLength * idealCellWidth > usableWidth;
   const cellWidth = shouldScroll
-    ? Math.min(idealCellWidth, lockedCellWidth)
+    ? Math.max(minCellWidth, Math.min(idealCellWidth, lockedCellWidth))
     : idealCellWidth;
   const svgWidth = Math.max(
     usableWidth,

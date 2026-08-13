@@ -232,19 +232,6 @@ html[data-theme="dark"] {
   font-size: 0.85rem;
 }
 
-/* Dark-mode: make compact view-toggle readable */
-html[data-theme="dark"] .view-toggle.view-toggle--compact {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  color: var(--text);
-  box-shadow: var(--panel-shadow);
-}
-html[data-theme="dark"] .view-toggle.view-toggle--compact button {
-  background: transparent;
-  color: var(--text);
-  border: none;
-}
-
 /* Ensure buttons are visible and use theme tokens in dark mode */
 html[data-theme="dark"] .primary-button {
   background: linear-gradient(135deg, var(--accent), var(--interactive));
@@ -261,22 +248,6 @@ html[data-theme="dark"] .secondary-button {
 html[data-theme="dark"] .danger-button {
   background: linear-gradient(135deg, rgba(248,113,113,0.18), rgba(248,113,113,0.28));
   color: var(--danger);
-}
-
-/* Make the active toggle button in the compact view clearly primary */
-html[data-theme="dark"] .view-toggle.view-toggle--compact .secondary-button.primary-button,
-html[data-theme="dark"] .view-toggle.view-toggle--compact .primary-button.secondary-button {
-  background: linear-gradient(135deg, var(--accent), var(--interactive));
-  color: var(--on-primary);
-  border: none;
-  box-shadow: 0 6px 14px rgba(2,6,23,0.35);
-}
-
-/* Ensure the inactive toggle button remains subtle but readable */
-html[data-theme="dark"] .view-toggle.view-toggle--compact .secondary-button:not(.primary-button) {
-  background: rgba(255,255,255,0.03);
-  color: var(--text);
-  border: 1px solid rgba(255,255,255,0.04);
 }
 
 /* Use token for small text in status cards so dark-mode picks appropriate color */
@@ -726,15 +697,6 @@ topbar-brand strong {
   fill: var(--tick-label);
   font-size: 12px;
   font-weight: 600;
-}
-
-.gantt-svg .tick-layer rect {
-  fill: var(--tick-rect-bg);
-}
-
-.tick-mark line {
-  stroke: var(--tick-overlay);
-  stroke-width: 1;
 }
 
 .timeline-caption {

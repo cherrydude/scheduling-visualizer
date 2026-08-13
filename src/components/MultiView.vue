@@ -40,7 +40,7 @@
         </div>
         <MiniGantt
           :segments="rs.segments"
-          :cellWidth="sharedCellWidth"
+          :cellWidth="multiViewCellWidth ?? undefined"
           :chartHeight="stackRuns ? 160 : 92"
           :segmentHeight="stackRuns ? 20 : 15"
           :currentTime="playbackTime"
@@ -58,14 +58,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onUnmounted, watch } from "vue";
+import { computed, ref, onUnmounted } from "vue";
 import MiniGantt from "./MiniGantt.vue";
 import { simulateScenario } from "@/simulation";
 import { usePlayback } from "@/composables/usePlayback";
-import { useGanttZoom } from "@/composables/useGanttZoom";
+import { createTimelineLayout } from "@/utils/timelineLayout";
 import type { AlgorithmParams, SimulationRun } from "@/types";
 import type { ScenarioRecord, ScenarioRunRecord } from "@/composables/useScenarioWorkspace";
-import { sharedCellWidth, computeSharedCellWidth } from "@/composables/useTimelineSync";
 
 const props = defineProps<{
   scenario: ScenarioRecord | null;
@@ -107,29 +106,21 @@ const runStates = computed(() => {
 
 const maxTime = computed(() => Math.max(8, ...(runStates.value.map((r) => r.totalTime ?? 8) ?? [8])));
 
-const { cellWidth: multiViewCellWidth, viewportWidth: multiViewViewport } = useGanttZoom(
-  multiViewRef,
-  maxTime,
-  {
-    baseCellWidth: 28,
-    minCellWidth: 18,
-    viewportPadding: 56,
-    minViewportWidth: 320,
-  },
+const multiViewViewport = computed(() => Math.floor(multiViewRef.value?.clientWidth ?? 0));
+
+const multiViewLayout = computed(() =>
+  createTimelineLayout({
+    timelineLength: maxTime.value,
+    containerWidth: multiViewViewport.value,
+    padding: 140,
+    comfortTicks: 28,
+    minCellWidth: 10,
+    maxCellWidth: 44,
+    lockedCellWidth: 24,
+  }),
 );
 
-// when multi view is active, update shared cell width so both views run on same basis
-watch(
-  () => [Number(multiViewCellWidth.value ?? 0), Number(multiViewViewport.value ?? 0), maxTime.value],
-  ([cw, vp, mt]) => {
-    if (cw > 0 && vp > 0) {
-      sharedCellWidth.value = cw;
-      // also compute via helper to keep svg sizing logic consistent
-      computeSharedCellWidth(mt, vp);
-    }
-  },
-  { immediate: true },
-);
+const multiViewCellWidth = computed(() => multiViewLayout.value.cellWidth);
 
 // usePlayback expects a ref with .value array -> create snapshot list for times 0..maxTime
 const snapshotsRef = computed(() => Array.from({ length: maxTime.value + 1 }, (_, i) => ({ time: i })));

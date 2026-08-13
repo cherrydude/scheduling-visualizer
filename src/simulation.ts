@@ -84,6 +84,10 @@ function normalizeScenarioInput(scenario: Scenario): Scenario {
         2,
         clampPositiveInteger(scenario.algorithmParams?.queueLevels, 3),
       ),
+      mlfqMode:
+        scenario.algorithmParams?.mlfqMode === "simplified"
+          ? "simplified"
+          : "classic",
       strictPriorityTieBreak:
         scenario.algorithmParams?.strictPriorityTieBreak ?? "fifo",
       lcfsMode: scenario.algorithmParams?.lcfsMode ?? "preemptive",
@@ -194,13 +198,38 @@ function createSnapshot(
   processes: ProcessRuntime[],
   busyTicks: number,
   contextSwitches: number,
+  algorithm: AlgorithmType,
+  mlfqBaseQuantum: number,
+  mlfqMode: "classic" | "simplified",
 ): SimulationSnapshot {
+  const isMlfq = algorithm === "mlfq";
+  const currentQuantumTotal =
+    isMlfq && currentProcess
+      ? quantumForLevel(mlfqBaseQuantum, currentProcess.queueLevel ?? 0)
+      : null;
+  const currentQuantumUsed =
+    currentQuantumTotal !== null
+      ? Math.max(0, currentQuantumTotal - Math.max(0, remainingQuantum))
+      : null;
+
   return {
     time,
     currentProcessId: currentProcess?.id ?? null,
     currentProcessName: currentProcess?.name ?? null,
     readyQueue: readyQueue.map((process) => process.name),
     readyQueueLevels: readyQueue.map((process) => process.queueLevel ?? 0),
+    readyQueueQuantums: isMlfq
+      ? readyQueue.map((process) => {
+          const level = process.queueLevel ?? 0;
+          const levelQuantum = quantumForLevel(mlfqBaseQuantum, level);
+          if (mlfqMode === "classic") {
+            return process.mlfqRemainingQuantum ?? levelQuantum;
+          }
+          return levelQuantum;
+        })
+      : undefined,
+    currentQuantumTotal,
+    currentQuantumUsed,
     currentQueueLevel: currentProcess?.queueLevel ?? null,
     remainingQuantum,
     lastEvent,
@@ -224,6 +253,7 @@ function dispatchProcess(
   events: ScheduleEvent[],
   mlfqBaseQuantum: number,
   mlfqQueueLevels: number,
+  mlfqMode: "classic" | "simplified",
   strictPriorityTieBreak:
     | "fifo"
     | "arrivalTime"
@@ -273,7 +303,11 @@ function dispatchProcess(
   nextCurrent.status = "running";
   const nextQuantum =
     algorithm === "mlfq"
-      ? quantumForLevel(mlfqBaseQuantum, nextCurrent.queueLevel ?? 0)
+      ? mlfqMode === "classic"
+        ? nextCurrent.mlfqRemainingQuantum && nextCurrent.mlfqRemainingQuantum > 0
+          ? nextCurrent.mlfqRemainingQuantum
+          : quantumForLevel(mlfqBaseQuantum, nextCurrent.queueLevel ?? 0)
+        : quantumForLevel(mlfqBaseQuantum, nextCurrent.queueLevel ?? 0)
       : remainingQuantum;
   const dispatchEvent: ScheduleEvent = {
     time,
@@ -498,6 +532,10 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     2,
     3,
   );
+  const mlfqMode =
+    simulationScenario.algorithmParams.mlfqMode === "simplified"
+      ? "simplified"
+      : "classic";
   const mlfqBaseQuantum = clampInteger(
     simulationScenario.algorithmParams.timeQuantum ?? 2,
     1,
@@ -535,6 +573,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     }
 
     const currentLevel = currentProcess.queueLevel ?? 0;
+    if (simulationScenario.algorithm === "mlfq" && mlfqMode === "classic") {
+      currentProcess.mlfqRemainingQuantum = Math.max(0, remainingQuantum);
+    }
     currentProcess.status = "preempted";
     pushSegment(time);
     // For LCFS we want the newly arrived processes to be on top of the stack.
@@ -571,7 +612,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       simulationScenario.algorithm === "roundRobin"
         ? quantum
         : simulationScenario.algorithm === "mlfq"
-          ? quantumForLevel(mlfqBaseQuantum, currentLevel)
+          ? mlfqMode === "classic"
+            ? 0
+            : quantumForLevel(mlfqBaseQuantum, currentLevel)
           : 1;
     currentSegmentStart = time;
   }
@@ -595,6 +638,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         processes,
         busyTicks,
         contextSwitches,
+        simulationScenario.algorithm,
+        mlfqBaseQuantum,
+        mlfqMode,
       ),
     );
     lastSnapshotTime = time;
@@ -649,6 +695,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
 
     for (const process of arrivals) {
       process.queueLevel = 0;
+      if (simulationScenario.algorithm === "mlfq" && mlfqMode === "classic") {
+        process.mlfqRemainingQuantum = quantumForLevel(mlfqBaseQuantum, 0);
+      }
       enqueueReadyProcess(
         process,
         simulationScenario.algorithm,
@@ -695,6 +744,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         events,
         mlfqBaseQuantum,
         mlfqQueueLevels,
+        mlfqMode,
         strictPriorityTieBreak,
       );
       currentProcess = dispatch.nextCurrent;
@@ -754,6 +804,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     currentProcess.executedTime += 1;
     currentProcess.remainingTime -= 1;
     remainingQuantum -= 1;
+    if (simulationScenario.algorithm === "mlfq" && mlfqMode === "classic") {
+      currentProcess.mlfqRemainingQuantum = Math.max(0, remainingQuantum);
+    }
     time += 1;
 
     const arrivedNow = enqueueArrivals(time);
@@ -782,6 +835,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     if (
       simulationScenario.algorithm === "mlfq" &&
       currentProcess.remainingTime > 0 &&
+      remainingQuantum > 0 &&
       shouldPreemptMlfq(currentProcess, readyQueue)
     ) {
       preemptCurrentProcess(
@@ -799,6 +853,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         events,
         mlfqBaseQuantum,
         mlfqQueueLevels,
+        mlfqMode,
         strictPriorityTieBreak,
       );
       currentProcess = dispatch.nextCurrent;
@@ -854,6 +909,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       const currentLevel = currentProcess.queueLevel ?? 0;
       const nextLevel = Math.min(currentLevel + 1, mlfqQueueLevels - 1);
       currentProcess.queueLevel = nextLevel;
+      if (mlfqMode === "classic") {
+        currentProcess.mlfqRemainingQuantum = quantumForLevel(mlfqBaseQuantum, nextLevel);
+      }
       currentProcess.status = "preempted";
       pushSegment(time);
       enqueueReadyProcess(
@@ -875,7 +933,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       events.push(quantumExpiredEvent);
       lastEvent = quantumExpiredEvent;
       currentProcess = null;
-      remainingQuantum = quantumForLevel(mlfqBaseQuantum, nextLevel);
+      remainingQuantum = mlfqMode === "classic"
+        ? 0
+        : quantumForLevel(mlfqBaseQuantum, nextLevel);
       currentSegmentStart = time;
       currentSegmentLevel = null;
       pushIdleSegment(time);

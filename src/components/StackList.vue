@@ -40,13 +40,17 @@
     <p v-if="props.contextText" class="stack-context">
       {{ props.contextText }}
     </p>
+
+    <p v-if="props.quantumSummaryText" class="stack-quantum-summary">
+      {{ props.quantumSummaryText }}
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 
-type ItemStatus = "active" | "ready" | "preempted";
+type ItemStatus = "active" | "ready" | "preempted" | "arrived" | "finished";
 type Item = {
   id: string;
   title: string;
@@ -61,6 +65,7 @@ const props = defineProps<{
   maxVisible?: number;
   activeId?: string | null;
   contextText?: string;
+  quantumSummaryText?: string;
 }>();
 
 const visibleItems = computed(() => {
@@ -95,6 +100,10 @@ function statusLabel(item: Item): string {
   switch (itemStatus(item)) {
     case "active":
       return "läuft jetzt";
+    case "arrived":
+      return "neu eingetroffen";
+    case "finished":
+      return "abgeschlossen";
     case "preempted":
       return "präemptiert";
     default:
@@ -145,6 +154,8 @@ function itemClasses(item: Item, index: number) {
   return {
     top: index === 0,
     active: status === "active",
+    arrived: status === "arrived",
+    finished: status === "finished",
     ready: status === "ready",
     preempted: status === "preempted",
   };
@@ -259,6 +270,18 @@ function itemClasses(item: Item, index: number) {
   color: var(--muted);
 }
 
+.item.arrived {
+  border-style: solid;
+  border-color: rgba(125, 211, 252, 0.45);
+  background: rgba(125, 211, 252, 0.09);
+}
+
+.item.arrived .state-badge {
+  color: var(--accent);
+  background: rgba(125, 211, 252, 0.14);
+  border-color: rgba(125, 211, 252, 0.34);
+}
+
 .item.preempted {
   border-style: dashed;
   border-color: rgba(251, 191, 36, 0.42);
@@ -271,6 +294,18 @@ function itemClasses(item: Item, index: number) {
   border-color: rgba(251, 191, 36, 0.38);
 }
 
+.item.finished {
+  border-style: solid;
+  border-color: rgba(52, 211, 153, 0.42);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.item.finished .state-badge {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.34);
+}
+
 .stack-context {
   margin: 0.15rem 0 0;
   padding-top: 0.65rem;
@@ -278,6 +313,13 @@ function itemClasses(item: Item, index: number) {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.stack-quantum-summary {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 @media (prefers-reduced-motion: reduce) {

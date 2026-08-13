@@ -11,6 +11,7 @@
       :currentTime="currentTime"
       :algorithm="algorithm"
       :queueLevels="queueLevels"
+      labelAlignment="end"
     />
   </div>
 </template>
@@ -18,6 +19,7 @@
 <script setup lang="ts">
 import { computed, ref, onBeforeUnmount, watchEffect } from "vue";
 import Gantt from "./Gantt.vue";
+import { createTimelineLayout } from "@/utils/timelineLayout";
 import type { TimelineSegment } from "@/types";
 
 const props = defineProps<{
@@ -69,7 +71,6 @@ onBeforeUnmount(() => {
   observer = null;
 });
 
-const providedCellWidth = computed(() => props.cellWidth ?? 0);
 const chartHeight = computed(() => props.chartHeight ?? 120);
 const segmentHeight = computed(() => props.segmentHeight ?? 18);
 const currentTime = computed(() => props.currentTime ?? 0);
@@ -77,32 +78,39 @@ const currentTime = computed(() => props.currentTime ?? 0);
 const maxTime = computed(() => Math.max(8, ...(props.segments?.map((s) => s.end) ?? [8])));
 const tickMarks = computed(() => Array.from({ length: maxTime.value + 1 }, (_, i) => i));
 
-const resolvedCellWidth = computed(() => {
-  // prefer an explicitly provided cellWidth
-  if (providedCellWidth.value && providedCellWidth.value > 0) return providedCellWidth.value;
+const resolvedLayout = computed(() => {
+  const explicitCellWidth = props.cellWidth ?? 0;
 
-  const length = Math.max(1, Math.floor(maxTime.value));
-  const padding = 56; // leave room for labels and breathing space
-  const avail = Math.max(240, measuredWidth.value - padding);
-  const fitted = Math.floor(avail / length);
-  const minCell = 12;
-  const base = 28;
-  return Math.max(minCell, Math.min(base, fitted));
+  if (explicitCellWidth > 0) {
+    const svgWidth = Math.max(
+      maxTime.value * explicitCellWidth + 180,
+      measuredWidth.value || 240,
+    );
+
+    return {
+      cellWidth: explicitCellWidth,
+      svgWidth,
+    };
+  }
+
+  return createTimelineLayout({
+    timelineLength: maxTime.value,
+    containerWidth: measuredWidth.value,
+    padding: 140,
+    comfortTicks: 28,
+    minCellWidth: 10,
+    maxCellWidth: 44,
+    lockedCellWidth: 24,
+  });
 });
+
+const resolvedCellWidth = computed(() => resolvedLayout.value.cellWidth);
 
 const offsetX = computed(() => 12);
 
 const viewBox = computed(() => {
-  const totalWidth = Math.max(maxTime.value * resolvedCellWidth.value + offsetX.value + 40, 240);
-  const visible = Math.max(240, measuredWidth.value || 240);
-  const ct = currentTime.value ?? 0;
-
-  // compute a startX so currentTime is visible (slightly left of center)
-  const desiredCenter = ct * resolvedCellWidth.value + offsetX.value;
-  const startXUnclamped = Math.floor(desiredCenter - visible * 0.45);
-  const startX = Math.max(0, Math.min(Math.max(0, totalWidth - visible), startXUnclamped));
-
-  return `${startX} 0 ${totalWidth} ${chartHeight.value}`;
+  const totalWidth = Math.max(resolvedLayout.value.svgWidth, 240);
+  return `0 0 ${totalWidth} ${chartHeight.value}`;
 });
 </script>
 

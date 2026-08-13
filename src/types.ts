@@ -15,6 +15,7 @@ export interface AlgorithmParams {
   /** Anzahl Ticks zwischen automatischen Snapshots (1 = jeder Tick) */
   snapshotInterval?: number;
   queueLevels?: number;
+  mlfqMode?: "classic" | "simplified";
   strictPriorityTieBreak?:
     | "fifo"
     | "arrivalTime"
@@ -55,6 +56,7 @@ export interface ProcessRuntime extends ProcessInput {
   startedAt: number | null;
   finishedAt: number | null;
   queueLevel?: number;
+  mlfqRemainingQuantum?: number;
 }
 
 export type EventType =
@@ -106,6 +108,9 @@ export interface SimulationSnapshot {
   currentQueueLevel?: number | null;
   readyQueue: string[];
   readyQueueLevels?: number[];
+  readyQueueQuantums?: Array<number | null>;
+  currentQuantumTotal?: number | null;
+  currentQuantumUsed?: number | null;
   remainingQuantum: number;
   lastEvent: ScheduleEvent | null;
   metrics: SimulationMetrics;

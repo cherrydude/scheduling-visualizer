@@ -99,6 +99,14 @@
                 />
               </label>
 
+              <label class="algorithm-field">
+                <span>Modus</span>
+                <select v-model="mlfqMode" class="algorithm-control">
+                  <option value="classic">Classic (Lehrbuch)</option>
+                  <option value="simplified">Simplified</option>
+                </select>
+              </label>
+
               <p class="subtitle">
                 Prozesse starten in der obersten Ebene. Bei Quantum-Ende werden
                 sie in die nächstniedrigere Ebene verschoben.
@@ -158,6 +166,7 @@ const props = defineProps<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    mlfqMode?: "classic" | "simplified";
     strictPriorityTieBreak?:
       | "fifo"
       | "arrivalTime"
@@ -181,6 +190,7 @@ const emit = defineEmits<{
         timeQuantum: number;
         snapshotInterval: number;
         queueLevels: number;
+        mlfqMode?: "classic" | "simplified";
         strictPriorityTieBreak?:
           | "fifo"
           | "arrivalTime"
@@ -201,6 +211,7 @@ useFocusTrap(modalRoot);
 const timeQuantum = ref(2);
 const snapshotInterval = ref(1);
 const queueLevels = ref(3);
+const mlfqMode = ref<"classic" | "simplified">("classic");
 const strictPriorityTieBreak = ref<
   "fifo" | "arrivalTime" | "remainingTime" | "waitingTime" | "id"
 >("fifo");
@@ -259,6 +270,7 @@ const algorithmInfo = computed(() => {
       parameterImpact: [
         "Queue-Stufen bestimmen, wie fein das Feedback-System aufgeteilt ist.",
         "Das Basis-Quantum wächst pro niedrigerer Ebene, damit lange Jobs seltener unterbrechen.",
+        "Classic behält Rest-Quantum bei Präemption, Simplified setzt das Quantum bei erneuter Einplanung zurück.",
       ],
       note: "Die aktuelle Ebene wird im Queue-Panel sichtbar gemacht.",
     };
@@ -283,6 +295,7 @@ function submitForm() {
       timeQuantum: Math.max(1, Math.floor(timeQuantum.value || 1)),
       snapshotInterval: Math.max(1, Math.floor(snapshotInterval.value || 1)),
       queueLevels: Math.max(1, Math.floor(queueLevels.value || 1)),
+      mlfqMode: mlfqMode.value,
       strictPriorityTieBreak: strictPriorityTieBreak.value,
       lcfsMode: lcfsMode.value,
       lcfsTieBreak: lcfsTieBreak.value,
@@ -302,6 +315,7 @@ watch(
     snapshotInterval.value =
       props.initialAlgorithmParams?.snapshotInterval ?? 1;
     queueLevels.value = props.initialAlgorithmParams?.queueLevels ?? 3;
+    mlfqMode.value = props.initialAlgorithmParams?.mlfqMode ?? "classic";
     strictPriorityTieBreak.value =
       props.initialAlgorithmParams?.strictPriorityTieBreak ?? "fifo";
     lcfsMode.value = props.initialAlgorithmParams?.lcfsMode ?? "preemptive";

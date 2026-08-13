@@ -27,7 +27,7 @@
           v-for="level in mlfqLevelCount - 1"
           :key="`guide-${level}`"
           :x1="offsetX"
-          :x2="offsetX + 2000"
+          :x2="mlfqGuideLineEndX"
           :y1="getMlfqGuideY(level)"
           :y2="getMlfqGuideY(level)"
           class="level-guide level-guide--mlfq"
@@ -150,8 +150,9 @@
           />
 
           <text
-            :x="segmentBaseX(segment) + 8"
+            :x="labelX(segment)"
             :y="segmentY(segment) + 22"
+            :text-anchor="labelAlignment === 'end' ? 'end' : 'start'"
             class="gantt-label"
           >
             {{ segment.processName }}
@@ -217,13 +218,6 @@
     </text>
 
     <g class="tick-layer" aria-hidden="true">
-      <rect
-        :x="0"
-        :y="Math.max(18, renderChartHeight - footerSpace)"
-        :width="svgWidth"
-        :height="32"
-        fill="var(--tick-rect-bg)"
-      />
       <g v-for="tick in safeTickMarks" :key="tick" class="tick-mark">
         <line
           :x1="tick * cellWidth + offsetX"
@@ -265,6 +259,7 @@ const props = defineProps<{
   queueLevels?: number;
   preemptedProcessId?: string | null;
   preemptTime?: number | null;
+  labelAlignment?: "start" | "end";
 }>();
 
 const emit = defineEmits<{
@@ -304,6 +299,10 @@ const safeTickMarks = computed(() => {
   }
 
   return Array.from(uniqueTicks).sort((left, right) => left - right);
+});
+const mlfqGuideLineEndX = computed(() => {
+  const lastTick = safeTickMarks.value[safeTickMarks.value.length - 1] ?? 0;
+  return offsetX + (lastTick + 0.5) * props.cellWidth;
 });
 const laneGap = 14;
 const laneTop = 28;
@@ -482,6 +481,18 @@ const segmentBaseX = (segment: TimelineSegment): number => {
 const segmentWidth = (segment: TimelineSegment): number =>
   Math.max((segment.end - segment.start) * props.cellWidth, 4);
 
+const labelAlignment = computed(() => props.labelAlignment ?? "start");
+
+const labelX = (segment: TimelineSegment): number => {
+  const baseX = segmentBaseX(segment);
+
+  if (labelAlignment.value === "end") {
+    return baseX + segmentWidth(segment) - 8;
+  }
+
+  return baseX + 8;
+};
+
 const splitCursor = (segment: TimelineSegment): number | null => {
   const time = props.currentTime;
   if (
@@ -623,6 +634,13 @@ function hexToRgb(hex?: string) {
 }
 .tick-mark text {
   paint-order: stroke;
+}
+
+.level-label {
+  fill: var(--tick-label);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .level-guide--mlfq {

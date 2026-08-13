@@ -41,6 +41,7 @@ const DEFAULT_ALGORITHM_PARAMS: AlgorithmParams = {
   timeQuantum: 2,
   snapshotInterval: 1,
   queueLevels: 3,
+  mlfqMode: "classic",
   strictPriorityTieBreak: "fifo",
   lcfsMode: "preemptive",
   lcfsTieBreak: "stack",
@@ -133,6 +134,7 @@ function createAlgorithmParams(
         DEFAULT_ALGORITHM_PARAMS.queueLevels ?? 3,
       ),
     ),
+    mlfqMode: params?.mlfqMode ?? DEFAULT_ALGORITHM_PARAMS.mlfqMode,
     strictPriorityTieBreak:
       params?.strictPriorityTieBreak ?? DEFAULT_ALGORITHM_PARAMS.strictPriorityTieBreak,
     lcfsMode: params?.lcfsMode ?? DEFAULT_ALGORITHM_PARAMS.lcfsMode,
@@ -464,6 +466,7 @@ export function useScenarioWorkspace() {
                   snapshotInterval:
                     attachment.algorithmParams.snapshotInterval ?? 1,
                   queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+                  mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
                     strictPriorityTieBreak:
                       attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
                   lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",
@@ -480,6 +483,7 @@ export function useScenarioWorkspace() {
                 snapshotInterval:
                   attachment.algorithmParams.snapshotInterval ?? 1,
                 queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+                mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
                 strictPriorityTieBreak:
                   attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
                 lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",
@@ -520,6 +524,7 @@ export function useScenarioWorkspace() {
           timeQuantum: attachment.algorithmParams.timeQuantum ?? 2,
           snapshotInterval: attachment.algorithmParams.snapshotInterval ?? 1,
           queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+          mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
             strictPriorityTieBreak:
               attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
           lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",

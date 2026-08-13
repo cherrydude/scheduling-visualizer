@@ -1,6 +1,10 @@
 <template>
   <div class="app-shell">
-    <WelcomeModal :modelValue="showWelcomeModal" @close="closeWelcomeModal" />
+    <WelcomeModal
+      :modelValue="showWelcomeModal"
+      @close="closeWelcomeModal"
+      @open-help="openHelpFromWelcome"
+    />
 
     <AlgorithmPickerModal
       :modelValue="showAlgorithmModal"
@@ -491,6 +495,7 @@
               :items="stackItems"
               :activeId="currentActiveProcessId"
               :contextText="stackExplanation"
+              :quantumSummaryText="stackQuantumSummaryText"
               aria-label="Process queue"
             />
             <div v-else class="empty-state compact">
@@ -581,6 +586,7 @@ import {
   onMounted,
   reactive,
   ref,
+  watchEffect,
   watch,
 } from "vue";
 import gsap from "gsap";
@@ -821,6 +827,7 @@ const algorithmModalSeed = ref<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    mlfqMode?: "classic" | "simplified";
     lcfsMode?: "preemptive" | "nonPreemptive";
     lcfsTieBreak?: "stack" | "id";
   };
@@ -836,6 +843,8 @@ const savedFocusCellWidth = ref<number | null>(null);
 const focusCellWidthOverride = ref<number | null>(null);
 const currentRoute = ref<RouteName>("home");
 const loopPlayback = ref(false);
+let focusViewportObserver: ResizeObserver | null = null;
+const focusViewBoxRightBuffer = 220;
 
 const activeView = ref<string>(
   typeof window !== "undefined"
@@ -851,6 +860,54 @@ function setActiveView(view: string) {
     window.localStorage.setItem("scheduling-visualizer.activeView", view);
   }
 }
+
+function updateFocusViewportWidth(): void {
+  const element = ganttWrapRef.value;
+
+  if (!element) {
+    focusViewportWidth.value = Math.floor(window.innerWidth);
+    return;
+  }
+
+  const computedStyle = window.getComputedStyle(element);
+  const horizontalPadding =
+    Number.parseFloat(computedStyle.paddingLeft || "0") +
+    Number.parseFloat(computedStyle.paddingRight || "0");
+
+  focusViewportWidth.value = Math.max(
+    320,
+    Math.floor(element.clientWidth - horizontalPadding),
+  );
+}
+
+watchEffect((onCleanup) => {
+  const element = ganttWrapRef.value;
+
+  if (!element) {
+    return;
+  }
+
+  updateFocusViewportWidth();
+
+  if (focusViewportObserver) {
+    focusViewportObserver.disconnect();
+    focusViewportObserver = null;
+  }
+
+  if (typeof ResizeObserver === "undefined") {
+    return;
+  }
+
+  focusViewportObserver = new ResizeObserver(() => {
+    updateFocusViewportWidth();
+  });
+  focusViewportObserver.observe(element);
+
+  onCleanup(() => {
+    focusViewportObserver?.disconnect();
+    focusViewportObserver = null;
+  });
+});
 
 const draft = reactive<ScenarioDraft>(createBlankScenarioDraft());
 
@@ -1077,7 +1134,10 @@ type StackItem = {
   title: string;
   subtitle?: string;
   color?: string;
-  status?: "active" | "ready" | "preempted";
+  status?: "active" | "ready" | "preempted" | "arrived" | "finished";
+  level?: number | null;
+  quantumRemaining?: number | null;
+  quantumTotal?: number | null;
 };
 const stackItems = ref<StackItem[]>([]);
 const loopLogStart = ref(0);
@@ -1174,9 +1234,103 @@ function findReadyQueueLevelByProcessId(
   return snap.readyQueueLevels?.[queueIndex] ?? null;
 }
 
+function findReadyQueueQuantumByProcessId(
+  snap: SimulationSnapshot | null,
+  pid: string | null,
+): number | null {
+  if (!snap || !pid || !Array.isArray(snap.readyQueue)) {
+    return null;
+  }
+
+  const queueIndex = snap.readyQueue.findIndex(
+    (nameOrId) => resolveSnapshotProcessId(snap, nameOrId) === pid,
+  );
+
+  if (queueIndex < 0) {
+    return null;
+  }
+
+  return snap.readyQueueQuantums?.[queueIndex] ?? null;
+}
+
+function quantumTotalForLevel(level: number | null | undefined): number | null {
+  if (activeRun.value?.algorithm !== "mlfq") {
+    return null;
+  }
+
+  if (level === null || level === undefined) {
+    return null;
+  }
+
+  const baseQuantum = Math.max(
+    1,
+    Math.floor(activeRun.value.algorithmParams.timeQuantum ?? 2),
+  );
+
+  return Math.max(1, baseQuantum * (level + 1));
+}
+
+function currentArrivedProcessIds(snap: SimulationSnapshot | null): Set<string> {
+  const arrived = new Set<string>();
+  if (!snap) {
+    return arrived;
+  }
+
+  const currentTime = snap.time;
+  const events = runState.value?.events ?? [];
+
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event.time < currentTime) {
+      break;
+    }
+
+    if (
+      event.type === "arrival" &&
+      event.time === currentTime &&
+      event.processId
+    ) {
+      arrived.add(event.processId);
+    }
+  }
+
+  return arrived;
+}
+
+function currentFinishedProcessIds(snap: SimulationSnapshot | null): Set<string> {
+  const finished = new Set<string>();
+  if (!snap) {
+    return finished;
+  }
+
+  const currentTime = snap.time;
+  const events = runState.value?.events ?? [];
+
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event.time < currentTime) {
+      break;
+    }
+
+    if (
+      event.type === "finish" &&
+      event.time === currentTime &&
+      event.processId
+    ) {
+      finished.add(event.processId);
+    }
+  }
+
+  return finished;
+}
+
 function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
   const activeId = currentActiveProcessId.value;
+  const snapshotActiveId =
+    snap?.currentProcessId ? resolveSnapshotProcessId(snap, snap.currentProcessId) : null;
   const preemptedId = currentStackPreemptEvent.value?.processId ?? null;
+  const arrivedIds = currentArrivedProcessIds(snap);
+  const finishedIds = currentFinishedProcessIds(snap);
   const entries = buildStackOrder(snap).filter(
     (entry) => !isProcessDone(entry.id, snap),
   );
@@ -1193,9 +1347,17 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
     }
   }
 
+  for (const finishedId of finishedIds) {
+    const existingIndex = entries.findIndex((entry) => entry.id === finishedId);
+    if (existingIndex < 0) {
+      entries.push({ id: finishedId, level: null });
+    }
+  }
+
   stackItems.value = entries.map((entry) => {
     const pid = entry.id;
     const meta = findProcessMeta(pid);
+    const isFinishedNow = finishedIds.has(pid);
     const nextSeg =
       visibleSegments.value.find(
         (segment) =>
@@ -1203,13 +1365,33 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
       ) ?? visibleSegments.value.find((segment) => segment.processId === pid);
     const levelLabel =
       entry.level === null || entry.level === undefined ? "" : `L${entry.level + 1} · `;
-    const subtitle = nextSeg
-      ? `${levelLabel}t ${nextSeg.start}–${nextSeg.end}`
-      : entry.level === null || entry.level === undefined
-        ? "t done"
-        : `${levelLabel}t done`;
-    const status =
-      pid === activeId ? "active" : pid === preemptedId ? "preempted" : "ready";
+    const quantumTotal = quantumTotalForLevel(entry.level);
+    const quantumRemaining =
+      activeRun.value?.algorithm === "mlfq"
+        ? pid === snapshotActiveId
+          ? Math.max(0, snap?.remainingQuantum ?? 0)
+          : findReadyQueueQuantumByProcessId(snap, pid)
+        : null;
+    const quantumText =
+      quantumTotal !== null && quantumRemaining !== null
+        ? ` · Q ${Math.max(0, quantumTotal - quantumRemaining)}/${quantumTotal}`
+        : "";
+    const subtitle = isFinishedNow
+      ? `${levelLabel}abgeschlossen bei t ${snap?.time ?? 0}`
+      : nextSeg
+        ? `${levelLabel}t ${nextSeg.start}–${nextSeg.end}${quantumText}`
+        : entry.level === null || entry.level === undefined
+          ? "t done"
+          : `${levelLabel}t done${quantumText}`;
+    const status = pid === activeId
+      ? "active"
+      : pid === preemptedId
+        ? "preempted"
+        : arrivedIds.has(pid)
+          ? "arrived"
+          : isFinishedNow
+            ? "finished"
+          : "ready";
     return {
       id: pid,
       title: meta.name,
@@ -1217,6 +1399,8 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
       color: meta.color,
       status,
       level: entry.level,
+      quantumRemaining,
+      quantumTotal,
     };
   });
 }
@@ -1359,31 +1543,6 @@ watch(
   { immediate: true },
 );
 
-watch(activeView, async (view) => {
-  if (view === 'focus') {
-    // update viewport width first so computed focusCellWidth uses correct container
-    focusViewportWidth.value = Math.floor(
-      ganttWrapRef.value?.clientWidth ?? window.innerWidth,
-    );
-    focusCellWidthOverride.value =
-      savedFocusCellWidth.value && savedFocusCellWidth.value > 0
-        ? savedFocusCellWidth.value
-        : null;
-  }
-});
-
-watch(
-  [activeScenario, activeView],
-  async () => {
-    await nextTick();
-
-    focusViewportWidth.value = Math.floor(
-      ganttWrapRef.value?.clientWidth ?? window.innerWidth,
-    );
-  },
-  { immediate: true, flush: "post" },
-);
-
 const currentEventLabel = computed(() =>
   currentSnapshot.value?.lastEvent
     ? `${currentSnapshot.value.lastEvent.type} @ ${currentSnapshot.value.lastEvent.time}`
@@ -1421,6 +1580,35 @@ const stackExplanation = computed(() => {
   }
 
   return "Gerade ist kein Prozess aktiv.";
+});
+
+const stackQuantumSummaryText = computed(() => {
+  if (activeRun.value?.algorithm !== "mlfq" || stackItems.value.length === 0) {
+    return "";
+  }
+
+  const sums = new Map<number, number>();
+
+  for (const item of stackItems.value) {
+    const level = item.level;
+    const remaining = item.quantumRemaining;
+
+    if (level === null || level === undefined || remaining === null || remaining === undefined) {
+      continue;
+    }
+
+    sums.set(level, (sums.get(level) ?? 0) + Math.max(0, remaining));
+  }
+
+  if (sums.size === 0) {
+    return "";
+  }
+
+  const entries = Array.from(sums.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([level, total]) => `L${level + 1}: ${total}`);
+
+  return `Restquantum je Level: ${entries.join(" · ")}`;
 });
 
 const stackEmptyTitle = computed(() =>
@@ -1596,7 +1784,7 @@ const focusViewBox = computed(() => {
   // if we have an override cellWidth (restoring previous zoom), use it to compute viewBox
   if (focusCellWidthOverride.value && focusCellWidthOverride.value > 0) {
     const w = Math.max(
-      focusTimelineLength.value * focusCellWidthOverride.value + 180,
+      focusTimelineLength.value * focusCellWidthOverride.value + focusViewBoxRightBuffer,
       focusViewportWidth.value || 860,
     );
     return `0 0 ${w} ${chartHeight.value}`;
@@ -1613,7 +1801,7 @@ const focusViewBox = computed(() => {
   });
 
   return `0 0 ${Math.max(
-    focusTimelineLength.value * layout.cellWidth + 180,
+    focusTimelineLength.value * layout.cellWidth + focusViewBoxRightBuffer,
     layout.svgWidth,
     focusViewportWidth.value || 860,
   )} ${chartHeight.value}`;
@@ -1767,6 +1955,11 @@ function closeWelcomeModal(): void {
   }
 }
 
+function openHelpFromWelcome(): void {
+  closeWelcomeModal();
+  navigate("/wissen");
+}
+
 function openGeneratorModal(): void {
   generatorMode.value = "create";
   cloneDraft(createBlankScenarioDraft());
@@ -1792,6 +1985,7 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           snapshotInterval:
             activeRun.value.algorithmParams.snapshotInterval ?? 1,
           queueLevels: activeRun.value.algorithmParams.queueLevels ?? 3,
+          mlfqMode: activeRun.value.algorithmParams.mlfqMode ?? "classic",
           lcfsMode: activeRun.value.algorithmParams.lcfsMode ?? "preemptive",
           lcfsTieBreak: activeRun.value.algorithmParams.lcfsTieBreak ?? "stack",
         },
@@ -1802,6 +1996,7 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           timeQuantum: 2,
           snapshotInterval: 1,
           queueLevels: 3,
+          mlfqMode: "classic",
           lcfsMode: "preemptive",
           lcfsTieBreak: "stack",
         },
@@ -1815,6 +2010,7 @@ function confirmAlgorithm(payload: {
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    mlfqMode?: "classic" | "simplified";
     lcfsMode?: "preemptive" | "nonPreemptive";
     lcfsTieBreak?: "stack" | "id";
   };
