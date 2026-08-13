@@ -1,76 +1,86 @@
 <template>
   <div class="comparison-panel">
-    <div class="section-header compact header-clickable">
-      <div style="display: flex; align-items: center; gap: 8px">
-        <h3>Ranking</h3>
-        <div style="display:flex; gap:8px; align-items:center">
-          <button
-            class="icon-button"
-            type="button"
-            aria-label="Ranking bearbeiten"
-            @click.stop="openEditor"
-          >
-            ✎
-          </button>
-          <button class="secondary-button" type="button" @click="toggleTable">
-            {{ showTable ? 'Tabelle ausblenden' : 'Tabelle anzeigen' }}
-          </button>
-          <button class="secondary-button" type="button" @click="exportCsv">
-            CSV export
-          </button>
-        </div>
+    <div class="section-header compact comparison-header">
+      <div>
+        <h3>Vergleichsübersicht</h3>
+        <p class="subtitle subtitle-meta">
+          Wähle einen Anwendungsfall und gewichte die Runs nach den dafür
+          relevanten Kennzahlen.
+        </p>
       </div>
-      <small>Vergleich aller Runs (Szenario)</small>
+
+    </div>
+
+    <div class="case-selector" role="tablist" aria-label="Anwendungsfälle">
+      <button
+        v-for="appCase in caseOptions"
+        :key="appCase.id"
+        type="button"
+        class="case-card"
+        :class="{ 'case-card--active': appCase.id === selectedCaseId }"
+        :aria-pressed="appCase.id === selectedCaseId"
+        @click="selectedCaseId = appCase.id"
+      >
+        <strong>{{ appCase.label }}</strong>
+        <small>{{ appCase.subtitle }}</small>
+        <span v-if="appCase.id !== 'custom'">{{ appCase.description }}</span>
+        <span v-else class="custom-case-copy">
+          Passe die bekannten Kennzahlen an deinen eigenen Kontext an.
+          <button
+            class="inline-link-button custom-case-link"
+            type="button"
+            @click.stop="openCustomModal"
+          >
+            Hier anpassen ✎
+          </button>
+        </span>
+      </button>
     </div>
 
     <RankingEditModal
-      :modelValue="showEditor"
-      :initialWeights="weights"
-      @close="showEditor = false"
-      @confirm="applyWeights"
+      :modelValue="showCustomModal"
+      :initialWeights="comparison.state.weights"
+      @close="closeCustomModal"
+      @confirm="applyCustomWeights"
     />
 
-    <RankingList :rows="rows" :has-runs="hasRuns" />
-
-    <div v-if="showTable" class="comparison-table">
-      <div class="table-controls">
-        <span class="table-controls-label">Spalten</span>
-        <label v-for="col in availableColumns" :key="col.key" class="table-toggle">
-          <input type="checkbox" v-model="selectedColumns" :value="col.key" />
-          <span>{{ col.label }}</span>
-        </label>
-      </div>
-
+    <div class="comparison-table">
       <div class="table-shell">
         <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Algorithmus</th>
-            <th>Status</th>
-            <th v-for="col in visibleColumns" :key="col.key">{{ col.label }}</th>
-            <th>Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(row, idx) in rows"
-            :key="row.id"
-            :class="{ 'row-best': row.id === bestRowId, 'row-worst': row.id === worstRowId }"
-          >
-            <td>{{ row.id }}</td>
-            <td>{{ row.label }}</td>
-            <td>
-              <span class="status-pill" :class="statusClass(row.id)">
-                {{ statusLabel(row.id) }}
-              </span>
-            </td>
-            <td v-for="col in visibleColumns" :key="col.key">
-              {{ formatMetricForRow(row, col.key) }}
-            </td>
-            <td>{{ row.score }}</td>
-          </tr>
-        </tbody>
+          <thead>
+            <tr>
+              <th>Run-ID</th>
+              <th>Algorithmus</th>
+              <th>Status</th>
+              <th v-for="col in visibleColumns" :key="col.key">{{ col.label }}</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              v-for="(row, idx) in rows"
+              :key="row.id"
+              :class="{
+                'row-best': row.id === bestRowId,
+                'row-worst': row.id === worstRowId,
+              }"
+            >
+              <td>Run {{ row.id }}</td>
+              <td>
+                <strong>{{ row.label }}</strong>
+              </td>
+              <td>
+                <span class="status-pill" :class="statusClass(row.id)">
+                  {{ statusLabel(row.id) }}
+                </span>
+              </td>
+              <td v-for="col in visibleColumns" :key="col.key">
+                {{ formatColumnValue(row, col.key) }}
+              </td>
+              <td>{{ formatScore(row.score) }}</td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -78,14 +88,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import RankingList from "./RankingList.vue";
-import RankingEditModal from "./RankingEditModal.vue";
-import {
-  useScenarioWorkspace,
-  type ScenarioRecord,
-} from "@/composables/useScenarioWorkspace";
+import { computed, ref, watch } from "vue";
+import { useScenarioWorkspace, type ScenarioRecord } from "@/composables/useScenarioWorkspace";
 import { useComparison } from "@/composables/useComparison";
+import type { ComparisonMetricKey, ComparisonRow } from "@/utils/compare";
+import RankingEditModal from "./RankingEditModal.vue";
+
+type ComparisonCaseId = "interactive" | "batch" | "webServer" | "softRealtime" | "custom";
+
+type ComparisonCase = {
+  id: ComparisonCaseId;
+  label: string;
+  subtitle: string;
+  description: string;
+  weights: Record<string, number>;
+  columns: ComparisonMetricKey[];
+};
+
+type ColumnDefinition = {
+  key: ComparisonMetricKey;
+  label: string;
+};
 
 const props = defineProps<{
   scenario?: ScenarioRecord | null;
@@ -94,63 +117,213 @@ const props = defineProps<{
 const workspace = useScenarioWorkspace();
 const comparison = useComparison();
 
-import { ref } from "vue";
+const STORAGE_KEY = "scheduling-visualizer.comparison.case.v1";
 
-const showEditor = ref(false);
-const showTable = ref(true);
-
-const availableColumns = [
-  { key: 'averageTurnaroundTime', label: 'Turnaround' },
-  { key: 'averageWaitingTime', label: 'Waiting Time' },
-  { key: 'throughput', label: 'Throughput' },
-  { key: 'fairnessIndex', label: 'Fairness (Jain)' },
-  { key: 'contextSwitches', label: 'Context Switches' },
-  { key: 'cpuUtilization', label: 'CPU Utilization' },
-  { key: 'averageResponseTime', label: 'Response Time' },
+const allColumns: ColumnDefinition[] = [
+  { key: "averageResponseTime", label: "Antwortzeit" },
+  { key: "averageWaitingTime", label: "Wartezeit" },
+  { key: "averageTurnaroundTime", label: "Durchlaufzeit" },
+  { key: "throughput", label: "Durchsatz" },
+  { key: "fairnessIndex", label: "Fairness" },
+  { key: "contextSwitches", label: "Kontextwechsel" },
+  { key: "preemptionCount", label: "Präemptions" },
 ];
 
-const selectedColumns = ref(availableColumns.map(c => c.key));
+const defaultCustomWeights = {
+  averageResponseTime: 0,
+  averageTurnaroundTime: 0.4,
+  averageWaitingTime: 0.3,
+  throughput: 0.2,
+  fairnessIndex: 0.1,
+  contextSwitches: 0,
+  preemptionCount: 0,
+};
+
+const caseOptions: ComparisonCase[] = [
+  {
+    id: "interactive",
+    label: "Interaktiv / UI",
+    subtitle: "Desktop, Web, Mobile",
+    description:
+      "Antwortzeit und Fairness sind wichtiger als maximaler Durchsatz.",
+    weights: {
+      averageResponseTime: 0.4,
+      averageWaitingTime: 0.2,
+      fairnessIndex: 0.15,
+      contextSwitches: 0.15,
+      preemptionCount: 0.1,
+    },
+    columns: [
+      "averageResponseTime",
+      "averageWaitingTime",
+      "fairnessIndex",
+      "contextSwitches",
+      "preemptionCount",
+    ],
+  },
+  {
+    id: "batch",
+    label: "Batch / HPC",
+    subtitle: "Rendering, Analyse, Berechnung",
+    description:
+      "Durchsatz und Durchlaufzeit zählen, Kontextwechsel sind teuer.",
+    weights: {
+      throughput: 0.35,
+      averageTurnaroundTime: 0.3,
+      contextSwitches: 0.15,
+      preemptionCount: 0.1,
+      averageWaitingTime: 0.1,
+    },
+    columns: [
+      "throughput",
+      "averageTurnaroundTime",
+      "contextSwitches",
+      "preemptionCount",
+      "fairnessIndex",
+    ],
+  },
+  {
+    id: "webServer",
+    label: "Web Server",
+    subtitle: "API, Gateway, Backend",
+    description:
+      "Kurze Wartezeiten und stabile Reaktionszeit sind entscheidend.",
+    weights: {
+      averageWaitingTime: 0.35,
+      averageResponseTime: 0.3,
+      throughput: 0.15,
+      fairnessIndex: 0.1,
+      contextSwitches: 0.1,
+    },
+    columns: [
+      "averageWaitingTime",
+      "averageResponseTime",
+      "throughput",
+      "fairnessIndex",
+      "contextSwitches",
+    ],
+  },
+  {
+    id: "softRealtime",
+    label: "Soft Real-Time",
+    subtitle: "Audio, Video, Gaming",
+    description:
+      "Reaktionszeit und Präemptionsverhalten sind hier die kritischen Punkte.",
+    weights: {
+      averageResponseTime: 0.4,
+      averageWaitingTime: 0.2,
+      preemptionCount: 0.2,
+      contextSwitches: 0.1,
+      fairnessIndex: 0.1,
+    },
+    columns: [
+      "averageResponseTime",
+      "preemptionCount",
+      "averageWaitingTime",
+      "contextSwitches",
+      "fairnessIndex",
+    ],
+  },
+  {
+    id: "custom",
+    label: "Eigener Anwendungsfall",
+    subtitle: "Freie Gewichtung",
+    description: "Passe die bekannten Kennzahlen an deinen eigenen Kontext an.",
+    weights: comparison.state.weights,
+    columns: [
+      "averageResponseTime",
+      "averageWaitingTime",
+      "averageTurnaroundTime",
+      "throughput",
+      "fairnessIndex",
+      "contextSwitches",
+      "preemptionCount",
+    ],
+  },
+];
 
 const activeScenario = computed(() => props.scenario ?? workspace.activeScenario.value);
+
+const selectedCaseId = ref<ComparisonCaseId>(loadSelectedCaseId());
+const showCustomModal = ref(false);
+
+watch(
+  selectedCaseId,
+  (value) => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, value);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  },
+  { immediate: true },
+);
+
+const activeCase = computed(() => {
+  return caseOptions.find((entry) => entry.id === selectedCaseId.value) ?? caseOptions[0];
+});
+
+const resolvedWeights = computed(() =>
+  activeCase.value.id === "custom" ? comparison.state.weights : activeCase.value.weights,
+);
+
+const rows = computed(() => {
+  const scenario = activeScenario.value;
+  if (!scenario?.runs.length) {
+    return [] as ComparisonRow[];
+  }
+
+  return comparison.buildForScenario(scenario, resolvedWeights.value);
+});
+
+const selectedCustomColumns = ref<ComparisonMetricKey[]>([
+  "averageResponseTime",
+  "averageWaitingTime",
+  "averageTurnaroundTime",
+  "throughput",
+  "fairnessIndex",
+  "contextSwitches",
+  "preemptionCount",
+]);
+
+const visibleColumns = computed(() => {
+  if (activeCase.value.id === "custom") {
+    return allColumns.filter((column) => selectedCustomColumns.value.includes(column.key));
+  }
+
+  return allColumns.filter((column) => activeCase.value.columns.includes(column.key));
+});
 
 const bestRowId = computed(() => rows.value[0]?.id ?? null);
 const worstRowId = computed(() => rows.value[rows.value.length - 1]?.id ?? null);
 
-function toggleTable() {
-  showTable.value = !showTable.value;
+function formatColumnValue(row: ComparisonRow, key: ComparisonMetricKey): string {
+  const value = row.rawValues[key];
+
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "--";
+  }
+
+  if (key === "contextSwitches" || key === "preemptionCount") {
+    return String(Math.round(value));
+  }
+
+  return value.toFixed(2);
 }
 
-const visibleColumns = computed(() => {
-  return availableColumns.filter(c => selectedColumns.value.includes(c.key));
-});
-
-function formatMetricForRow(row: any, key: string) {
-  // prefer rawValues for normalized/simple metrics, otherwise try metrics
-  if (key in row.rawValues) {
-    const v = row.rawValues[key];
-    return Number.isFinite(v) ? v.toFixed(2) : '--';
-  }
-
-  const m = row.metrics as any;
-  if (key === 'throughput') {
-    return (row.totalTime > 0 ? (m.completedCount / row.totalTime).toFixed(2) : '--');
-  }
-
-  if (key in m) {
-    const val = m[key];
-    return Number.isFinite(val) ? (typeof val === 'number' ? val.toFixed(2) : String(val)) : '--';
-  }
-
-  return '--';
+function formatScore(score: number): string {
+  return score.toFixed(3);
 }
 
 function statusLabel(id: string): string {
   if (id === bestRowId.value) {
-    return "Best";
+    return "Bester";
   }
 
   if (id === worstRowId.value) {
-    return "Worst";
+    return "Schwächster";
   }
 
   return "";
@@ -168,139 +341,168 @@ function statusClass(id: string): string {
   return "status-pill--neutral";
 }
 
-function exportCsv() {
-  const hdr = ['id','algorithm', ...selectedColumns.value, 'score'];
-  const csvRows = [hdr.join(',')];
-  for (const row of rows.value) {
-    const cols = [row.id, `"${row.label}"`];
-    for (const key of selectedColumns.value) {
-      cols.push(`"${String(formatMetricForRow(row, key)).replace(/"/g, '""')}"`);
+function openCustomModal() {
+  showCustomModal.value = true;
+}
+
+function closeCustomModal() {
+  showCustomModal.value = false;
+}
+
+function applyCustomWeights(newWeights: Record<string, number>) {
+  Object.assign(comparison.state.weights, newWeights);
+}
+
+function loadSelectedCaseId(): ComparisonCaseId {
+  try {
+    if (typeof window !== "undefined") {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw && caseOptions.some((entry) => entry.id === raw)) {
+        return raw as ComparisonCaseId;
+      }
     }
-    cols.push(String(row.score));
-    csvRows.push(cols.join(','));
+  } catch {
+    // ignore storage errors
   }
 
-  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'comparison.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-const rows = computed(() => {
-  const scenario = activeScenario.value;
-  if (!scenario?.runs.length) return [];
-  return comparison.buildForScenario(scenario);
-});
-
-const hasRuns = computed(() =>
-  Boolean(activeScenario.value?.runs.length),
-);
-
-const weights = comparison.state.weights as Record<string, number>;
-
-function openEditor() {
-  showEditor.value = true;
-}
-
-function applyWeights(newWeights: Record<string, number>) {
-  Object.assign(weights, newWeights);
+  return "interactive";
 }
 </script>
 
 <style scoped>
-.weights-panel {
-  margin-top: 10px;
+.comparison-panel {
+  display: grid;
+  gap: 1rem;
 }
-.weight {
-  margin: 6px 0;
+
+.comparison-header {
+  align-items: flex-start;
+  gap: 1rem;
 }
-input[type="range"] {
-  width: 100%;
+
+.case-selector {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
-.header-clickable {
-  cursor: pointer;
+
+.case-card {
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: var(--text);
+  box-shadow: var(--panel-shadow);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
-.icon-button {
-  background: transparent;
-  border: 0;
+
+.case-card strong {
+  font-size: 0.98rem;
+}
+
+.case-card small,
+.case-card span {
+  color: var(--muted);
+}
+
+.case-card--active {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--panel-border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel-bg));
+  transform: translateY(-1px);
+}
+
+.custom-editor {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.custom-editor h4 {
+  margin: 0 0 0.25rem;
+}
+
+.custom-editor p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.custom-editor__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.custom-weight-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.custom-weight-row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.custom-weight-row strong {
   color: var(--accent);
-  font-size: 0.95rem;
-  padding: 2px 6px;
-  border-radius: 6px;
+  font-size: 0.85rem;
 }
-.icon-button:hover {
-  background: rgba(125, 211, 252, 0.06);
-}
-.comparison-table {
-  margin-top: 0.85rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
-}
-.table-controls {
+
+.column-editor {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem 0.65rem;
   align-items: center;
-  margin-bottom: 0.75rem;
 }
-.table-controls-label {
-  color: var(--muted);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+
+.comparison-table {
+  padding-top: 0.25rem;
 }
-.table-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.55rem;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(15, 23, 42, 0.26);
-  color: var(--text);
-  font-size: 0.8rem;
-}
-.table-toggle input {
-  margin: 0;
-}
+
 .table-shell {
   overflow-x: auto;
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(15, 23, 42, 0.26);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
 }
+
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 520px;
+  min-width: 760px;
 }
+
 th,
 td {
   padding: 0.7rem 0.75rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   text-align: left;
 }
+
 th {
   position: sticky;
   top: 0;
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--panel-bg);
   color: var(--muted);
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
 tbody tr:hover {
-  background: rgba(125, 211, 252, 0.05);
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel-bg));
 }
+
 .row-best {
-  background: rgba(125, 211, 252, 0.08);
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel-bg));
 }
+
 .row-worst {
-  background: rgba(248, 113, 113, 0.08);
+  background: color-mix(in srgb, var(--danger) 9%, var(--panel-bg));
 }
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -309,19 +511,55 @@ tbody tr:hover {
   font-size: 0.72rem;
   border: 1px solid transparent;
 }
+
 .status-pill--best {
-  background: rgba(125, 211, 252, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel-bg));
   color: var(--accent);
-  border-color: rgba(125, 211, 252, 0.2);
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--panel-border));
 }
+
 .status-pill--worst {
-  background: rgba(248, 113, 113, 0.12);
+  background: color-mix(in srgb, var(--danger) 12%, var(--panel-bg));
   color: var(--danger);
-  border-color: rgba(248, 113, 113, 0.24);
+  border-color: color-mix(in srgb, var(--danger) 24%, var(--panel-border));
 }
+
 .status-pill--neutral {
-  background: rgba(148, 163, 184, 0.08);
+  background: color-mix(in srgb, var(--muted) 8%, var(--panel-bg));
   color: var(--muted);
-  border-color: rgba(148, 163, 184, 0.14);
+  border-color: color-mix(in srgb, var(--muted) 14%, var(--panel-border));
+}
+
+.table-controls-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.table-toggle input {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .custom-editor__header {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-editor__header {
+    display: grid;
+  }
 }
 </style>

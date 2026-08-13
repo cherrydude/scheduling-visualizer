@@ -1,10 +1,25 @@
 import type { SimulationMetrics, SimulationRun } from "@/types";
 
-export type SelectedMetric =
+export type ComparisonMetricKey =
   | "averageTurnaroundTime"
   | "averageWaitingTime"
+  | "averageResponseTime"
   | "throughput"
-  | "fairnessIndex";
+  | "fairnessIndex"
+  | "contextSwitches"
+  | "preemptionCount"
+  | "cpuUtilization"
+  | "idleShare";
+
+const LOWER_IS_BETTER = new Set<ComparisonMetricKey>([
+  "averageTurnaroundTime",
+  "averageWaitingTime",
+  "averageResponseTime",
+  "contextSwitches",
+  "preemptionCount",
+  "cpuUtilization",
+  "idleShare",
+]);
 
 export interface ComparisonRow {
   id: string;
@@ -27,8 +42,13 @@ export function extractValues(run: SimulationRun) {
   return {
     averageTurnaroundTime: safeNumber(m.averageTurnaroundTime),
     averageWaitingTime: safeNumber(m.averageWaitingTime),
+    averageResponseTime: safeNumber(m.averageResponseTime),
     throughput,
     fairnessIndex: safeNumber(m.fairnessIndex),
+    contextSwitches: safeNumber(m.contextSwitches),
+    preemptionCount: safeNumber(m.preemptionCount),
+    cpuUtilization: safeNumber(m.cpuUtilization),
+    idleShare: safeNumber(m.idleShare),
   };
 }
 
@@ -66,21 +86,18 @@ export function computeScoreForRow(
   normalized: Record<string, number>,
   weights: Record<string, number>,
 ) {
-  // For metrics where lower is better, we invert after normalizing.
-  // Keys: turnaround, waiting => lower better; throughput, fairness => higher better
-  const t = normalized["averageTurnaroundTime"] ?? 0;
-  const w = normalized["averageWaitingTime"] ?? 0;
-  const th = normalized["throughput"] ?? 0;
-  const f = normalized["fairnessIndex"] ?? 0;
+  let score = 0;
 
-  const invT = 1 - t;
-  const invW = 1 - w;
+  for (const [key, weight] of Object.entries(weights)) {
+    if (!weight) {
+      continue;
+    }
 
-  const score =
-    (weights.averageTurnaroundTime ?? 0) * invT +
-    (weights.averageWaitingTime ?? 0) * invW +
-    (weights.throughput ?? 0) * th +
-    (weights.fairnessIndex ?? 0) * f;
+    const metricKey = key as ComparisonMetricKey;
+    const value = normalized[key] ?? 0;
+    const contribution = LOWER_IS_BETTER.has(metricKey) ? 1 - value : value;
+    score += weight * contribution;
+  }
 
   return Math.round(score * 1000) / 1000;
 }
@@ -92,8 +109,13 @@ export function buildComparisonRows(
   const keys = [
     "averageTurnaroundTime",
     "averageWaitingTime",
+    "averageResponseTime",
     "throughput",
     "fairnessIndex",
+    "contextSwitches",
+    "preemptionCount",
+    "cpuUtilization",
+    "idleShare",
   ];
 
   const rawRows = runs.map((r) => ({ id: r.id, values: extractValues(r.run) }));

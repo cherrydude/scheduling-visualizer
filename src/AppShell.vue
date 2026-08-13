@@ -295,7 +295,11 @@
         </article>
       </section>
 
-      <section ref="focusColumnRef" class="focus-column panel">
+      <section
+        ref="focusColumnRef"
+        class="focus-column panel"
+        :class="{ 'focus-column--multi': activeView === 'multi' }"
+      >
         <div class="section-header">
           <div class="section-header-main">
               <div class="view-header-row">
@@ -379,6 +383,7 @@
             ref="ganttWrapRef"
           >
             <GanttWithGsap
+              :key="focusRenderKey"
               v-if="activeView === 'focus'"
               :segments="focusSegments"
               :transitionFromSegments="rawPreviewSegments"
@@ -1470,6 +1475,13 @@ watch(
   () => {
     stackItems.value = [];
     resetPlayback();
+    sharedCellWidth.value = null;
+
+    if (activeView.value === "focus") {
+      void nextTick(() => {
+        updateFocusViewportWidth();
+      });
+    }
   },
   { immediate: true },
 );
@@ -1802,6 +1814,11 @@ const recentEvents = computed<ScheduleEvent[]>(() => {
 const focusViewBox = computed(() => {
   return `0 0 ${Math.max(focusLayout.value.svgWidth, focusViewportWidth.value || 860)} ${chartHeight.value}`;
 });
+
+const focusRenderKey = computed(
+  () =>
+    `${activeScenario.value?.id ?? "no-scenario"}:${activeRunIndex.value}`,
+);
 
 const syncActive = ref(false);
 let syncTimer: number | undefined;
@@ -2211,6 +2228,7 @@ function formatAlgorithmParams(
     timeQuantum?: number;
     snapshotInterval?: number;
     queueLevels?: number;
+    mlfqMode?: "classic" | "simplified";
     strictPriorityTieBreak?:
       | "fifo"
       | "arrivalTime"
@@ -2221,6 +2239,15 @@ function formatAlgorithmParams(
     lcfsTieBreak?: "stack" | "id";
   },
 ): string {
+  if (algorithm === "roundRobin") {
+    return `Quantum: ${params.timeQuantum ?? 2}`;
+  }
+
+  if (algorithm === "mlfq") {
+    const mode = params.mlfqMode === "simplified" ? "simplified" : "classic";
+    return `Stufen: ${params.queueLevels ?? 3} · Quantum: ${params.timeQuantum ?? 2} · Modus: ${mode}`;
+  }
+
   if (algorithm === "strictPriority") {
     const tieBreakLabels = {
       fifo: "FIFO",

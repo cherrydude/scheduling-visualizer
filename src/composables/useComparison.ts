@@ -1,4 +1,4 @@
-import { computed, reactive, watch } from "vue";
+import { reactive, watch } from "vue";
 import { buildComparisonRows } from "@/utils/compare";
 import { simulateScenario } from "@/simulation";
 import {
@@ -9,16 +9,18 @@ import {
 export function useComparison() {
   const state = reactive({
     weights: {
+      averageResponseTime: 0,
       averageTurnaroundTime: 0.4,
       averageWaitingTime: 0.3,
       throughput: 0.2,
       fairnessIndex: 0.1,
+      contextSwitches: 0,
+      preemptionCount: 0,
     },
   });
 
   const STORAGE_KEY = "scheduling-visualizer.comparison.weights.v1";
 
-  // load persisted weights if present
   try {
     if (typeof window !== "undefined") {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -33,7 +35,10 @@ export function useComparison() {
     // ignore invalid data
   }
 
-  function buildForScenario(scenario: ScenarioRecord) {
+  function buildForScenario(
+    scenario: ScenarioRecord,
+    weights: Record<string, number> = state.weights,
+  ) {
     const runs: Array<{
       id: string;
       label: string;
@@ -48,16 +53,12 @@ export function useComparison() {
         return;
       }
 
-      // Use the 1-based run index as the public run id in comparisons
-      // This avoids collisions when multiple runs share the same algorithm name
-      // and matches the numbering shown in the navigation.
       runs.push({ id: String(index + 1), label: run.algorithm, run: sim });
     });
 
-    return buildComparisonRows(runs, state.weights);
+    return buildComparisonRows(runs, weights);
   }
 
-  // persist weights on change
   watch(
     () => state.weights,
     (v) => {
@@ -66,7 +67,7 @@ export function useComparison() {
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
         }
       } catch {
-        /* ignore */
+        // ignore
       }
     },
     { deep: true },

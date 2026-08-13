@@ -1,19 +1,5 @@
 <template>
   <div class="multi-view" ref="multiViewRef">
-    <div class="multi-controls">
-      <button class="secondary-button" @click="togglePlay">
-        {{ hasPlayableRuns && playback.playing.value ? 'Pause' : 'Play' }}
-      </button>
-      <input
-        type="range"
-        :min="0"
-        :max="Math.max(playback.total.value - 1, 0)"
-        :disabled="!hasPlayableRuns"
-        v-model.number="currentIndex"
-      />
-      <span class="time-label">t {{ playbackTime }}</span>
-    </div>
-
     <div
       v-if="runCards.length"
       :class="['grid', { 'grid--stacked': stackRuns }]"
@@ -23,19 +9,15 @@
         <div class="cell-header">
           <div class="cell-title-row">
             <strong>Run {{ idx + 1 }} — {{ rs.algorithmLabel }}</strong>
-            <span class="run-score">Score {{ formatMetric(rs.score) }}</span>
           </div>
-          <div class="cell-meta-row">
-            <span class="run-params">{{ rs.paramLabel }}</span>
-            <span v-if="rs.algorithmName === 'mlfq'" class="mlfq-badge">
-              Queue-Lagen {{ rs.algorithmParams.queueLevels ?? 3 }}
+          <div v-if="getParamBadges(rs.algorithmName, rs.algorithmParams).length" class="cell-meta-row">
+            <span
+              v-for="badge in getParamBadges(rs.algorithmName, rs.algorithmParams)"
+              :key="badge"
+              class="param-badge"
+            >
+              {{ badge }}
             </span>
-            <span class="run-params">t {{ rs.totalTime }}</span>
-          </div>
-          <div class="cell-stats">
-            <span>W {{ formatMetric(rs.metrics.averageWaitingTime) }}</span>
-            <span>T {{ formatMetric(rs.metrics.averageTurnaroundTime) }}</span>
-            <span>F {{ formatMetric(rs.metrics.fairnessIndex) }}</span>
           </div>
         </div>
         <MiniGantt
@@ -43,7 +25,6 @@
           :cellWidth="multiViewCellWidth ?? undefined"
           :chartHeight="stackRuns ? 160 : 92"
           :segmentHeight="stackRuns ? 20 : 15"
-          :currentTime="playbackTime"
           :algorithm="rs.algorithmName"
           :queueLevels="rs.algorithmParams.queueLevels"
         />
@@ -58,10 +39,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from "vue";
+import { computed, ref } from "vue";
 import MiniGantt from "./MiniGantt.vue";
 import { simulateScenario } from "@/simulation";
-import { usePlayback } from "@/composables/usePlayback";
 import { createTimelineLayout } from "@/utils/timelineLayout";
 import type { AlgorithmParams, SimulationRun } from "@/types";
 import type { ScenarioRecord, ScenarioRunRecord } from "@/composables/useScenarioWorkspace";
@@ -148,29 +128,10 @@ const multiViewLayout = computed(() =>
 
 const multiViewCellWidth = computed(() => multiViewLayout.value.cellWidth);
 
-// usePlayback expects a ref with .value array -> create snapshot list for times 0..maxTime
-const snapshotsRef = computed(() => Array.from({ length: maxTime.value + 1 }, (_, i) => ({ time: i })));
-
-const playback = usePlayback(snapshotsRef as any, { intervalMs: 700 });
-
-const currentIndex = computed<number>({
-  get: () => playback.index.value,
-  set: (v: number) => playback.seek(v),
-});
-
-const playbackTime = computed(() => snapshotsRef.value[playback.index.value]?.time ?? 0);
-
 const runCards = computed(() =>
   runStates.value.map((run) => ({
     ...run,
     algorithmLabel: algorithmLabel(run.algorithmName),
-    paramLabel: formatParamLabel(run.algorithmName, run.algorithmParams),
-    score: run.finalMetrics?.fairnessIndex ?? null,
-    metrics: run.finalMetrics ?? {
-      averageWaitingTime: null,
-      averageTurnaroundTime: null,
-      fairnessIndex: null,
-    },
   })),
 );
 
@@ -205,24 +166,6 @@ const desiredMinPanelWidth = 360; // desired minimum width per panel before wrap
 
 const gridTemplateColumns = computed(() => `repeat(${columnsCount.value}, 1fr)`);
 
-const hasPlayableRuns = computed(() => runCards.value.length > 0);
-
-function togglePlay() {
-  if (!hasPlayableRuns.value) {
-    return;
-  }
-
-  playback.toggle();
-}
-
-function formatMetric(value: number | null | undefined): string {
-  if (value === null || value === undefined || Number.isNaN(value)) {
-    return "--";
-  }
-
-  return value.toFixed(2);
-}
-
 function algorithmLabel(algorithm: string): string {
   switch (algorithm) {
     case "roundRobin":
@@ -238,32 +181,55 @@ function algorithmLabel(algorithm: string): string {
   }
 }
 
-function formatParamLabel(
-  algorithm: string,
-  params?: AlgorithmParams,
-): string {
+function getParamBadges(algorithm: string, params?: AlgorithmParams): string[] {
   if (!params) {
-    return "";
+    return [];
   }
 
-  if (algorithm === "mlfq") {
-    return `Stufen ${params.queueLevels ?? 3} · Q ${params.timeQuantum ?? 2}`;
+  switch (algorithm) {
+    case "roundRobin":
+      return params.timeQuantum ? [`Q ${params.timeQuantum}`] : [];
+    case "lcfs":
+      return [
+        params.lcfsMode === "nonPreemptive" ? "non-preemptive" : "preemptive",
+        ...(params.lcfsTieBreak ? [`Tie: ${formatTieBreak(params.lcfsTieBreak)}`] : []),
+      ];
+    case "strictPriority":
+      return [
+        ...(params.strictPriorityTieBreak
+          ? [`Tie: ${formatTieBreak(params.strictPriorityTieBreak)}`]
+          : []),
+      ];
+    case "mlfq":
+      return [
+        ...(params.queueLevels ? [`Stufen ${params.queueLevels}`] : []),
+        ...(params.timeQuantum ? [`Q ${params.timeQuantum}`] : []),
+        ...(params.mlfqMode ? [`Mode: ${params.mlfqMode}`] : []),
+      ];
+    default:
+      return [];
   }
-
-  if (algorithm === "roundRobin") {
-    return `Q ${params.timeQuantum ?? 2}`;
-  }
-
-  if (algorithm === "lcfs") {
-    return params.lcfsMode === "nonPreemptive" ? "non-preemptive" : "preemptive";
-  }
-
-  return "";
 }
 
-onUnmounted(() => {
-  playback.pause();
-});
+function formatTieBreak(value: string): string {
+  switch (value) {
+    case "fifo":
+      return "FIFO";
+    case "arrivalTime":
+      return "Arrival";
+    case "remainingTime":
+      return "Remaining";
+    case "waitingTime":
+      return "Waiting";
+    case "id":
+      return "ID";
+    case "stack":
+      return "Stack";
+    default:
+      return value;
+  }
+}
+
 </script>
 
 <style scoped>
@@ -271,11 +237,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-}
-.multi-controls {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
 }
 .grid {
   display: grid;
@@ -304,21 +265,16 @@ onUnmounted(() => {
 .cell-title-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.2rem;
 }
-.cell-meta-row,
-.cell-stats {
+.cell-meta-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 0.35rem;
 }
-.run-score,
-.run-params,
-.mlfq-badge,
-.cell-stats span {
+.param-badge {
   border-radius: 999px;
   padding: 0.18rem 0.5rem;
   background: var(--chip-bg, rgba(148, 163, 184, 0.08));
@@ -326,20 +282,8 @@ onUnmounted(() => {
   font-size: 0.72rem;
   line-height: 1.2;
 }
-.run-score {
-  color: var(--accent);
-  background: var(--chip-accent-bg, rgba(125, 211, 252, 0.08));
-}
-.mlfq-badge {
-  color: var(--text);
-  background: rgba(234, 179, 8, 0.12);
-}
-.cell-stats span {
-  color: var(--text);
-}
 .cell :deep(.mini-gantt) {
   padding-top: 0.15rem;
   min-width: 0;
 }
-.time-label { color: var(--muted); }
 </style>

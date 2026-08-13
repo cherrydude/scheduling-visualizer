@@ -9,13 +9,13 @@
         class="modal panel algorithm-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Ranking bearbeiten"
+        aria-label="Anwendungsfall anpassen"
       >
         <div class="section-header">
           <div>
-            <h2>Ranking bearbeiten</h2>
+            <h2>Anwendungsfall anpassen</h2>
             <p class="subtitle subtitle-meta">
-              Gewichte fuer die Vergleichsmetrik einrichten
+              Lege fest, welche Kennzahlen fuer diesen Fall wichtiger sind.
             </p>
           </div>
           <button
@@ -50,11 +50,14 @@
           </form>
 
           <aside class="modal-help panel soft-panel algorithm-info-panel">
-            <h3>Parameternutzung</h3>
+            <h3>Vergleichslogik</h3>
             <p>
-              Definiere relative Bedeutung der Kennzahlen fuer das Ranking.
-              Hoehere Werte bedeuten groessere Gewichtung.
+              Definiere die relative Bedeutung der Kennzahlen fuer diesen
+              Anwendungsfall. Hoehere Werte bedeuten groessere Gewichtung.
             </p>
+
+            <h4>Antwortzeit</h4>
+            <p>Schnelle Reaktion bei interaktiven Systemen und UI-Workloads.</p>
 
             <h4>Turnaround</h4>
             <p>
@@ -69,6 +72,18 @@
             <p>
               Anzahl abgeschlossener Prozesse pro Zeiteinheit (hoeher ist
               besser).
+            </p>
+
+            <h4>Kontextwechsel</h4>
+            <p>
+              Signalisiert Preemption- und Scheduling-Overhead; niedriger ist
+              besser.
+            </p>
+
+            <h4>Präemptions</h4>
+            <p>
+              Hilft bei Fällen, in denen häufige Unterbrechungen unerwünscht
+              sind.
             </p>
 
             <h4>Fairness</h4>
@@ -97,10 +112,13 @@ const emit = defineEmits<{
 }>();
 
 const localWeights = reactive<Record<string, number>>({
+  averageResponseTime: 0,
   averageTurnaroundTime: 0.4,
   averageWaitingTime: 0.3,
   throughput: 0.2,
   fairnessIndex: 0.1,
+  contextSwitches: 0,
+  preemptionCount: 0,
 });
 
 watch(
@@ -117,9 +135,12 @@ function submit() {
 }
 
 function formatKey(key: string) {
+  if (key === "averageResponseTime") return "Antwortzeit";
   if (key === "averageTurnaroundTime") return "Durchlaufzeit";
   if (key === "averageWaitingTime") return "Wartezeit";
   if (key === "throughput") return "Durchsatz";
+  if (key === "contextSwitches") return "Kontextwechsel";
+  if (key === "preemptionCount") return "Präemptions";
   if (key === "fairnessIndex") return "Fairness";
   return key;
 }

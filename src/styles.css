@@ -44,6 +44,10 @@ html[data-theme="light"] textarea {
   background: var(--input-bg, #fff) !important;
   color: var(--text) !important;
 }
+
+html[data-theme="light"] .link-item.danger {
+  color: var(--danger) !important;
+}
 @font-face {
   font-family: 'Atkinson Hyperlegible';
   src: url('/src/assets/font/WOFF2/AtkinsonHyperlegibleNext-SemiBold.woff2') format('woff2');
@@ -613,6 +617,10 @@ topbar-brand strong {
   gap: 0.75rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.focus-column--multi .section-header-info {
+  display: none;
 }
 
 .section-header.compact {

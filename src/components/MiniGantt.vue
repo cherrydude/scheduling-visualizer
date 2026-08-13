@@ -8,7 +8,6 @@
       :segmentHeight="segmentHeight"
       :viewBox="viewBox"
       :offsetX="offsetX"
-      :currentTime="currentTime"
       :algorithm="algorithm"
       :queueLevels="queueLevels"
       labelAlignment="end"
@@ -27,7 +26,6 @@ const props = defineProps<{
   cellWidth?: number;
   chartHeight?: number;
   segmentHeight?: number;
-  currentTime?: number;
   algorithm?: string;
   queueLevels?: number;
 }>();
@@ -73,7 +71,6 @@ onBeforeUnmount(() => {
 
 const chartHeight = computed(() => props.chartHeight ?? 120);
 const segmentHeight = computed(() => props.segmentHeight ?? 18);
-const currentTime = computed(() => props.currentTime ?? 0);
 
 const maxTime = computed(() => Math.max(8, ...(props.segments?.map((s) => s.end) ?? [8])));
 const tickMarks = computed(() => Array.from({ length: maxTime.value + 1 }, (_, i) => i));
