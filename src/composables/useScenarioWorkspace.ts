@@ -277,6 +277,31 @@ export function getActiveRun(scenario: ScenarioRecord): ScenarioRunRecord | null
   return scenario.runs[scenario.activeRunIndex] ?? null;
 }
 
+export function getScenarioRenderSignature(
+  scenario: Pick<ScenarioRecord, "id" | "tickSize" | "processes"> | null,
+): string {
+  if (!scenario) {
+    return "no-scenario";
+  }
+
+  return [
+    `scenario:${scenario.id}`,
+    `tick:${scenario.tickSize}`,
+    `processes:${scenario.processes.length}`,
+    ...scenario.processes.map((process) =>
+      [
+        process.id,
+        process.name,
+        process.arrivalTime,
+        process.burstTime,
+        process.priority,
+        process.color,
+        process.group ?? "",
+      ].join(":"),
+    ),
+  ].join("|");
+}
+
 function loadScenarios(): ScenarioRecord[] {
   if (typeof window === "undefined") {
     return [];

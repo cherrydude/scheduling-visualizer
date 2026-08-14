@@ -613,6 +613,7 @@ import {
   createBlankScenarioDraft,
   buildSimulationScenario,
   getActiveRun,
+  getScenarioRenderSignature,
   useScenarioWorkspace,
   type ScenarioDraft,
 } from "@/composables/useScenarioWorkspace";
@@ -1827,7 +1828,7 @@ const focusViewBox = computed(() => {
 
 const focusRenderKey = computed(
   () =>
-    `${activeScenario.value?.id ?? "no-scenario"}:${activeRunIndex.value}`,
+    `${getScenarioRenderSignature(activeScenario.value)}:${activeRunIndex.value}`,
 );
 
 const syncActive = ref(false);

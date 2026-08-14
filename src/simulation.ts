@@ -501,6 +501,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         cpuUtilization: 0,
         idleShare: 1,
         contextSwitches: 0,
+        preemptionCount: 0,
         fairnessIndex: null,
         completedCount: 0,
       },

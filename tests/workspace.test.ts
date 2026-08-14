@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSimulationScenario,
   getActiveRun,
+  getScenarioRenderSignature,
   type ScenarioRecord,
 } from "@/composables/useScenarioWorkspace";
 
@@ -52,5 +53,27 @@ describe("workspace helpers", () => {
     expect(simScenario?.algorithm).toBe("roundRobin");
     expect(simScenario?.processes).toHaveLength(1);
     expect(simScenario?.processes[0]).not.toBe(scenario.processes[0]);
+  });
+
+  it("changes the render signature when the scenario structure changes", () => {
+    const signatureA = getScenarioRenderSignature(scenario);
+    const signatureB = getScenarioRenderSignature({
+      ...scenario,
+      tickSize: 2,
+      processes: [
+        ...scenario.processes,
+        {
+          id: "p2",
+          name: "P2",
+          arrivalTime: 2,
+          burstTime: 4,
+          priority: 2,
+          color: "#fbbf24",
+        },
+      ],
+    });
+
+    expect(signatureA).not.toBe(signatureB);
+    expect(signatureA).toContain("scenario-1");
   });
 });
