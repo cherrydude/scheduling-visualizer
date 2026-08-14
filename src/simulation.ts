@@ -152,11 +152,11 @@ function createMetrics(
         0,
       ) / completedProcesses.length
     : null;
-  const averageResponseTime = completedProcesses.length
-    ? completedProcesses.reduce(
-        (sum, process) => sum + (process.responseTime ?? 0),
-        0,
-      ) / completedProcesses.length
+  const responseTimes = completedProcesses
+    .map((p) => p.responseTime)
+    .filter((rt): rt is number => rt !== null && Number.isFinite(rt));
+  const averageResponseTime = responseTimes.length
+    ? responseTimes.reduce((sum, rt) => sum + rt, 0) / responseTimes.length
     : null;
 
   const cpuUtilization = currentTime > 0 ? busyTicks / currentTime : 0;
@@ -166,8 +166,8 @@ function createMetrics(
   ).length;
 
   const fairnessValues = completedProcesses
-    .map((process) => process.executedTime || process.burstTime)
-    .filter((value) => value > 0);
+    .map((process) => process.executedTime)
+    .filter((value) => Number.isFinite(value) && value > 0);
   const fairnessIndex = fairnessValues.length
     ? Math.pow(
         fairnessValues.reduce((sum, value) => sum + value, 0),
