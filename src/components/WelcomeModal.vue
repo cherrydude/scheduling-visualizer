@@ -50,15 +50,17 @@
         <div>Leertaste = Play/Pause · ← / → = Schritt · R = Reset</div>
       </div>
 
-      <label class="checkbox">
-        <input type="checkbox" v-model="dontShowAgain" />
-        <span>Diese Meldung nicht mehr anzeigen</span>
-      </label>
+      <div class="welcome-bottom">
+        <label class="checkbox">
+          <input type="checkbox" v-model="dontShowAgain" />
+          <span>Diese Meldung nicht mehr anzeigen</span>
+        </label>
 
-      <div class="welcome-footer">
-        <button class="secondary-button" type="button" @click="$emit('close')">
-          Schließen
-        </button>
+        <div class="welcome-footer">
+          <button class="secondary-button" type="button" @click="$emit('close')">
+            Schließen
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -198,16 +200,27 @@ watch(dontShowAgain, (checked) => {
   line-height: 1.5;
 }
 
+.welcome-bottom {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-left: 0;
+}
+
 .checkbox {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   color: var(--muted);
   margin-top: 0.25rem;
+  margin-left: 0;
+  white-space: nowrap;
 }
 
 .welcome-footer {
-  width: 100%;
+  width: auto;
   display: flex;
   justify-content: flex-end;
   margin-top: -4px;
