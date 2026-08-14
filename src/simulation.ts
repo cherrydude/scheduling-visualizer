@@ -223,6 +223,8 @@ function createSnapshot(
     currentProcessId: currentProcess?.id ?? null,
     currentProcessName: currentProcess?.name ?? null,
     readyQueue: readyQueue.map((process) => process.name),
+    readyQueueIds: readyQueue.map((process) => process.id),
+    readyQueueDetails: readyQueue.map((process) => ({ id: process.id, name: process.name, queueLevel: process.queueLevel ?? 0 })),
     readyQueueLevels: readyQueue.map((process) => process.queueLevel ?? 0),
     readyQueueQuantums: isMlfq
       ? readyQueue.map((process) => {
