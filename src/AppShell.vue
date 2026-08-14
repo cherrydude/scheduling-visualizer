@@ -3,6 +3,8 @@
     <WelcomeModal
       :modelValue="showWelcomeModal"
       @close="closeWelcomeModal"
+      @start-demo="startWelcomeDemo"
+      @create-scenario="createWelcomeScenario"
       @open-help="openHelpFromWelcome"
     />
 
@@ -1987,6 +1989,18 @@ function closeWelcomeModal(): void {
   if (typeof window !== "undefined") {
     window.sessionStorage.setItem("scheduling-visualizer.welcome-seen", "1");
   }
+}
+
+function startWelcomeDemo(): void {
+  closeWelcomeModal();
+  cloneDraft(scenarioPresets.classroom);
+  saveScenario();
+  navigate("/");
+}
+
+function createWelcomeScenario(): void {
+  closeWelcomeModal();
+  openGeneratorModal();
 }
 
 function openHelpFromWelcome(): void {
