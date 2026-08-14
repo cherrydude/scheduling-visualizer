@@ -33,10 +33,10 @@ export function createTimelineLayout(params: {
 
   if (forceFit) {
     const shouldStretch = safeLength <= 16;
-    const fittedCellWidth = Math.min(maxCellWidth, rawCellWidth);
+    const fittedCellWidth = shouldStretch ? rawCellWidth : maxCellWidth;
 
     return {
-      cellWidth: Math.max(1, shouldStretch ? rawCellWidth : fittedCellWidth),
+      cellWidth: Math.max(1, fittedCellWidth),
       svgWidth: safeWidth,
       shouldScroll: false,
       mode: "fit",
