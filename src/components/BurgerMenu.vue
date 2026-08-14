@@ -3,7 +3,10 @@
     <button
       class="burger-button"
       type="button"
-      aria-label="Menue"
+      aria-label="Menü öffnen"
+      aria-haspopup="menu"
+      :aria-expanded="String(open)"
+      aria-controls="burger-menu-panel"
       @click="toggleMenu"
     >
       <span></span>
@@ -15,7 +18,10 @@
       <div
         v-if="open"
         ref="panelRef"
+        id="burger-menu-panel"
         class="burger-panel panel"
+        role="menu"
+        aria-label="Szenario-Menü"
         :style="panelStyle"
       >
         <div class="burger-section">
@@ -24,6 +30,7 @@
             <button
               class="secondary-button compact"
               type="button"
+              aria-label="Neues Szenario anlegen"
               title="Neues Szenario anlegen"
               @click="handleCreate"
             >
@@ -37,7 +44,9 @@
               :key="scenario.id"
               type="button"
               class="scenario-item"
+              role="menuitem"
               :class="{ active: scenario.id === activeScenarioId }"
+              :aria-label="`Szenario laden: ${scenario.title}`"
               title="Dieses Szenario laden"
               @click="handleSelect(scenario.id)"
             >
@@ -54,6 +63,7 @@
             <button
               type="button"
               class="link-item"
+              aria-label="Szenario duplizieren"
               title="Szenario duplizieren"
               @click="handleDuplicate(activeScenarioId)"
             >
@@ -62,6 +72,7 @@
             <button
               type="button"
               class="link-item"
+              aria-label="Szenario umbenennen"
               title="Szenario umbenennen"
               @click="handleRename(activeScenarioId)"
             >
@@ -70,6 +81,7 @@
             <button
               type="button"
               class="link-item danger"
+              aria-label="Szenario löschen"
               title="Szenario löschen"
               @click="handleDelete(activeScenarioId)"
             >
@@ -85,10 +97,10 @@
             <strong>Information</strong>
           </div>
 
-          <button type="button" class="link-item" @click="handleAbout">
+          <button type="button" class="link-item" aria-label="Über mich" @click="handleAbout">
             Über mich
           </button>
-          <button type="button" class="link-item" title="Hilfe und Wissen öffnen" @click="handleKnowledge">
+          <button type="button" class="link-item" aria-label="Wissen und Hilfe öffnen" title="Hilfe und Wissen öffnen" @click="handleKnowledge">
             Wissen
           </button>
         </div>

@@ -6,6 +6,7 @@
       role="dialog"
       aria-modal="true"
       aria-label="Scheduling Visualizer"
+      @keydown.esc.prevent="$emit('close')"
     >
       <div class="welcome-copy">
         <p class="eyebrow">Scheduling Visualizer</p>
@@ -35,18 +36,18 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ modelValue: boolean }>();
+import { ref } from 'vue';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
-defineEmits<{
+const props = defineProps<{ modelValue: boolean }>();
+
+const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'open-help'): void;
 }>();
 
-import { ref } from 'vue';
-import { useFocusTrap } from '@/composables/useFocusTrap';
-
 const modalRoot = ref<HTMLElement | null>(null);
-useFocusTrap(modalRoot);
+useFocusTrap(modalRoot, () => emit('close'));
 </script>
 
 <style scoped>

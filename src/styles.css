@@ -119,6 +119,7 @@ html[data-theme="light"] .link-item.danger {
   --gantt-bg: var(--panel-bg);
   --text: #000000; /* stronger text for readability */
   --muted: #374151; /* darker muted text for contrast */
+  --secondary-text: #475569;
   --secondary-bg: #eef2ff;
   --input-border: #e6e9ef;
   --interactive: #1152A7; /* primary */
@@ -172,6 +173,7 @@ html[data-theme="light"] .link-item.danger {
     --panel-shadow: 0 6px 18px rgba(2,6,23,0.6);
     --text: #e2e8f0;
     --muted: #b6c2d3;
+    --secondary-text: #cbd5e1;
     --interactive: #60a5fa;
     --accent: #7dd3fc;
     --on-primary: #04111f;
@@ -204,6 +206,7 @@ html[data-theme="dark"] {
   --panel-shadow: 0 6px 18px rgba(2,6,23,0.6);
   --text: #e2e8f0;
   --muted: #b6c2d3;
+  --secondary-text: #cbd5e1;
   --interactive: #60a5fa;
   --accent: #7dd3fc;
   --on-primary: #04111f;
@@ -511,6 +514,18 @@ topbar-brand strong {
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible,
+.status-card--clickable:focus-visible {
+  outline: 3px solid rgba(17, 82, 167, 0.35);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(17, 82, 167, 0.12);
+}
+
 .status-card--clickable:hover,
 .status-card--clickable:focus-visible {
   transform: translateY(-2px);
@@ -563,7 +578,7 @@ topbar-brand strong {
 .event-item p,
 .modal-help p,
 .warning-banner {
-  color: #94a3b8;
+  color: var(--secondary-text, var(--muted));
 }
 
 .focus-column,
@@ -712,7 +727,7 @@ topbar-brand strong {
   justify-content: space-between;
   gap: 1rem;
   margin-top: 0.8rem;
-  color: #94a3b8;
+  color: var(--secondary-text, var(--muted));
   flex-wrap: wrap;
 }
 
@@ -762,6 +777,7 @@ topbar-brand strong {
   border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(148, 163, 184, 0.08);
+  color: var(--text);
 }
 
 .modal-overlay {

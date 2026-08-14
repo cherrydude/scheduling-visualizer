@@ -6,6 +6,7 @@
         role="dialog"
         aria-modal="true"
         :aria-label="modalTitle"
+        @keydown.esc.prevent="$emit('close')"
       >
       <div class="section-header">
         <div>
@@ -207,7 +208,7 @@ const emit = defineEmits<{
 
 const algorithm = ref<AlgorithmType>("roundRobin");
 const modalRoot = ref<HTMLElement | null>(null);
-useFocusTrap(modalRoot);
+useFocusTrap(modalRoot, () => emit("close"));
 const timeQuantum = ref(2);
 const snapshotInterval = ref(1);
 const queueLevels = ref(3);

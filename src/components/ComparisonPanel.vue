@@ -45,6 +45,14 @@
     />
 
     <div class="comparison-table">
+      <div
+        class="visually-hidden"
+        role="status"
+        aria-live="polite"
+      >
+        {{ bestRowId ? `Bester Lauf: Run ${bestRowId}.` : '' }}
+        {{ worstRowId ? `Schwächster Lauf: Run ${worstRowId}.` : '' }}
+      </div>
       <div class="table-shell">
         <table>
           <thead>
@@ -71,7 +79,11 @@
                 <strong>{{ row.label }}</strong>
               </td>
               <td>
-                <span class="status-pill" :class="statusClass(row.id)">
+                <span
+                  class="status-pill"
+                  :class="statusClass(row.id)"
+                  :aria-label="statusLabel(row.id) || 'Neutraler Status'"
+                >
                   {{ statusLabel(row.id) }}
                 </span>
               </td>

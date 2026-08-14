@@ -34,8 +34,16 @@
       v-if="showGeneratorModal"
       class="modal-overlay"
       @click.self="closeGeneratorModal"
+      @keydown.esc.prevent="closeGeneratorModal"
     >
-      <div class="modal panel" ref="generatorModalRef" tabindex="-1">
+      <div
+        class="modal panel"
+        ref="generatorModalRef"
+        tabindex="-1"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Szenario anlegen"
+      >
         <div class="section-header">
           <h2>{{ generatorModalTitle }}</h2>
           <button
@@ -618,6 +626,7 @@ import MultiView from "./components/MultiView.vue";
 import StackList from "./components/StackList.vue";
 import ComparisonPanel from "./components/ComparisonPanel.vue";
 import { usePlayback } from "@/composables/usePlayback";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 import { createTimelineLayout } from "./utils/timelineLayout";
 import { sharedCellWidth, computeSharedCellWidth } from "@/composables/useTimelineSync";
 import type {
@@ -843,6 +852,7 @@ const algorithmModalSeed = ref<{
   };
 } | null>(null);
 const generatorModalRef = ref<HTMLElement | null>(null);
+useFocusTrap(generatorModalRef, closeGeneratorModal);
 const ganttWrapRef = ref<HTMLElement | null>(null);
 const dashboardGridRef = ref<HTMLElement | null>(null);
 const focusColumnRef = ref<HTMLElement | null>(null);
