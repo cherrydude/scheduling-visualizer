@@ -29,4 +29,30 @@ describe("createTimelineLayout", () => {
     expect(layout.shouldScroll).toBe(false);
     expect(layout.cellWidth).toBe(44);
   });
+
+  it("expands the svg width for long force-fit timelines instead of clipping them", () => {
+    const layout = createTimelineLayout({
+      timelineLength: 70,
+      containerWidth: 1200,
+      padding: 140,
+      maxCellWidth: 44,
+      forceFit: true,
+    });
+
+    expect(layout.cellWidth).toBe(44);
+    expect(layout.svgWidth).toBeGreaterThan(1200);
+    expect(layout.svgWidth).toBeGreaterThan(70 * 44 + 80 + 12);
+  });
+
+  it("keeps the final tick fully visible for a long timeline", () => {
+    const layout = createTimelineLayout({
+      timelineLength: 45,
+      containerWidth: 1200,
+      padding: 140,
+      maxCellWidth: 44,
+      forceFit: true,
+    });
+
+    expect(layout.svgWidth).toBeGreaterThan(45 * 44 + 80 + 12);
+  });
 });

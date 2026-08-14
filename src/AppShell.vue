@@ -1826,9 +1826,19 @@ const focusViewBox = computed(() => {
   return `0 0 ${Math.max(focusLayout.value.svgWidth, focusViewportWidth.value || 860)} ${chartHeight.value}`;
 });
 
+const scenarioRenderToken = ref(0);
+
+watch(
+  () => activeScenario.value,
+  () => {
+    scenarioRenderToken.value += 1;
+  },
+  { deep: true },
+);
+
 const focusRenderKey = computed(
   () =>
-    `${getScenarioRenderSignature(activeScenario.value)}:${activeRunIndex.value}`,
+    `${getScenarioRenderSignature(activeScenario.value)}:${activeRunIndex.value}:${scenarioRenderToken.value}`,
 );
 
 const syncActive = ref(false);

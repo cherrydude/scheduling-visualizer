@@ -76,4 +76,27 @@ describe("workspace helpers", () => {
     expect(signatureA).not.toBe(signatureB);
     expect(signatureA).toContain("scenario-1");
   });
+
+  it("changes the render signature when seed or algorithm settings change", () => {
+    const signatureA = getScenarioRenderSignature(scenario);
+    const signatureB = getScenarioRenderSignature({
+      ...scenario,
+      seed: 99,
+      runs: [
+        {
+          ...scenario.runs[0],
+          algorithm: "strictPriority",
+          algorithmParams: {
+            ...scenario.runs[0].algorithmParams,
+            timeQuantum: 6,
+            strictPriorityTieBreak: "priority",
+          },
+        },
+      ],
+      activeRunIndex: 0,
+      appliedAlgorithm: null,
+    });
+
+    expect(signatureA).not.toBe(signatureB);
+  });
 });

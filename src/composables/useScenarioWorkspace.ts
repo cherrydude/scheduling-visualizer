@@ -278,15 +278,27 @@ export function getActiveRun(scenario: ScenarioRecord): ScenarioRunRecord | null
 }
 
 export function getScenarioRenderSignature(
-  scenario: Pick<ScenarioRecord, "id" | "tickSize" | "processes"> | null,
+  scenario: Pick<
+    ScenarioRecord,
+    "id" | "seed" | "tickSize" | "processes" | "runs" | "activeRunIndex"
+  > | null,
 ): string {
   if (!scenario) {
     return "no-scenario";
   }
 
+  const activeRun =
+    scenario.runs[
+      Math.max(0, Math.min(scenario.activeRunIndex, scenario.runs.length - 1))
+    ] ?? null;
+
   return [
     `scenario:${scenario.id}`,
+    `seed:${scenario.seed}`,
     `tick:${scenario.tickSize}`,
+    `activeRun:${scenario.activeRunIndex}`,
+    `algorithm:${activeRun?.algorithm ?? "none"}`,
+    `algorithmParams:${JSON.stringify(activeRun?.algorithmParams ?? {})}`,
     `processes:${scenario.processes.length}`,
     ...scenario.processes.map((process) =>
       [
