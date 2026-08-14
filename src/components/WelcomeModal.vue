@@ -91,12 +91,14 @@ watchEffect(() => {
 
 <style scoped>
 .welcome-modal {
-  max-width: 620px;
+  max-width: 640px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   align-items: flex-start;
+  padding: 1.5rem 1.5rem 1.25rem;
+  border-radius: 18px;
 }
 
 .welcome-header {
@@ -132,6 +134,7 @@ watchEffect(() => {
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: flex-start;
+  align-items: center;
 }
 
 .primary-button,
@@ -141,10 +144,29 @@ watchEffect(() => {
   font: inherit;
 }
 
+.primary-button,
+.secondary-button {
+  border-radius: 12px;
+  padding: 0.78rem 1.1rem;
+  min-height: 44px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.primary-button {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.link-button:hover,
+.icon-button:hover {
+  opacity: 0.96;
+}
+
 .link-button {
   background: transparent;
   border: none;
-  padding: 0;
+  padding: 0.2rem 0;
   color: var(--link);
   text-decoration: underline;
   cursor: pointer;
@@ -153,8 +175,8 @@ watchEffect(() => {
 .welcome-shortcuts {
   width: 100%;
   display: grid;
-  gap: 0.25rem;
-  padding-top: 0.75rem;
+  gap: 0.35rem;
+  padding-top: 0.9rem;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
 }
 
@@ -168,12 +190,14 @@ watchEffect(() => {
   align-items: center;
   gap: 0.65rem;
   color: var(--muted);
+  margin-top: 0.25rem;
 }
 
 .welcome-footer {
   width: 100%;
   display: flex;
   justify-content: flex-end;
+  margin-top: -4px;
 }
 
 .icon-button {
@@ -183,5 +207,7 @@ watchEffect(() => {
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 8px;
 }
 </style>
