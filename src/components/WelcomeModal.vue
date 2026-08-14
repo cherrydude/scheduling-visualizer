@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue';
+import { ref, watch, watchEffect } from 'vue';
 import { useFocusTrap } from '@/composables/useFocusTrap';
 
 const props = defineProps<{ modelValue: boolean }>();
@@ -79,12 +79,25 @@ const emit = defineEmits<{
 
 const modalRoot = ref<HTMLElement | null>(null);
 const dontShowAgain = ref(false);
+const STORAGE_KEY = "scheduling-visualizer.welcome-seen";
 
 useFocusTrap(modalRoot, () => emit('close'));
 
 watchEffect(() => {
-  if (!props.modelValue) {
-    dontShowAgain.value = false;
+  if (typeof window !== "undefined" && props.modelValue) {
+    dontShowAgain.value = window.localStorage.getItem(STORAGE_KEY) === "1";
+  }
+});
+
+watch(dontShowAgain, (checked) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (checked) {
+    window.localStorage.setItem(STORAGE_KEY, "1");
+  } else {
+    window.localStorage.removeItem(STORAGE_KEY);
   }
 });
 </script>

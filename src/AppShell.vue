@@ -1978,17 +1978,15 @@ function openWelcomeIfNeeded(): void {
     return;
   }
 
-  const seen = window.sessionStorage.getItem(
-    "scheduling-visualizer.welcome-seen",
-  );
+  const key = "scheduling-visualizer.welcome-seen";
+  const seen =
+    window.localStorage.getItem(key) === "1" ||
+    window.sessionStorage.getItem(key) === "1";
   showWelcomeModal.value = !seen;
 }
 
 function closeWelcomeModal(): void {
   showWelcomeModal.value = false;
-  if (typeof window !== "undefined") {
-    window.sessionStorage.setItem("scheduling-visualizer.welcome-seen", "1");
-  }
 }
 
 function startWelcomeDemo(): void {
@@ -2422,17 +2420,75 @@ function saveScenario(): void {
   generatorMode.value = "create";
 }
 
+function isTextInputTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tag = target.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    target.isContentEditable
+  );
+}
+
+function handleGlobalShortcuts(event: KeyboardEvent): void {
+  if (
+    showWelcomeModal.value ||
+    showGeneratorModal.value ||
+    showAlgorithmModal.value ||
+    isTextInputTarget(event.target)
+  ) {
+    return;
+  }
+
+  const key = event.key;
+  const normalizedKey = key.toLowerCase();
+  const isSpace = key === " " || key === "Spacebar" || event.code === "Space";
+
+  if (isSpace) {
+    event.preventDefault();
+    if (playback.playing.value) {
+      handlePlaybackPause();
+    } else {
+      void handlePlaybackPlay();
+    }
+    return;
+  }
+
+  if (key === "ArrowRight") {
+    event.preventDefault();
+    playback.stepForward();
+    return;
+  }
+
+  if (key === "ArrowLeft") {
+    event.preventDefault();
+    playback.stepBack();
+    return;
+  }
+
+  if (normalizedKey === "r") {
+    event.preventDefault();
+    handlePlaybackReset();
+  }
+}
+
 onMounted(() => {
   openWelcomeIfNeeded();
   syncRoute();
   animateDashboardStep();
   window.addEventListener("popstate", syncRoute);
+  window.addEventListener("keydown", handleGlobalShortcuts);
 });
 
 onBeforeUnmount(() => {
   pausePlayback();
   if (typeof window !== "undefined") {
     window.removeEventListener("popstate", syncRoute);
+    window.removeEventListener("keydown", handleGlobalShortcuts);
   }
 });
 </script>
