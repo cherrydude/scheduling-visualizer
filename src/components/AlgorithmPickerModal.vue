@@ -27,6 +27,7 @@
             <span>Algorithmus</span>
             <select v-model="algorithm" class="algorithm-control">
               <option value="roundRobin">Round Robin</option>
+              <option value="sjf">Shortest Job First</option>
               <option value="lcfs">LCFS</option>
               <option value="strictPriority">Strict Priority</option>
               <option value="mlfq">MLFQ</option>
@@ -78,6 +79,10 @@
                 Kleine Prioritätszahlen werden zuerst behandelt. Gleichstand wird
                 über die ausgewählte Tie-Break-Regel aufgelöst.
               </p>
+              <p class="warning-note">
+                Achtung: Bei dauerhaft höher priorisierten Ankünften kann
+                Starvation für niedrige Prioritäten auftreten.
+              </p>
             </template>
             <template v-else-if="algorithm === 'mlfq'">
               <label class="algorithm-field">
@@ -111,6 +116,24 @@
               <p class="subtitle">
                 Prozesse starten in der obersten Ebene. Bei Quantum-Ende werden
                 sie in die nächstniedrigere Ebene verschoben.
+              </p>
+            </template>
+            <template v-else-if="algorithm === 'sjf'">
+              <label class="algorithm-field">
+                <span>Modus</span>
+                <select v-model="sjfMode" class="algorithm-control">
+                  <option value="nonPreemptive">Nicht-präemptiv (SJF)</option>
+                  <option value="preemptive">Präemptiv (SRTF)</option>
+                </select>
+              </label>
+
+              <p class="subtitle">
+                Bei SRTF wird ein laufender Prozess verdrängt, wenn ein neuer
+                Prozess mit kürzerer Restlaufzeit eintrifft.
+              </p>
+              <p class="warning-note" v-if="sjfMode === 'preemptive'">
+                Achtung: Lange Jobs können durch viele kurze Ankünfte stark
+                verzögert werden (Starvation-Risiko).
               </p>
             </template>
             <p v-else class="subtitle">
@@ -167,6 +190,7 @@ const props = defineProps<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    sjfMode?: "nonPreemptive" | "preemptive";
     mlfqMode?: "classic" | "simplified";
     strictPriorityTieBreak?:
       | "fifo"
@@ -191,6 +215,7 @@ const emit = defineEmits<{
         timeQuantum: number;
         snapshotInterval: number;
         queueLevels: number;
+        sjfMode?: "nonPreemptive" | "preemptive";
         mlfqMode?: "classic" | "simplified";
         strictPriorityTieBreak?:
           | "fifo"
@@ -212,6 +237,7 @@ useFocusTrap(modalRoot, () => emit("close"));
 const timeQuantum = ref(2);
 const snapshotInterval = ref(1);
 const queueLevels = ref(3);
+const sjfMode = ref<"nonPreemptive" | "preemptive">("nonPreemptive");
 const mlfqMode = ref<"classic" | "simplified">("classic");
 const strictPriorityTieBreak = ref<
   "fifo" | "arrivalTime" | "remainingTime" | "waitingTime" | "id"
@@ -250,6 +276,26 @@ const algorithmInfo = computed(() => {
     };
   }
 
+  if (algorithm.value === "sjf") {
+    const isSrtf = sjfMode.value === "preemptive";
+    return {
+      title: isSrtf ? "Shortest Remaining Time First" : "Shortest Job First",
+      description:
+        isSrtf
+          ? "SRTF ist die präemptive Variante von SJF. Trifft ein kürzerer Job ein, wird der laufende Prozess unterbrochen."
+          : "SJF wählt den Prozess mit der kürzesten verbleibenden Laufzeit aus der Ready Queue und führt ihn ohne Unterbrechung zu Ende.",
+      parameterImpact: [
+        isSrtf
+          ? "Kurze Jobs reagieren schneller, dafür steigen Kontextwechsel durch mögliche Verdrängungen."
+          : "Kürzere Jobs werden bevorzugt und oft schneller abgeschlossen.",
+        "Bei gleicher Restzeit entscheidet zuerst die frühere Ankunft, danach die Prozess-ID.",
+      ],
+      note: isSrtf
+        ? "Die Verdrängung erfolgt nur bei strikt kürzerer Restlaufzeit. Achtung: Viele kurze Ankünfte können lange Jobs stark verzögern (Starvation-Risiko)."
+        : "Nicht-präemptiv: Ein laufender Prozess wird nicht verdrängt.",
+    };
+  }
+
   if (algorithm.value === "strictPriority") {
     return {
       title: "Strict Priority",
@@ -259,7 +305,7 @@ const algorithmInfo = computed(() => {
         "Kleinere Prioritätszahlen werden zuerst behandelt.",
         "Der Tie-Break steuert, was bei gleicher Priorität als Nächstes läuft.",
       ],
-      note: "Strict Priority ist präemptiv implementiert und reagiert auf höher priorisierte Ankünfte.",
+      note: "Strict Priority ist präemptiv implementiert und reagiert auf höher priorisierte Ankünfte. Achtung: Bei dauerhaft hoher Last kann Starvation niedriger Prioritäten auftreten.",
     };
   }
 
@@ -296,6 +342,7 @@ function submitForm() {
       timeQuantum: Math.max(1, Math.floor(timeQuantum.value || 1)),
       snapshotInterval: Math.max(1, Math.floor(snapshotInterval.value || 1)),
       queueLevels: Math.max(1, Math.floor(queueLevels.value || 1)),
+      sjfMode: sjfMode.value,
       mlfqMode: mlfqMode.value,
       strictPriorityTieBreak: strictPriorityTieBreak.value,
       lcfsMode: lcfsMode.value,
@@ -316,6 +363,7 @@ watch(
     snapshotInterval.value =
       props.initialAlgorithmParams?.snapshotInterval ?? 1;
     queueLevels.value = props.initialAlgorithmParams?.queueLevels ?? 3;
+    sjfMode.value = props.initialAlgorithmParams?.sjfMode ?? "nonPreemptive";
     mlfqMode.value = props.initialAlgorithmParams?.mlfqMode ?? "classic";
     strictPriorityTieBreak.value =
       props.initialAlgorithmParams?.strictPriorityTieBreak ?? "fifo";
@@ -356,6 +404,13 @@ watch(
 .subtitle {
   margin: 4px 0 0;
   color: var(--muted);
+}
+
+.warning-note {
+  margin: 6px 0 0;
+  color: #f59e0b;
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .subtitle-meta {

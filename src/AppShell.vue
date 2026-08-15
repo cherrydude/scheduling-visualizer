@@ -126,6 +126,34 @@
               <button
                 class="secondary-button"
                 type="button"
+                @click="loadPreset('sjfVsSrtf')"
+              >
+                SJF/SRTF
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                @click="loadPreset('rrQuantumLab')"
+              >
+                RR-Quantum
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                @click="loadPreset('priorityStarvation')"
+              >
+                Starvation
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                @click="loadPreset('mlfqStaircase')"
+              >
+                MLFQ-Treppe
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
                 @click="randomizeDraft"
               >
                 Zufall
@@ -507,6 +535,9 @@
           </div>
 
           <div class="stack-area">
+            <p v-if="starvationAlert" class="starvation-alert">
+              {{ starvationAlert }}
+            </p>
             <StackList
               v-if="stackItems.length"
               :items="stackItems"
@@ -833,6 +864,60 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
       { id: "C6", name: "C6", arrivalTime: 3, burstTime: 1, priority: 1, color: 'var(--data-9)', group: "C" },
     ],
   },
+  sjfVsSrtf: {
+    title: "SJF vs SRTF",
+    description:
+      "Ein langer Startprozess und mehrere kurze Spätankömmlinge machen den Unterschied zwischen nicht-präemptivem SJF und präemptivem SRTF sofort sichtbar.",
+    seed: 707,
+    tickSize: 1,
+    processes: [
+      { id: "L", name: "L", arrivalTime: 0, burstTime: 10, priority: 3, color: 'var(--data-8)', group: "A" },
+      { id: "S1", name: "S1", arrivalTime: 1, burstTime: 1, priority: 2, color: 'var(--data-10)', group: "B" },
+      { id: "S2", name: "S2", arrivalTime: 2, burstTime: 2, priority: 2, color: 'var(--data-3)', group: "B" },
+      { id: "S3", name: "S3", arrivalTime: 3, burstTime: 1, priority: 1, color: 'var(--data-11)', group: "C" },
+    ],
+  },
+  rrQuantumLab: {
+    title: "RR Quantum-Labor",
+    description:
+      "Vier ähnliche Prozesse mit gleicher Ankunft zeigen klar den Einfluss eines kleinen vs. großen Round-Robin-Quantums auf Reaktivität und Kontextwechsel.",
+    seed: 808,
+    tickSize: 1,
+    processes: [
+      { id: "R1", name: "R1", arrivalTime: 0, burstTime: 7, priority: 2, color: 'var(--data-1)', group: "A" },
+      { id: "R2", name: "R2", arrivalTime: 0, burstTime: 6, priority: 2, color: 'var(--data-2)', group: "A" },
+      { id: "R3", name: "R3", arrivalTime: 0, burstTime: 5, priority: 2, color: 'var(--data-4)', group: "B" },
+      { id: "R4", name: "R4", arrivalTime: 0, burstTime: 4, priority: 2, color: 'var(--data-5)', group: "B" },
+    ],
+  },
+  priorityStarvation: {
+    title: "Priority Starvation",
+    description:
+      "Ein langer Low-Priority-Prozess konkurriert mit laufend eintreffenden High-Priority-Kurzjobs und macht Starvation in Strict Priority deutlich.",
+    seed: 909,
+    tickSize: 1,
+    processes: [
+      { id: "BG", name: "BG", arrivalTime: 0, burstTime: 14, priority: 5, color: 'var(--data-16)', group: "Hintergrund" },
+      { id: "H1", name: "H1", arrivalTime: 1, burstTime: 2, priority: 1, color: 'var(--data-12)', group: "High" },
+      { id: "H2", name: "H2", arrivalTime: 3, burstTime: 2, priority: 1, color: 'var(--data-13)', group: "High" },
+      { id: "H3", name: "H3", arrivalTime: 5, burstTime: 2, priority: 1, color: 'var(--data-14)', group: "High" },
+      { id: "H4", name: "H4", arrivalTime: 7, burstTime: 2, priority: 1, color: 'var(--data-15)', group: "High" },
+    ],
+  },
+  mlfqStaircase: {
+    title: "MLFQ-Treppe",
+    description:
+      "Lange CPU-bound Jobs plus kurze interaktive Jobs visualisieren Queue-Demotionen und das Treppenmuster in MLFQ.",
+    seed: 1001,
+    tickSize: 1,
+    processes: [
+      { id: "CPU1", name: "CPU1", arrivalTime: 0, burstTime: 12, priority: 2, color: 'var(--data-9)', group: "CPU" },
+      { id: "CPU2", name: "CPU2", arrivalTime: 0, burstTime: 11, priority: 2, color: 'var(--data-8)', group: "CPU" },
+      { id: "I1", name: "I1", arrivalTime: 2, burstTime: 2, priority: 1, color: 'var(--data-3)', group: "Interaktiv" },
+      { id: "I2", name: "I2", arrivalTime: 6, burstTime: 1, priority: 1, color: 'var(--data-11)', group: "Interaktiv" },
+      { id: "I3", name: "I3", arrivalTime: 9, burstTime: 2, priority: 1, color: 'var(--data-10)', group: "Interaktiv" },
+    ],
+  },
 };
 
 const showWelcomeModal = ref(false);
@@ -847,6 +932,7 @@ const algorithmModalSeed = ref<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    sjfMode?: "nonPreemptive" | "preemptive";
     mlfqMode?: "classic" | "simplified";
     lcfsMode?: "preemptive" | "nonPreemptive";
     lcfsTieBreak?: "stack" | "id";
@@ -1173,9 +1259,13 @@ type StackItem = {
   level?: number | null;
   quantumRemaining?: number | null;
   quantumTotal?: number | null;
+  starvationRisk?: "warn" | "critical";
+  waitingTicks?: number;
 };
 const stackItems = ref<StackItem[]>([]);
 const loopLogStart = ref(0);
+const starvationWarnTicks = 8;
+const starvationCriticalTicks = 14;
 
 function isProcessDone(pid: string, snap: SimulationSnapshot | null) {
   if (!snap) {
@@ -1286,6 +1376,48 @@ function findReadyQueueQuantumByProcessId(
   }
 
   return snap.readyQueueQuantums?.[queueIndex] ?? null;
+}
+
+function executedTimeUntil(pid: string, time: number): number {
+  return visibleSegments.value
+    .filter((segment) => segment.processId === pid)
+    .reduce((sum, segment) => {
+      const overlap = Math.max(
+        0,
+        Math.min(segment.end, time) - Math.max(segment.start, 0),
+      );
+      return sum + overlap;
+    }, 0);
+}
+
+function waitingTicksAtSnapshot(
+  pid: string,
+  snap: SimulationSnapshot | null,
+): number {
+  if (!snap) {
+    return 0;
+  }
+
+  const process = activeScenario.value?.processes.find((item) => item.id === pid);
+  if (!process) {
+    return 0;
+  }
+
+  const sinceArrival = Math.max(0, snap.time - process.arrivalTime);
+  const executed = executedTimeUntil(pid, snap.time);
+  return Math.max(0, sinceArrival - executed);
+}
+
+function starvationRiskForWaiting(waitingTicks: number): "warn" | "critical" | null {
+  if (waitingTicks >= starvationCriticalTicks) {
+    return "critical";
+  }
+
+  if (waitingTicks >= starvationWarnTicks) {
+    return "warn";
+  }
+
+  return null;
 }
 
 function quantumTotalForLevel(level: number | null | undefined): number | null {
@@ -1427,15 +1559,26 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
           : isFinishedNow
             ? "finished"
           : "ready";
+    const waitingTicks = waitingTicksAtSnapshot(pid, snap);
+    const starvationRisk =
+      status === "ready" || status === "preempted"
+        ? starvationRiskForWaiting(waitingTicks)
+        : null;
+    const riskSubtitle =
+      starvationRisk === null
+        ? subtitle
+        : `${subtitle} · wartet seit ${waitingTicks} Ticks`;
     return {
       id: pid,
       title: meta.name,
-      subtitle,
+      subtitle: riskSubtitle,
       color: meta.color,
       status,
       level: entry.level,
       quantumRemaining,
       quantumTotal,
+      waitingTicks,
+      starvationRisk: starvationRisk ?? undefined,
     };
   });
 }
@@ -1653,6 +1796,31 @@ const stackQuantumSummaryText = computed(() => {
   return `Restquantum je Level: ${entries.join(" · ")}`;
 });
 
+const starvationAlert = computed(() => {
+  const items = stackItems.value;
+  if (!items.length) {
+    return "";
+  }
+
+  const critical = items
+    .filter((item) => item.starvationRisk === "critical")
+    .sort((a, b) => (b.waitingTicks ?? 0) - (a.waitingTicks ?? 0));
+  if (critical.length) {
+    const top = critical[0];
+    return `Starvation-Warnung: ${top.title} wartet seit ${top.waitingTicks ?? 0} Ticks ohne CPU.`;
+  }
+
+  const warn = items
+    .filter((item) => item.starvationRisk === "warn")
+    .sort((a, b) => (b.waitingTicks ?? 0) - (a.waitingTicks ?? 0));
+  if (warn.length) {
+    const top = warn[0];
+    return `Starvation-Risiko: ${top.title} wartet bereits ${top.waitingTicks ?? 0} Ticks.`;
+  }
+
+  return "";
+});
+
 const stackEmptyTitle = computed(() =>
   isStackSimulationFinished.value ? "Simulation beendet" : "Keine Daten",
 );
@@ -1742,6 +1910,16 @@ const metricCards = computed<MetricCard[]>(() => {
       help: "Mittelwert",
     },
     {
+      label: "Max. Wartezeit",
+      value: formatMetric(metrics?.maxWaitingTime),
+      help: "höchster Einzelwert",
+    },
+    {
+      label: "Starvation-Fälle",
+      value: String(metrics?.starvedProcessCount ?? 0),
+      help: `Wartezeit >= ${starvationCriticalTicks} Ticks`,
+    },
+    {
       label: "Anzahl Preemptionen",
       value: String(metrics?.preemptionCount ?? 0),
       help: "preempt + quantumExpired",
@@ -1761,6 +1939,11 @@ const metricCards = computed<MetricCard[]>(() => {
 
 const comparisonCards = computed<ComparisonCard[]>(() => [
   { label: "LCFS", value: "bereit", help: "Bereits in der Simulation aktiv" },
+  {
+    label: "Shortest Job First",
+    value: "implementiert",
+    help: "Nicht-präemptiv, wählt den kürzesten Job aus der Ready Queue",
+  },
   {
     label: "Strict Priority",
     value: "implementiert",
@@ -2029,6 +2212,7 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           snapshotInterval:
             activeRun.value.algorithmParams.snapshotInterval ?? 1,
           queueLevels: activeRun.value.algorithmParams.queueLevels ?? 3,
+          sjfMode: activeRun.value.algorithmParams.sjfMode ?? "nonPreemptive",
           mlfqMode: activeRun.value.algorithmParams.mlfqMode ?? "classic",
           lcfsMode: activeRun.value.algorithmParams.lcfsMode ?? "preemptive",
           lcfsTieBreak: activeRun.value.algorithmParams.lcfsTieBreak ?? "stack",
@@ -2040,6 +2224,7 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           timeQuantum: 2,
           snapshotInterval: 1,
           queueLevels: 3,
+          sjfMode: "nonPreemptive",
           mlfqMode: "classic",
           lcfsMode: "preemptive",
           lcfsTieBreak: "stack",
@@ -2054,6 +2239,7 @@ function confirmAlgorithm(payload: {
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
+    sjfMode?: "nonPreemptive" | "preemptive";
     mlfqMode?: "classic" | "simplified";
     lcfsMode?: "preemptive" | "nonPreemptive";
     lcfsTieBreak?: "stack" | "id";
@@ -2259,6 +2445,7 @@ function formatAlgorithmParams(
     timeQuantum?: number;
     snapshotInterval?: number;
     queueLevels?: number;
+    sjfMode?: "nonPreemptive" | "preemptive";
     mlfqMode?: "classic" | "simplified";
     strictPriorityTieBreak?:
       | "fifo"
@@ -2299,6 +2486,11 @@ function formatAlgorithmParams(
     return `Variante: ${mode} · Tie-Break: ${tieBreak}`;
   }
 
+  if (algorithm === "sjf") {
+    const mode = params.sjfMode === "preemptive" ? "SRTF (präemptiv)" : "SJF (nicht-präemptiv)";
+    return `Variante: ${mode} · kürzeste Restlaufzeit zuerst`;
+  }
+
   return "Keine zusaetzlichen Parameter";
 }
 
@@ -2327,6 +2519,8 @@ function algorithmName(algorithm: AlgorithmType): string {
   switch (algorithm) {
     case "roundRobin":
       return "Round Robin";
+    case "sjf":
+      return "Shortest Job First";
     case "lcfs":
       return "LCFS";
     case "strictPriority":
@@ -2541,6 +2735,17 @@ onBeforeUnmount(() => {
 
 .stack-area {
   min-height: 120px;
+}
+
+.starvation-alert {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
   .note-text {

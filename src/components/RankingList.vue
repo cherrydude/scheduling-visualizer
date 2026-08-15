@@ -20,6 +20,9 @@
           LCFS — bereit — Bereits in der Simulation aktiv
         </div>
         <div class="fallback-item">
+          Shortest Job First — implementiert — Nicht-präemptiv mit kürzester Jobauswahl
+        </div>
+        <div class="fallback-item">
           Strict Priority — implementiert — Präemptiv mit FIFO bei gleicher Priorität
         </div>
         <div class="fallback-item">

@@ -9,7 +9,9 @@ export type ComparisonMetricKey =
   | "contextSwitches"
   | "preemptionCount"
   | "cpuUtilization"
-  | "idleShare";
+  | "idleShare"
+  | "maxWaitingTime"
+  | "starvedProcessCount";
 
 const LOWER_IS_BETTER = new Set<ComparisonMetricKey>([
   "averageTurnaroundTime",
@@ -19,6 +21,8 @@ const LOWER_IS_BETTER = new Set<ComparisonMetricKey>([
   "preemptionCount",
   "cpuUtilization",
   "idleShare",
+  "maxWaitingTime",
+  "starvedProcessCount",
 ]);
 
 export interface ComparisonRow {
@@ -49,6 +53,8 @@ export function extractValues(run: SimulationRun) {
     preemptionCount: safeNumber(m.preemptionCount),
     cpuUtilization: safeNumber(m.cpuUtilization),
     idleShare: safeNumber(m.idleShare),
+    maxWaitingTime: safeNumber(m.maxWaitingTime),
+    starvedProcessCount: safeNumber(m.starvedProcessCount),
   };
 }
 

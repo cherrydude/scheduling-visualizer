@@ -39,4 +39,49 @@ describe("Simulation additional checks", () => {
     const firstDispatch = run.events.find((e) => e.type === "dispatch");
     expect(firstDispatch?.processId).toBe("B");
   });
+
+  it("SJF is non-preemptive and picks the shortest ready job after completion", () => {
+    const scenario: Scenario = {
+      algorithm: "sjf",
+      algorithmParams: { snapshotInterval: 1, sjfMode: "nonPreemptive" },
+      processes: [
+        { id: "P1", name: "P1", arrivalTime: 0, burstTime: 5, priority: 1, color: "" },
+        { id: "P2", name: "P2", arrivalTime: 1, burstTime: 1, priority: 1, color: "" },
+        { id: "P3", name: "P3", arrivalTime: 1, burstTime: 2, priority: 1, color: "" },
+      ],
+    };
+
+    const run = simulateScenario(scenario);
+    const firstFinish = run.events.find((e) => e.type === "finish");
+    const dispatchOrder = run.events
+      .filter((event) => event.type === "dispatch")
+      .map((event) => event.processId);
+    const p1Preempted = run.events.some(
+      (event) => event.type === "preempt" && event.processId === "P1",
+    );
+
+    expect(firstFinish?.processId).toBe("P1");
+    expect(dispatchOrder.slice(0, 3)).toEqual(["P1", "P2", "P3"]);
+    expect(p1Preempted).toBe(false);
+  });
+
+  it("SRTF preempts when a shorter remaining-time process arrives", () => {
+    const scenario: Scenario = {
+      algorithm: "sjf",
+      algorithmParams: { snapshotInterval: 1, sjfMode: "preemptive" },
+      processes: [
+        { id: "P1", name: "P1", arrivalTime: 0, burstTime: 5, priority: 1, color: "" },
+        { id: "P2", name: "P2", arrivalTime: 1, burstTime: 1, priority: 1, color: "" },
+      ],
+    };
+
+    const run = simulateScenario(scenario);
+    const p1Preempted = run.events.some(
+      (event) => event.type === "preempt" && event.processId === "P1",
+    );
+    const firstFinished = run.events.find((event) => event.type === "finish");
+
+    expect(p1Preempted).toBe(true);
+    expect(firstFinished?.processId).toBe("P2");
+  });
 });

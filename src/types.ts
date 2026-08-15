@@ -1,4 +1,9 @@
-export type AlgorithmType = "roundRobin" | "lcfs" | "strictPriority" | "mlfq";
+export type AlgorithmType =
+  | "roundRobin"
+  | "lcfs"
+  | "strictPriority"
+  | "mlfq"
+  | "sjf";
 
 export interface ProcessInput {
   id: string;
@@ -15,6 +20,7 @@ export interface AlgorithmParams {
   /** Anzahl Ticks zwischen automatischen Snapshots (1 = jeder Tick) */
   snapshotInterval?: number;
   queueLevels?: number;
+  sjfMode?: "nonPreemptive" | "preemptive";
   mlfqMode?: "classic" | "simplified";
   strictPriorityTieBreak?:
     | "fifo"
@@ -94,6 +100,8 @@ export interface SimulationMetrics {
   averageWaitingTime: number | null;
   averageTurnaroundTime: number | null;
   averageResponseTime: number | null;
+  maxWaitingTime: number | null;
+  starvedProcessCount: number;
   cpuUtilization: number;
   idleShare: number;
   contextSwitches: number;

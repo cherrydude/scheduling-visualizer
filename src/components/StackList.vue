@@ -30,6 +30,13 @@
               L{{ item.level + 1 }}
             </span>
             <span class="state-badge">{{ statusLabel(item) }}</span>
+            <span
+              v-if="item.starvationRisk"
+              class="risk-badge"
+              :class="item.starvationRisk"
+            >
+              {{ item.starvationRisk === "critical" ? "starvation" : "risk" }}
+            </span>
           </div>
           <div class="sub">{{ item.subtitle }}</div>
         </div>
@@ -58,6 +65,8 @@ type Item = {
   color?: string;
   status?: ItemStatus;
   level?: number | null;
+  starvationRisk?: "warn" | "critical";
+  waitingTicks?: number;
 };
 
 const props = defineProps<{
@@ -158,6 +167,8 @@ function itemClasses(item: Item, index: number) {
     finished: status === "finished",
     ready: status === "ready",
     preempted: status === "preempted",
+    starvationWarn: item.starvationRisk === "warn",
+    starvationCritical: item.starvationRisk === "critical",
   };
 }
 </script>
@@ -236,6 +247,25 @@ function itemClasses(item: Item, index: number) {
   background: rgba(148, 163, 184, 0.08);
 }
 
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.risk-badge.critical {
+  color: #fb7185;
+  border-color: rgba(251, 113, 133, 0.42);
+  background: rgba(251, 113, 133, 0.14);
+}
+
 .level-badge {
   display: inline-flex;
   align-items: center;
@@ -292,6 +322,14 @@ function itemClasses(item: Item, index: number) {
   color: var(--warning);
   background: rgba(251, 191, 36, 0.14);
   border-color: rgba(251, 191, 36, 0.38);
+}
+
+.item.starvationWarn {
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.24);
+}
+
+.item.starvationCritical {
+  box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.3);
 }
 
 .item.finished {

@@ -139,6 +139,8 @@ const allColumns: ColumnDefinition[] = [
   { key: "fairnessIndex", label: "Fairness" },
   { key: "contextSwitches", label: "Kontextwechsel" },
   { key: "preemptionCount", label: "Präemptions" },
+  { key: "maxWaitingTime", label: "Max. Wartezeit" },
+  { key: "starvedProcessCount", label: "Starvation" },
 ];
 
 const defaultCustomWeights = {
@@ -149,6 +151,8 @@ const defaultCustomWeights = {
   fairnessIndex: 0.1,
   contextSwitches: 0,
   preemptionCount: 0,
+  maxWaitingTime: 0,
+  starvedProcessCount: 0,
 };
 
 const caseOptions: ComparisonCase[] = [
@@ -162,15 +166,17 @@ const caseOptions: ComparisonCase[] = [
       averageResponseTime: 0.4,
       averageWaitingTime: 0.2,
       fairnessIndex: 0.15,
-      contextSwitches: 0.15,
-      preemptionCount: 0.1,
+      contextSwitches: 0.1,
+      preemptionCount: 0.05,
+      maxWaitingTime: 0.05,
+      starvedProcessCount: 0.05,
     },
     columns: [
       "averageResponseTime",
       "averageWaitingTime",
+      "maxWaitingTime",
       "fairnessIndex",
-      "contextSwitches",
-      "preemptionCount",
+      "starvedProcessCount",
     ],
   },
   {
@@ -180,18 +186,20 @@ const caseOptions: ComparisonCase[] = [
     description:
       "Durchsatz und Durchlaufzeit zählen, Kontextwechsel sind teuer.",
     weights: {
-      throughput: 0.35,
+      throughput: 0.3,
       averageTurnaroundTime: 0.3,
       contextSwitches: 0.15,
       preemptionCount: 0.1,
-      averageWaitingTime: 0.1,
+      averageWaitingTime: 0.05,
+      starvedProcessCount: 0.1,
+      maxWaitingTime: 0,
     },
     columns: [
       "throughput",
       "averageTurnaroundTime",
+      "starvedProcessCount",
       "contextSwitches",
       "preemptionCount",
-      "fairnessIndex",
     ],
   },
   {
@@ -201,18 +209,20 @@ const caseOptions: ComparisonCase[] = [
     description:
       "Kurze Wartezeiten und stabile Reaktionszeit sind entscheidend.",
     weights: {
-      averageWaitingTime: 0.35,
-      averageResponseTime: 0.3,
-      throughput: 0.15,
+      averageWaitingTime: 0.25,
+      averageResponseTime: 0.25,
+      maxWaitingTime: 0.15,
+      throughput: 0.1,
       fairnessIndex: 0.1,
-      contextSwitches: 0.1,
+      starvedProcessCount: 0.1,
+      contextSwitches: 0.05,
     },
     columns: [
       "averageWaitingTime",
+      "maxWaitingTime",
       "averageResponseTime",
+      "starvedProcessCount",
       "throughput",
-      "fairnessIndex",
-      "contextSwitches",
     ],
   },
   {
@@ -222,18 +232,20 @@ const caseOptions: ComparisonCase[] = [
     description:
       "Reaktionszeit und Präemptionsverhalten sind hier die kritischen Punkte.",
     weights: {
-      averageResponseTime: 0.4,
-      averageWaitingTime: 0.2,
-      preemptionCount: 0.2,
-      contextSwitches: 0.1,
-      fairnessIndex: 0.1,
+      averageResponseTime: 0.35,
+      maxWaitingTime: 0.15,
+      preemptionCount: 0.15,
+      averageWaitingTime: 0.15,
+      starvedProcessCount: 0.1,
+      contextSwitches: 0.05,
+      fairnessIndex: 0.05,
     },
     columns: [
       "averageResponseTime",
+      "maxWaitingTime",
       "preemptionCount",
       "averageWaitingTime",
-      "contextSwitches",
-      "fairnessIndex",
+      "starvedProcessCount",
     ],
   },
   {
@@ -250,6 +262,8 @@ const caseOptions: ComparisonCase[] = [
       "fairnessIndex",
       "contextSwitches",
       "preemptionCount",
+      "maxWaitingTime",
+      "starvedProcessCount",
     ],
   },
 ];
@@ -298,6 +312,8 @@ const selectedCustomColumns = ref<ComparisonMetricKey[]>([
   "fairnessIndex",
   "contextSwitches",
   "preemptionCount",
+  "maxWaitingTime",
+  "starvedProcessCount",
 ]);
 
 const visibleColumns = computed(() => {
@@ -318,7 +334,7 @@ function formatColumnValue(row: ComparisonRow, key: ComparisonMetricKey): string
     return "--";
   }
 
-  if (key === "contextSwitches" || key === "preemptionCount") {
+  if (key === "contextSwitches" || key === "preemptionCount" || key === "starvedProcessCount" || key === "maxWaitingTime") {
     return String(Math.round(value));
   }
 

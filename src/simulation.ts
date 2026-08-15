@@ -35,7 +35,8 @@ function isAlgorithmType(value: unknown): value is AlgorithmType {
     value === "roundRobin" ||
     value === "lcfs" ||
     value === "strictPriority" ||
-    value === "mlfq"
+    value === "mlfq" ||
+    value === "sjf"
   );
 }
 
@@ -84,6 +85,10 @@ function normalizeScenarioInput(scenario: Scenario): Scenario {
         2,
         clampPositiveInteger(scenario.algorithmParams?.queueLevels, 3),
       ),
+      sjfMode:
+        scenario.algorithmParams?.sjfMode === "preemptive"
+          ? "preemptive"
+          : "nonPreemptive",
       mlfqMode:
         scenario.algorithmParams?.mlfqMode === "simplified"
           ? "simplified"
@@ -136,6 +141,7 @@ function createMetrics(
   contextSwitches: number,
   events: ScheduleEvent[],
 ): SimulationMetrics {
+  const starvationCriticalTicks = 14;
   const completedProcesses = processes.filter(
     (process) => process.finishedAt !== null,
   );
@@ -158,6 +164,12 @@ function createMetrics(
   const averageResponseTime = responseTimes.length
     ? responseTimes.reduce((sum, rt) => sum + rt, 0) / responseTimes.length
     : null;
+  const maxWaitingTime = completedProcesses.length
+    ? Math.max(...completedProcesses.map((process) => process.waitingTime))
+    : null;
+  const starvedProcessCount = completedProcesses.filter(
+    (process) => process.waitingTime >= starvationCriticalTicks,
+  ).length;
 
   const cpuUtilization = currentTime > 0 ? busyTicks / currentTime : 0;
   const idleShare = 1 - cpuUtilization;
@@ -181,6 +193,8 @@ function createMetrics(
     averageWaitingTime,
     averageTurnaroundTime,
     averageResponseTime,
+    maxWaitingTime,
+    starvedProcessCount,
     cpuUtilization,
     idleShare,
     contextSwitches,
@@ -301,6 +315,8 @@ function dispatchProcess(
       ? (readyQueue.shift() ?? null)
       : algorithm === "strictPriority"
       ? selectStrictPriorityProcess(readyQueue, time, strictPriorityTieBreak)
+      : algorithm === "sjf"
+        ? selectSjfProcess(readyQueue)
       : algorithm === "lcfs"
         ? (readyQueue.pop() ?? null)
         : (readyQueue.shift() ?? null);
@@ -416,6 +432,35 @@ function shouldPreemptMlfq(
   );
 }
 
+function shouldPreemptSjf(
+  currentProcess: ProcessRuntime | null,
+  readyQueue: ProcessRuntime[],
+): boolean {
+  if (!currentProcess || readyQueue.length === 0) {
+    return false;
+  }
+
+  return readyQueue.some((queuedProcess) => {
+    if (queuedProcess.remainingTime < currentProcess.remainingTime) {
+      return true;
+    }
+
+    if (queuedProcess.remainingTime > currentProcess.remainingTime) {
+      return false;
+    }
+
+    if (queuedProcess.arrivalTime < currentProcess.arrivalTime) {
+      return true;
+    }
+
+    if (queuedProcess.arrivalTime > currentProcess.arrivalTime) {
+      return false;
+    }
+
+    return queuedProcess.id.localeCompare(currentProcess.id) < 0;
+  });
+}
+
 function strictPriorityScore(
   process: ProcessRuntime,
   time: number,
@@ -494,6 +539,43 @@ function selectStrictPriorityProcess(
   return selected ?? null;
 }
 
+function selectSjfProcess(readyQueue: ProcessRuntime[]): ProcessRuntime | null {
+  if (readyQueue.length === 0) {
+    return null;
+  }
+
+  let bestIndex = 0;
+  for (let index = 1; index < readyQueue.length; index += 1) {
+    const candidate = readyQueue[index];
+    const best = readyQueue[bestIndex];
+
+    if (candidate.remainingTime < best.remainingTime) {
+      bestIndex = index;
+      continue;
+    }
+
+    if (candidate.remainingTime > best.remainingTime) {
+      continue;
+    }
+
+    if (candidate.arrivalTime < best.arrivalTime) {
+      bestIndex = index;
+      continue;
+    }
+
+    if (candidate.arrivalTime > best.arrivalTime) {
+      continue;
+    }
+
+    if (candidate.id.localeCompare(best.id) < 0) {
+      bestIndex = index;
+    }
+  }
+
+  const [selected] = readyQueue.splice(bestIndex, 1);
+  return selected ?? null;
+}
+
 export function simulateScenario(scenario: Scenario): SimulationRun {
   const simulationScenario = normalizeScenarioInput(scenario);
 
@@ -501,7 +583,8 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     simulationScenario.algorithm !== "roundRobin" &&
     simulationScenario.algorithm !== "lcfs" &&
     simulationScenario.algorithm !== "strictPriority" &&
-    simulationScenario.algorithm !== "mlfq"
+    simulationScenario.algorithm !== "mlfq" &&
+    simulationScenario.algorithm !== "sjf"
   ) {
     return {
       snapshots: [],
@@ -511,6 +594,8 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         averageWaitingTime: null,
         averageTurnaroundTime: null,
         averageResponseTime: null,
+        maxWaitingTime: null,
+        starvedProcessCount: 0,
         cpuUtilization: 0,
         idleShare: 1,
         contextSwitches: 0,
@@ -543,6 +628,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     1,
     2,
   );
+  const sjfMode = simulationScenario.algorithmParams.sjfMode ?? "nonPreemptive";
   const lcfsMode = simulationScenario.algorithmParams.lcfsMode ?? "preemptive";
   const lcfsTieBreak = simulationScenario.algorithmParams.lcfsTieBreak ?? "stack";
   const strictPriorityTieBreak =
@@ -585,6 +671,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   let lastSnapshotTime = -1;
 
   const isLcfs = simulationScenario.algorithm === "lcfs";
+  const isSjf = simulationScenario.algorithm === "sjf";
   const isStrictPriority = simulationScenario.algorithm === "strictPriority";
 
   function preemptCurrentProcess(reason: string): void {
@@ -840,6 +927,17 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     ) {
       preemptCurrentProcess(
         `New arrival preempts ${currentProcess.name} in LCFS preemptive mode.`,
+      );
+    }
+
+    if (
+      isSjf &&
+      sjfMode === "preemptive" &&
+      currentProcess.remainingTime > 0 &&
+      shouldPreemptSjf(currentProcess, readyQueue)
+    ) {
+      preemptCurrentProcess(
+        `A shorter remaining-time process preempts ${currentProcess.name} in SRTF mode.`,
       );
     }
 

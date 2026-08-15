@@ -41,6 +41,7 @@ const DEFAULT_ALGORITHM_PARAMS: AlgorithmParams = {
   timeQuantum: 2,
   snapshotInterval: 1,
   queueLevels: 3,
+  sjfMode: "nonPreemptive",
   mlfqMode: "classic",
   strictPriorityTieBreak: "fifo",
   lcfsMode: "preemptive",
@@ -109,6 +110,7 @@ function normalizeProcesses(processes: unknown): ProcessInput[] {
 function isAlgorithmType(value: unknown): value is AlgorithmType {
   return (
     value === "roundRobin" ||
+    value === "sjf" ||
     value === "lcfs" ||
     value === "strictPriority" ||
     value === "mlfq"
@@ -134,6 +136,7 @@ function createAlgorithmParams(
         DEFAULT_ALGORITHM_PARAMS.queueLevels ?? 3,
       ),
     ),
+    sjfMode: params?.sjfMode ?? DEFAULT_ALGORITHM_PARAMS.sjfMode,
     mlfqMode: params?.mlfqMode ?? DEFAULT_ALGORITHM_PARAMS.mlfqMode,
     strictPriorityTieBreak:
       params?.strictPriorityTieBreak ?? DEFAULT_ALGORITHM_PARAMS.strictPriorityTieBreak,
@@ -503,6 +506,8 @@ export function useScenarioWorkspace() {
                   snapshotInterval:
                     attachment.algorithmParams.snapshotInterval ?? 1,
                   queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+                  sjfMode:
+                    attachment.algorithmParams.sjfMode ?? "nonPreemptive",
                   mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
                     strictPriorityTieBreak:
                       attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
@@ -520,6 +525,7 @@ export function useScenarioWorkspace() {
                 snapshotInterval:
                   attachment.algorithmParams.snapshotInterval ?? 1,
                 queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+                sjfMode: attachment.algorithmParams.sjfMode ?? "nonPreemptive",
                 mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
                 strictPriorityTieBreak:
                   attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
@@ -561,6 +567,7 @@ export function useScenarioWorkspace() {
           timeQuantum: attachment.algorithmParams.timeQuantum ?? 2,
           snapshotInterval: attachment.algorithmParams.snapshotInterval ?? 1,
           queueLevels: attachment.algorithmParams.queueLevels ?? 3,
+          sjfMode: attachment.algorithmParams.sjfMode ?? "nonPreemptive",
           mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
             strictPriorityTieBreak:
               attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",

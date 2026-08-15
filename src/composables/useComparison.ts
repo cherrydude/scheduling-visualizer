@@ -16,6 +16,8 @@ export function useComparison() {
       fairnessIndex: 0.1,
       contextSwitches: 0,
       preemptionCount: 0,
+      maxWaitingTime: 0,
+      starvedProcessCount: 0,
     },
   });
 
