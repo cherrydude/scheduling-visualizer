@@ -476,29 +476,26 @@
           <span>{{ timelineCaptionRight }}</span>
         </div>
 
-        <section class="panel metrics-panel">
-          <template v-if="activeView === 'focus'">
-            <div class="section-header compact">
-              <h2>Kennzahlen</h2>
+        <section v-if="showMetricsPanel && activeView === 'focus'" class="panel metrics-panel">
+          <div class="section-header compact">
+            <h2>Kennzahlen</h2>
+          </div>
 
-            </div>
+          <div class="metrics-grid">
+            <article
+              class="metric-panel"
+              v-for="metric in metricCards"
+              :key="metric.label"
+            >
+              <span class="status-label">{{ metric.label }}</span>
+              <strong>{{ metric.value }}</strong>
+              <small>{{ metric.help }}</small>
+            </article>
+          </div>
+        </section>
 
-            <div class="metrics-grid">
-              <article
-                class="metric-panel"
-                v-for="metric in metricCards"
-                :key="metric.label"
-              >
-                <span class="status-label">{{ metric.label }}</span>
-                <strong>{{ metric.value }}</strong>
-                <small>{{ metric.help }}</small>
-              </article>
-            </div>
-          </template>
-
-          <template v-else>
-            <ComparisonPanel :scenario="activeScenario" />
-          </template>
+        <section v-else class="panel">
+          <ComparisonPanel :scenario="activeScenario" />
         </section>
       </section>
 
@@ -841,6 +838,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
 const showWelcomeModal = ref(false);
 const showGeneratorModal = ref(false);
 const showAlgorithmModal = ref(false);
+const showMetricsPanel = ref(true);
 const generatorMode = ref<"create" | "edit">("create");
 const algorithmModalMode = ref<"create" | "edit">("create");
 const algorithmModalSeed = ref<{
@@ -2480,6 +2478,7 @@ onMounted(() => {
   openWelcomeIfNeeded();
   syncRoute();
   animateDashboardStep();
+
   window.addEventListener("popstate", syncRoute);
   window.addEventListener("keydown", handleGlobalShortcuts);
 });
