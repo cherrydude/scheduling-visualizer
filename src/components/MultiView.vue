@@ -1,6 +1,5 @@
 <template>
-  <div class="multi-view" ref="multiViewRef">
-    </div>
+  <div class="multi-view" ref="multiViewRef" data-tour="multi-view">
     <div
       v-if="runCards.length"
       :class="['grid', { 'grid--stacked': stackRuns }]"
@@ -11,9 +10,15 @@
           <div class="cell-title-row">
             <strong>Run {{ idx + 1 }} — {{ rs.algorithmLabel }}</strong>
           </div>
-          <div v-if="getParamBadges(rs.algorithmName, rs.algorithmParams).length" class="cell-meta-row">
+          <div
+            v-if="getParamBadges(rs.algorithmName, rs.algorithmParams).length"
+            class="cell-meta-row"
+          >
             <span
-              v-for="badge in getParamBadges(rs.algorithmName, rs.algorithmParams)"
+              v-for="badge in getParamBadges(
+                rs.algorithmName,
+                rs.algorithmParams,
+              )"
               :key="badge"
               class="param-badge"
             >
@@ -38,8 +43,12 @@
 
     <div v-else class="empty-state compact">
       <strong>Keine Runs verfügbar</strong>
-      <p>Füge zuerst einen Algorithmus zum Szenario hinzu, um die Visualisierung zu sehen.</p>
+      <p>
+        Füge zuerst einen Algorithmus zum Szenario hinzu, um die Visualisierung
+        zu sehen.
+      </p>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -48,7 +57,10 @@ import MiniGantt from "./MiniGantt.vue";
 import { simulateScenario } from "@/simulation";
 import { createTimelineLayout } from "@/utils/timelineLayout";
 import type { AlgorithmParams, SimulationRun } from "@/types";
-import type { ScenarioRecord, ScenarioRunRecord } from "@/composables/useScenarioWorkspace";
+import type {
+  ScenarioRecord,
+  ScenarioRunRecord,
+} from "@/composables/useScenarioWorkspace";
 
 const props = defineProps<{
   scenario: ScenarioRecord | null;
@@ -88,9 +100,13 @@ const runStates = computed(() => {
   });
 });
 
-const maxTime = computed(() => Math.max(8, ...(runStates.value.map((r) => r.totalTime ?? 8) ?? [8])));
+const maxTime = computed(() =>
+  Math.max(8, ...(runStates.value.map((r) => r.totalTime ?? 8) ?? [8])),
+);
 
-const multiViewViewport = computed(() => Math.floor(multiViewRef.value?.clientWidth ?? 0));
+const multiViewViewport = computed(() =>
+  Math.floor(multiViewRef.value?.clientWidth ?? 0),
+);
 
 const shouldStackByTime = computed(() => maxTime.value >= 28);
 
@@ -175,7 +191,9 @@ const stackRuns = computed(() => {
 // Compute how many columns should be shown per row so runs wrap to new rows
 const desiredMinPanelWidth = 360; // desired minimum width per panel before wrapping
 
-const gridTemplateColumns = computed(() => `repeat(${columnsCount.value}, 1fr)`);
+const gridTemplateColumns = computed(
+  () => `repeat(${columnsCount.value}, 1fr)`,
+);
 
 function algorithmLabel(algorithm: string): string {
   switch (algorithm) {
@@ -204,12 +222,16 @@ function getParamBadges(algorithm: string, params?: AlgorithmParams): string[] {
       return params.timeQuantum ? [`Q ${params.timeQuantum}`] : [];
     case "sjf":
       return [
-        params.sjfMode === "preemptive" ? "SRTF (preemptive)" : "SJF (non-preemptive)",
+        params.sjfMode === "preemptive"
+          ? "SRTF (preemptive)"
+          : "SJF (non-preemptive)",
       ];
     case "lcfs":
       return [
         params.lcfsMode === "nonPreemptive" ? "non-preemptive" : "preemptive",
-        ...(params.lcfsTieBreak ? [`Tie: ${formatTieBreak(params.lcfsTieBreak)}`] : []),
+        ...(params.lcfsTieBreak
+          ? [`Tie: ${formatTieBreak(params.lcfsTieBreak)}`]
+          : []),
       ];
     case "strictPriority":
       return [
@@ -246,7 +268,6 @@ function formatTieBreak(value: string): string {
       return value;
   }
 }
-
 </script>
 
 <style scoped>

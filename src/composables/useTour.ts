@@ -3,7 +3,7 @@ import "shepherd.js/dist/css/shepherd.css";
 
 export interface TourActions {
   openGenerator: () => void;
-  loadClassroom: () => void;
+  loadStaggered: () => void;
   openAlgorithm: () => void;
   applySjf: () => void;
   addComparisonRun: () => void;
@@ -15,6 +15,14 @@ const TOUR_STORAGE_KEY = "scheduling-visualizer.tour-seen";
 
 export function useTour(actions: TourActions) {
   let tour: InstanceType<typeof Shepherd.Tour> | null = null;
+
+  function waitForLayout(): Promise<void> {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+  }
 
   function createTour(): InstanceType<typeof Shepherd.Tour> {
     const next = () => tour?.next();
@@ -63,56 +71,127 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "generator",
-      title: "2. Prozesse laden",
-      text: "Für diese Tour laden wir ein reproduzierbares Classroom-Beispiel. Eigene Szenarien kannst du jederzeit ergänzen.",
-      attachTo: { element: '[data-tour="generator-modal"]', on: "top" },
+      title: "2. Szenario und Prozesse laden",
+      text: "Klicke jetzt auf den Button „Versetzt“, um ein vorbereitetes Szenario zu laden.",
+      attachTo: { element: '[data-tour="preset-staggered"]', on: "left" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="preset-staggered"]')
+            ?.addEventListener("click", next, { once: true });
+        },
+      },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
         {
-          text: "Classroom laden",
+          text: "Weiter",
           action: () => {
-            actions.loadClassroom();
+            actions.loadStaggered();
             next();
           },
         },
+      ],
+    });
+
+    instance.addStep({
+      id: "generator-details",
+      title: "3. Den Szenario-Generator verstehen",
+      text: "Prüfe kurz die angezeigten Szenario- und Prozessdaten. Die Vorschau hilft dir beim Überblick; mit „Szenario übernehmen“ startest du mit diesen Daten in die Simulation.",
+      attachTo: { element: '[data-tour="complete-generator"]', on: "top" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="complete-generator"]')
+            ?.addEventListener("click", () => window.setTimeout(next, 0), {
+              once: true,
+            });
+        },
+      },
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
       ],
     });
 
     instance.addStep({
       id: "algorithm",
-      title: "3. Algorithmus anwenden",
-      text: "Wähle SJF und den präemptiven Modus (SRTF). So wird sichtbar, wenn ein kürzerer Job einen laufenden Prozess verdrängt.",
+      title: "4. Algorithmus anwenden",
+      text: "Öffne hier das Modal, um einen Algorithmus und seine Einstellungen auszuwählen.",
       attachTo: { element: '[data-tour="algorithm-card"]', on: "bottom" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
         {
-          text: "SJF anwenden",
+          text: "Modal öffnen",
           action: () => {
             actions.openAlgorithm();
-            actions.applySjf();
-            next();
+            window.setTimeout(next, 0);
           },
         },
       ],
     });
 
     instance.addStep({
+      id: "algorithm-modal",
+      title: "5. Algorithmus auswählen",
+      text: "Wähle in diesem Feld „Shortest Job First“ aus.",
+      attachTo: { element: '[data-tour="algorithm-select"]', on: "left" },
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
+        { text: "Weiter", action: next },
+      ],
+    });
+
+    instance.addStep({
+      id: "algorithm-mode",
+      title: "6. Ausführungsmodus wählen",
+      text: "Wähle anschließend den Modus „Präemptiv (SRTF)“.",
+      attachTo: { element: '[data-tour="sjf-mode-select"]', on: "left" },
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
+        { text: "Weiter", action: next },
+      ],
+    });
+
+    instance.addStep({
+      id: "apply-algorithm",
+      title: "7. Algorithmus anwenden",
+      text: "Klicke jetzt auf den echten Button „Algorithmus anwenden“, um deine Auswahl zu bestätigen.",
+      attachTo: { element: '[data-tour="apply-algorithm"]', on: "top" },
+      canClickTarget: true,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="apply-algorithm"]')
+            ?.addEventListener("click", () => window.setTimeout(next, 0), {
+              once: true,
+            });
+        },
+      },
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
+      ],
+    });
+
+    instance.addStep({
       id: "focus-view",
-      title: "4. Fokusansicht lesen",
+      title: "8. Fokusansicht lesen",
       text: "Die Fokusansicht zeigt einen Run im Detail: Timeline, aktuelle CPU-Zeit und die Zustände der Prozesse werden gemeinsam sichtbar.",
       attachTo: { element: '[data-tour="focus-view"]', on: "top" },
     });
 
     instance.addStep({
       id: "metrics",
-      title: "5. Kennzahlen einordnen",
+      title: "9. Kennzahlen einordnen",
       text: "Die Kennzahlen fassen den Run zusammen. Wartezeit und Durchlaufzeit zeigen Verzögerungen, Fairness und Starvation helfen bei der Beurteilung der Verteilung.",
       attachTo: { element: '[data-tour="metrics-panel"]', on: "top" },
     });
 
     instance.addStep({
       id: "playback",
-      title: "6. Simulation abspielen",
+      title: "10. Simulation abspielen",
       text: "Starte die Simulation und beobachte, wie sich die Timeline und die Prozesszustände Schritt für Schritt verändern.",
       attachTo: { element: '[data-tour="playback-controls"]', on: "bottom" },
       buttons: [
@@ -129,7 +208,7 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "results",
-      title: "7. Stack-Simulation verstehen",
+      title: "11. Stack-Simulation verstehen",
       text: "Die Stack-Simulation zeigt aktive, bereite und verdrängte Prozesse. Lange Wartezeiten können auf mögliche Starvation hinweisen.",
       attachTo: { element: '[data-tour="stack-simulation"]', on: "top" },
       buttons: [
@@ -140,7 +219,7 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "add-run",
-      title: "8. Einen weiteren Run hinzufügen",
+      title: "12. Einen weiteren Run hinzufügen",
       text: "Ein zweiter Run macht Unterschiede zwischen Algorithmen sichtbar. Füge für dasselbe Szenario einen Round-Robin-Run hinzu.",
       attachTo: { element: '[data-tour="add-run"]', on: "bottom" },
       buttons: [
@@ -157,7 +236,7 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "multi-view",
-      title: "9. Runs in der Vergleichsübersicht vergleichen",
+      title: "13. Runs in der Vergleichsübersicht vergleichen",
       text: "In der Vergleichsübersicht betrachtest du die Zeitpläne mehrerer Runs nebeneinander. So erkennst du Unterschiede bei Reihenfolge, Preemption und Durchlauf.",
       attachTo: { element: '[data-tour="multi-view"]', on: "top" },
       buttons: [
@@ -173,9 +252,20 @@ export function useTour(actions: TourActions) {
     });
 
     instance.addStep({
+      id: "multi-view-details",
+      title: "14. Vergleichsübersicht lesen",
+      text: "Hier siehst du die Runs mit ihren Zeitplänen nebeneinander. Vergleiche, wann Prozesse ausgeführt werden und wie oft sie unterbrochen werden.",
+      attachTo: { element: '[data-tour="multi-view"]', on: "top" },
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
+        { text: "Weiter", action: next },
+      ],
+    });
+
+    instance.addStep({
       id: "comparison-table",
-      title: "10. Vergleichstabelle lesen",
-      text: "Die Vergleichstabelle stellt die Runs anhand ausgewählter Kennzahlen gegenüber. Der Anwendungsfall bestimmt sichtbare Spalten und Gewichtungen für den Score.",
+      title: "15. Bewertungsmatrix lesen",
+      text: "Die Bewertungsmatrix stellt die Runs anhand ausgewählter Kennzahlen gegenüber. Der gewählte Anwendungsfall bestimmt sichtbare Spalten und Gewichtungen für den Score.",
       attachTo: { element: '[data-tour="comparison-table"]', on: "top" },
       buttons: [{ text: "Tour beenden", action: () => instance.complete() }],
     });

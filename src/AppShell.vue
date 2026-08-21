@@ -100,6 +100,7 @@
               <button
                 class="secondary-button"
                 type="button"
+                data-tour="preset-staggered"
                 @click="loadPreset('staggered')"
               >
                 Versetzt
@@ -227,7 +228,11 @@
             </div>
 
             <div class="button-row submit-row">
-              <button class="primary-button" type="submit">
+              <button
+                class="primary-button"
+                type="submit"
+                data-tour="complete-generator"
+              >
                 {{ generatorSubmitLabel }}
               </button>
             </div>
@@ -477,11 +482,7 @@
               @segmentClick="onSegmentClick"
             />
 
-            <MultiView
-              v-else
-              data-tour="multi-view"
-              :scenario="activeScenario"
-            />
+            <MultiView v-else :scenario="activeScenario" />
 
             <div
               v-if="activeRun && runState && !runState.supported"
@@ -1237,7 +1238,7 @@ const activeView = ref<"focus" | "multi">("focus");
 
 const tour = useTour({
   openGenerator: openGeneratorModal,
-  loadClassroom: loadTourClassroom,
+  loadStaggered: loadTourStaggered,
   openAlgorithm: openTourAlgorithm,
   applySjf: applyTourSjf,
   addComparisonRun: addTourComparisonRun,
@@ -1308,9 +1309,7 @@ const generatorModalTitle = computed(() =>
 );
 
 const generatorSubmitLabel = computed(() =>
-  generatorMode.value === "edit"
-    ? "Szenario speichern"
-    : "Szenario uebernehmen",
+  generatorMode.value === "edit" ? "Szenario speichern" : "Szenario übernehmen",
 );
 
 function cloneDraft(source: ScenarioDraft): void {
@@ -2525,10 +2524,8 @@ function createWelcomeScenario(): void {
   openGeneratorModal();
 }
 
-function loadTourClassroom(): void {
-  cloneDraft(scenarioPresets.classroom);
-  saveScenario();
-  closeGeneratorModal();
+function loadTourStaggered(): void {
+  cloneDraft(scenarioPresets.staggered);
 }
 
 function openTourAlgorithm(): void {

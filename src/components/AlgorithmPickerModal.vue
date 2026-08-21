@@ -1,13 +1,18 @@
 <template>
-  <section v-if="modelValue" class="modal-overlay" @click.self="$emit('close')">
-      <div
-        ref="modalRoot"
-        class="modal panel algorithm-modal"
-        role="dialog"
-        aria-modal="true"
-        :aria-label="modalTitle"
-        @keydown.esc.prevent="$emit('close')"
-      >
+  <section
+    v-if="modelValue"
+    class="modal-overlay"
+    data-tour="algorithm-modal"
+    @click.self="$emit('close')"
+  >
+    <div
+      ref="modalRoot"
+      class="modal panel algorithm-modal"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="modalTitle"
+      @keydown.esc.prevent="$emit('close')"
+    >
       <div class="section-header">
         <div>
           <h2>{{ modalTitle }}</h2>
@@ -25,7 +30,11 @@
         <form class="form-grid algorithm-form" @submit.prevent="submitForm">
           <label class="algorithm-field">
             <span>Algorithmus</span>
-            <select v-model="algorithm" class="algorithm-control">
+            <select
+              v-model="algorithm"
+              class="algorithm-control"
+              data-tour="algorithm-select"
+            >
               <option value="roundRobin">Round Robin</option>
               <option value="sjf">Shortest Job First</option>
               <option value="lcfs">LCFS</option>
@@ -66,7 +75,10 @@
             <template v-if="algorithm === 'strictPriority'">
               <label class="algorithm-field">
                 <span>Tie-Break</span>
-                <select v-model="strictPriorityTieBreak" class="algorithm-control">
+                <select
+                  v-model="strictPriorityTieBreak"
+                  class="algorithm-control"
+                >
                   <option value="fifo">FIFO</option>
                   <option value="arrivalTime">Früheste Ankunft</option>
                   <option value="remainingTime">Kürzeste Restzeit</option>
@@ -76,8 +88,8 @@
               </label>
 
               <p class="subtitle">
-                Kleine Prioritätszahlen werden zuerst behandelt. Gleichstand wird
-                über die ausgewählte Tie-Break-Regel aufgelöst.
+                Kleine Prioritätszahlen werden zuerst behandelt. Gleichstand
+                wird über die ausgewählte Tie-Break-Regel aufgelöst.
               </p>
               <p class="warning-note">
                 Achtung: Bei dauerhaft höher priorisierten Ankünften kann
@@ -121,7 +133,11 @@
             <template v-else-if="algorithm === 'sjf'">
               <label class="algorithm-field">
                 <span>Modus</span>
-                <select v-model="sjfMode" class="algorithm-control">
+                <select
+                  v-model="sjfMode"
+                  class="algorithm-control"
+                  data-tour="sjf-mode-select"
+                >
                   <option value="nonPreemptive">Nicht-präemptiv (SJF)</option>
                   <option value="preemptive">Präemptiv (SRTF)</option>
                 </select>
@@ -143,7 +159,11 @@
           </template>
 
           <div class="button-row submit-row">
-            <button class="primary-button" type="submit">
+            <button
+              class="primary-button"
+              type="submit"
+              data-tour="apply-algorithm"
+            >
               {{ confirmLabel }}
             </button>
             <button
@@ -280,10 +300,9 @@ const algorithmInfo = computed(() => {
     const isSrtf = sjfMode.value === "preemptive";
     return {
       title: isSrtf ? "Shortest Remaining Time First" : "Shortest Job First",
-      description:
-        isSrtf
-          ? "SRTF ist die präemptive Variante von SJF. Trifft ein kürzerer Job ein, wird der laufende Prozess unterbrochen."
-          : "SJF wählt den Prozess mit der kürzesten verbleibenden Laufzeit aus der Ready Queue und führt ihn ohne Unterbrechung zu Ende.",
+      description: isSrtf
+        ? "SRTF ist die präemptive Variante von SJF. Trifft ein kürzerer Job ein, wird der laufende Prozess unterbrochen."
+        : "SJF wählt den Prozess mit der kürzesten verbleibenden Laufzeit aus der Ready Queue und führt ihn ohne Unterbrechung zu Ende.",
       parameterImpact: [
         isSrtf
           ? "Kurze Jobs reagieren schneller, dafür steigen Kontextwechsel durch mögliche Verdrängungen."
