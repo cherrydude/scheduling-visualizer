@@ -2,10 +2,11 @@
   <div class="burger-shell" ref="menuRef">
     <button
       class="burger-button"
+      data-tour="burger-button"
       type="button"
       aria-label="Menü öffnen"
       aria-haspopup="menu"
-      :aria-expanded="String(open)"
+      :aria-expanded="open"
       aria-controls="burger-menu-panel"
       @click="toggleMenu"
     >
@@ -97,11 +98,11 @@
             <strong>Information</strong>
           </div>
 
-          <button type="button" class="link-item" aria-label="Über mich" @click="handleAbout">
-            Über mich
-          </button>
           <button type="button" class="link-item" aria-label="Wissen und Hilfe öffnen" title="Hilfe und Wissen öffnen" @click="handleKnowledge">
             Wissen
+          </button>
+          <button type="button" class="link-item" aria-label="Einführung starten" @click="handleTour">
+            Einführung starten
           </button>
         </div>
 
@@ -128,6 +129,7 @@ const emit = defineEmits<{
   (e: "delete", id: string): void;
   (e: "about"): void;
   (e: "knowledge"): void;
+  (e: "tour"): void;
 }>();
 
 const open = ref(false);
@@ -190,6 +192,11 @@ function handleAbout() {
 function handleKnowledge() {
   closeMenu();
   emit("knowledge");
+}
+
+function handleTour() {
+  closeMenu();
+  emit("tour");
 }
 
 function closeOnDocumentClick(ev: MouseEvent) {

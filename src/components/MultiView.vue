@@ -1,5 +1,6 @@
 <template>
   <div class="multi-view" ref="multiViewRef">
+    </div>
     <div
       v-if="runCards.length"
       :class="['grid', { 'grid--stacked': stackRuns }]"
@@ -18,6 +19,9 @@
             >
               {{ badge }}
             </span>
+            <span class="param-badge param-badge--preemption">
+              Präemptionen {{ rs.finalMetrics.preemptionCount }}
+            </span>
           </div>
         </div>
         <MiniGantt
@@ -27,6 +31,7 @@
           :segmentHeight="stackRuns ? 20 : 15"
           :algorithm="rs.algorithmName"
           :queueLevels="rs.algorithmParams.queueLevels"
+          :events="rs.events"
         />
       </div>
     </div>
@@ -35,7 +40,6 @@
       <strong>Keine Runs verfuegbar</strong>
       <p>Füge zuerst einen Algorithmus zum Szenario hinzu, um die Multi-View zu sehen.</p>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -133,6 +137,13 @@ const runCards = computed(() =>
     ...run,
     algorithmLabel: algorithmLabel(run.algorithmName),
   })),
+);
+
+const totalPreemptions = computed(() =>
+  runStates.value.reduce(
+    (sum, run) => sum + (run.finalMetrics.preemptionCount ?? 0),
+    0,
+  ),
 );
 
 // When the timeline gets long or the ticks get too dense, stack the runs vertically
@@ -243,6 +254,21 @@ function formatTieBreak(value: string): string {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+.preemption-summary {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--panel-bg);
+}
+.preemption-summary strong {
+  color: var(--text);
+}
+.param-badge--preemption {
+  border-color: rgba(245, 158, 11, 0.55);
+  color: var(--warning, #f59e0b);
 }
 .grid {
   display: grid;

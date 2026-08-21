@@ -1,5 +1,5 @@
 <template>
-  <div class="comparison-panel">
+  <div class="comparison-panel" data-tour="comparison-table">
     <div class="section-header compact comparison-header">
       <div>
         <h3>Vergleichsübersicht</h3>

@@ -10,6 +10,7 @@
       :offsetX="offsetX"
       :algorithm="algorithm"
       :queueLevels="queueLevels"
+      :events="events"
       labelAlignment="end"
     />
   </div>
@@ -19,7 +20,7 @@
 import { computed, ref, onBeforeUnmount, watchEffect } from "vue";
 import Gantt from "./Gantt.vue";
 import { createTimelineLayout } from "@/utils/timelineLayout";
-import type { TimelineSegment } from "@/types";
+import type { ScheduleEvent, TimelineSegment } from "@/types";
 
 const props = defineProps<{
   segments: TimelineSegment[];
@@ -28,6 +29,7 @@ const props = defineProps<{
   segmentHeight?: number;
   algorithm?: string;
   queueLevels?: number;
+  events?: ScheduleEvent[];
 }>();
 
 const rootRef = ref<HTMLElement | null>(null);

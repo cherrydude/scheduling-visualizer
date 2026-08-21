@@ -4,6 +4,7 @@
       :modelValue="showWelcomeModal"
       @close="closeWelcomeModal"
       @start-demo="startWelcomeDemo"
+      @start-tour="startTourFromWelcome"
       @create-scenario="createWelcomeScenario"
       @open-help="openHelpFromWelcome"
     />
@@ -41,6 +42,7 @@
       <div
         class="modal panel"
         ref="generatorModalRef"
+        data-tour="generator-modal"
         tabindex="-1"
         role="dialog"
         aria-modal="true"
@@ -262,6 +264,7 @@
             @delete="deleteScenarioFromMenu"
             @about="navigate('/about')"
             @knowledge="navigate('/wissen')"
+            @tour="startTour"
           />
         </div>
         <article
@@ -273,6 +276,7 @@
           v-for="card in statusCards"
           :key="card.label"
           :title="statusCardTitle(card.label)"
+          :data-tour="card.label === 'Algorithmus' ? 'algorithm-card' : undefined"
           :role="
             card.label === 'Szenario' || card.label === 'Algorithmus'
               ? 'button'
@@ -336,6 +340,7 @@
       <section
         ref="focusColumnRef"
         class="focus-column panel"
+        data-tour="focus-view"
         :class="{ 'focus-column--multi': activeView === 'multi' }"
       >
         <div class="section-header">
@@ -367,6 +372,7 @@
               <button
                 v-if="activeScenario && activeRun"
                 class="primary-button"
+                data-tour="add-run"
                 type="button"
                 :title="'Einen weiteren Algorithmus für dieses Szenario hinzufügen'"
                 @click="openAlgorithmModal('create')"
@@ -471,6 +477,7 @@
 
             <MultiView
               v-else
+              data-tour="multi-view"
               :scenario="activeScenario"
             />
 
@@ -504,7 +511,7 @@
           <span>{{ timelineCaptionRight }}</span>
         </div>
 
-        <section v-if="showMetricsPanel && activeView === 'focus'" class="panel metrics-panel">
+        <section v-if="showMetricsPanel && activeView === 'focus'" class="panel metrics-panel" data-tour="metrics-panel">
           <div class="section-header compact">
             <h2>Kennzahlen</h2>
           </div>
@@ -528,7 +535,7 @@
       </section>
 
       <aside v-if="activeView === 'focus'" class="side-column">
-        <section class="panel small-panel">
+        <section class="panel small-panel" data-tour="stack-simulation">
           <div class="section-header">
             <h2>Stack-Simulation</h2>
             <span>Simulation</span>
@@ -555,11 +562,11 @@
           <p class="note-text">{{ simulationNote }}</p>
         </section>
 
-        <section class="panel detail-panel">
-          <div class="section-header">
+<!--           <section class="panel detail-panel" data-tour="results">
+        <div class="section-header">
             <h2>Ereignislog</h2>
             <span>{{ currentEventLabel }}</span>
-          </div>
+          </div> 
 
           <div class="event-list">
             <article
@@ -574,7 +581,7 @@
               <span>{{ event.time }}</span>
             </article>
           </div>
-        </section>
+        </section> -->
 
       </aside>
 
@@ -604,22 +611,7 @@
         </template>
 
         <template v-else>
-          <p class="help-lead">
-            Diese Seite ist der dauerhafte Einstieg in die Nutzung: erst Szenario
-            und Algorithmus wählen, dann die Simulation lesen und die Ergebnisse
-            vergleichen.
-          </p>
-
-          <section class="help-grid">
-            <article v-for="section in helpSections" :key="section.title" class="help-card panel soft-panel">
-              <span class="help-kicker">{{ section.kicker }}</span>
-              <h3>{{ section.title }}</h3>
-              <p>{{ section.summary }}</p>
-              <ul>
-                <li v-for="item in section.items" :key="item">{{ item }}</li>
-              </ul>
-            </article>
-          </section>
+          <KnowledgePage />
         </template>
       </div>
     </main>
@@ -656,7 +648,9 @@ import GanttWithGsap from "./components/GanttWithGsap.vue";
 import MultiView from "./components/MultiView.vue";
 import StackList from "./components/StackList.vue";
 import ComparisonPanel from "./components/ComparisonPanel.vue";
+import KnowledgePage from "./components/KnowledgePage.vue";
 import { usePlayback } from "@/composables/usePlayback";
+import { useTour } from "@/composables/useTour";
 import { useFocusTrap } from "@/composables/useFocusTrap";
 import { createTimelineLayout } from "./utils/timelineLayout";
 import { sharedCellWidth, computeSharedCellWidth } from "@/composables/useTimelineSync";
@@ -957,6 +951,18 @@ const activeView = ref<string>(
     ? window.localStorage.getItem("scheduling-visualizer.activeView") ?? "focus"
     : "focus",
 );
+
+const tour = useTour({
+  openGenerator: openGeneratorModal,
+  loadClassroom: loadTourClassroom,
+  openAlgorithm: openTourAlgorithm,
+  applySjf: applyTourSjf,
+  addComparisonRun: addTourComparisonRun,
+  startPlayback: () => {
+    void handlePlaybackPlay();
+  },
+  openMultiView: () => setActiveView("multi"),
+});
 
 // Theme follows OS; no user control in-app.
 
@@ -1952,49 +1958,6 @@ const comparisonCards = computed<ComparisonCard[]>(() => [
   { label: "MLFQ", value: "implementiert", help: "Queue-Stufen sichtbar im Queue-Panel" },
 ]);
 
-const helpSections = computed(() => [
-  {
-    kicker: "Quick Start",
-    title: "Was du zuerst tun solltest",
-    summary: "Diese App ist für einen kurzen Einstieg gebaut: erst Daten laden, dann Algorithmus anwenden, danach Playback starten.",
-    items: [
-      "Nutze das Burgermenü, um ein Szenario zu wählen oder neu anzulegen.",
-      "Wähle im Algorithmus-Dialog den gewünschten Scheduler und die Parameter.",
-      "Starte die Simulation mit Play oder gehe schrittweise mit Pfeilen durch den Verlauf.",
-    ],
-  },
-  {
-    kicker: "Bedienung",
-    title: "Welche Elemente du bedienen kannst",
-    summary: "Die Oberfläche ist in Fokusansicht und Vergleichsansicht aufgeteilt und zeigt dir dazu passende Hilfen per Hover.",
-    items: [
-      "Fokusansicht für den detaillierten Ablauf eines Runs.",
-      "Multi-View zum direkten Vergleichen mehrerer Algorithmen.",
-      "Stack-Simulation und Ereignislog für die aktuelle Zustandslage.",
-    ],
-  },
-  {
-    kicker: "Interpretation",
-    title: "Wie du die Visualisierung liest",
-    summary: "Die Gantt-Leiste zeigt die CPU-Belegung, die Stack-Liste den aktuellen Queue-Zustand und die Kennzahlen den Ergebnisvergleich.",
-    items: [
-      "Preemption wird direkt im Zeitverlauf sichtbar, wenn ein Prozess verdrängt wird.",
-      "Queue-Level und Zustände helfen dir besonders bei MLFQ und LCFS.",
-      "Die Kennzahlen zeigen, welche Strategie fairer oder schneller ist.",
-    ],
-  },
-  {
-    kicker: "Mehrwert",
-    title: "Warum die App nützlich ist",
-    summary: "Du kannst Scheduling nicht nur lesen, sondern Schritt für Schritt beobachten, vergleichen und für die Thesis erklären.",
-    items: [
-      "Algorithmen werden im direkten Verlauf verständlich statt abstrakt beschrieben.",
-      "Vergleiche machen Unterschiede bei Wartezeit, Fairness und Durchsatz sichtbar.",
-      "Die Bedienung bleibt bewusst kompakt, damit du schnell zu belastbaren Aussagen kommst.",
-    ],
-  },
-]);
-
 const recentEvents = computed<ScheduleEvent[]>(() => {
   const currentTime = currentSnapshot.value?.time ?? 0;
   const startTime = loopLogStart.value;
@@ -2170,6 +2133,16 @@ function closeWelcomeModal(): void {
   showWelcomeModal.value = false;
 }
 
+function startTourFromWelcome(): void {
+  closeWelcomeModal();
+  void nextTick(() => startTour());
+}
+
+function startTour(): void {
+  closeWelcomeModal();
+  void nextTick(() => tour.start());
+}
+
 function startWelcomeDemo(): void {
   closeWelcomeModal();
   cloneDraft(scenarioPresets.classroom);
@@ -2180,6 +2153,39 @@ function startWelcomeDemo(): void {
 function createWelcomeScenario(): void {
   closeWelcomeModal();
   openGeneratorModal();
+}
+
+function loadTourClassroom(): void {
+  cloneDraft(scenarioPresets.classroom);
+  saveScenario();
+  closeGeneratorModal();
+}
+
+function openTourAlgorithm(): void {
+  openAlgorithmModal("create");
+}
+
+function applyTourSjf(): void {
+  confirmAlgorithm({
+    algorithm: "sjf",
+    algorithmParams: {
+      timeQuantum: 2,
+      snapshotInterval: 1,
+      queueLevels: 3,
+      sjfMode: "preemptive",
+    },
+  });
+}
+
+function addTourComparisonRun(): void {
+  confirmAlgorithm({
+    algorithm: "roundRobin",
+    algorithmParams: {
+      timeQuantum: 2,
+      snapshotInterval: 1,
+      queueLevels: 3,
+    },
+  });
 }
 
 function openHelpFromWelcome(): void {
@@ -2679,6 +2685,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   pausePlayback();
+  tour.stop();
   if (typeof window !== "undefined") {
     window.removeEventListener("popstate", syncRoute);
     window.removeEventListener("keydown", handleGlobalShortcuts);

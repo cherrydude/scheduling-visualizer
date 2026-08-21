@@ -40,6 +40,9 @@
         <button class="primary-button" type="button" @click="$emit('start-demo')">
           Beispiel starten
         </button>
+        <button class="secondary-button" type="button" @click="$emit('start-tour')">
+          Kurz-Tour starten
+        </button>
         <button class="link-button" type="button" @click="$emit('open-help')">
           So liest du die Visualisierung
         </button>
@@ -47,7 +50,7 @@
 
       <div class="welcome-shortcuts">
         <strong>Tastenkürzel</strong>
-        <div>Leertaste = Play/Pause · ← / → = Schritt · R = Reset</div>
+        <div>Leertaste = Play/Pause <br> ← / → = Schritt <br> R = Reset</div>
       </div>
 
       <div class="welcome-bottom">
@@ -75,6 +78,7 @@ const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'start-demo'): void;
+  (e: 'start-tour'): void;
   (e: 'create-scenario'): void;
   (e: 'open-help'): void;
 }>();

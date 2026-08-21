@@ -1,6 +1,6 @@
 <template>
   <div ref="root" class="gantt-gsap-root">
-    <div class="controls" :class="{ 'controls--disabled': !controlsEnabled }">
+    <div data-tour="playback-controls" class="controls" :class="{ 'controls--disabled': !controlsEnabled }">
       <button
         @click="handlePlay"
         aria-label="Play"

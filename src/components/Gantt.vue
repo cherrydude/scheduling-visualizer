@@ -160,6 +160,18 @@
           >
             {{ segment.processName }}
           </text>
+
+          <line
+            v-if="preemptionEvent(segment)"
+            :x1="segmentBaseX(segment) + segmentWidth(segment)"
+            :x2="segmentBaseX(segment) + segmentWidth(segment)"
+            :y1="segmentY(segment) - 4"
+            :y2="segmentY(segment) + segmentHeight + 4"
+            class="preemption-marker"
+            :aria-label="preemptionLabel(segment)"
+          >
+            <title>{{ preemptionLabel(segment) }}</title>
+          </line>
         </g>
       </g>
 
@@ -243,7 +255,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { TimelineSegment } from "@/types";
+import type { ScheduleEvent, TimelineSegment } from "@/types";
 
 const props = defineProps<{
   segments: TimelineSegment[];
@@ -264,6 +276,7 @@ const props = defineProps<{
   preemptTime?: number | null;
   labelAlignment?: "start" | "end";
   stretchWidth?: boolean;
+  events?: ScheduleEvent[];
 }>();
 
 const emit = defineEmits<{
@@ -364,6 +377,29 @@ function shouldPulse(segment: TimelineSegment): boolean {
     segment.processId === props.preemptedProcessId &&
     props.currentTime === props.preemptTime
   );
+}
+
+function preemptionEvent(segment: TimelineSegment): ScheduleEvent | null {
+  if (segment.idle || !segment.processId || !props.events?.length) {
+    return null;
+  }
+
+  return props.events.find(
+    (event) =>
+      (event.type === "preempt" || event.type === "quantumExpired") &&
+      event.processId === segment.processId &&
+      event.time === segment.end,
+  ) ?? null;
+}
+
+function preemptionLabel(segment: TimelineSegment): string {
+  const event = preemptionEvent(segment);
+  if (!event) {
+    return "";
+  }
+
+  const kind = event.type === "quantumExpired" ? "Quantum abgelaufen" : "Präemption";
+  return `${kind} von ${segment.processName} bei t ${event.time}: ${event.reason}`;
 }
 
 function handleEnter(segment: TimelineSegment, ev: Event) {
@@ -670,6 +706,14 @@ function hexToRgb(hex?: string) {
   transform-origin: center;
   animation: preemptPulse 0.9s ease-out 1;
   pointer-events: none;
+}
+
+.preemption-marker {
+  stroke: var(--warning, #f59e0b);
+  stroke-width: 3;
+  stroke-linecap: round;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.7));
 }
 
 .bar-wrap {
