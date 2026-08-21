@@ -27,7 +27,11 @@ export function useTour(actions: TourActions) {
         classes: "scheduling-tour",
         scrollTo: { behavior: "auto", block: "center" },
         buttons: [
-          { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
+          {
+            text: "Zurück",
+            action: back,
+            classes: "shepherd-button-secondary",
+          },
           { text: "Weiter", action: next },
         ],
       },
@@ -36,18 +40,24 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "welcome",
       title: "Kurz-Tour: Erste Schritte",
-      text: "In wenigen Schritten lernst du Szenarien, Algorithmen, Playback und Kennzahlen kennen.",
+      text: "Diese Tour zeigt dir die wichtigsten Schritte: Szenario anlegen, Simulation starten und Runs vergleichen.",
       buttons: [{ text: "Tour starten", action: next }],
     });
 
     instance.addStep({
       id: "generator-entry",
       title: "1. Szenario vorbereiten",
-      text: "Öffne den Szenario-Generator. Dort kannst du Prozesse mit Ankunft, Burst und Priorität anlegen.",
+      text: "Öffne den Szenario-Generator, um Prozesse und ihre Ausgangsdaten festzulegen.",
       attachTo: { element: '[data-tour="burger-button"]', on: "bottom" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        { text: "Generator öffnen", action: () => { actions.openGenerator(); next(); } },
+        {
+          text: "Generator öffnen",
+          action: () => {
+            actions.openGenerator();
+            next();
+          },
+        },
       ],
     });
 
@@ -58,7 +68,13 @@ export function useTour(actions: TourActions) {
       attachTo: { element: '[data-tour="generator-modal"]', on: "top" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        { text: "Classroom laden", action: () => { actions.loadClassroom(); next(); } },
+        {
+          text: "Classroom laden",
+          action: () => {
+            actions.loadClassroom();
+            next();
+          },
+        },
       ],
     });
 
@@ -69,7 +85,14 @@ export function useTour(actions: TourActions) {
       attachTo: { element: '[data-tour="algorithm-card"]', on: "bottom" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        { text: "SJF anwenden", action: () => { actions.openAlgorithm(); actions.applySjf(); next(); } },
+        {
+          text: "SJF anwenden",
+          action: () => {
+            actions.openAlgorithm();
+            actions.applySjf();
+            next();
+          },
+        },
       ],
     });
 
@@ -94,7 +117,13 @@ export function useTour(actions: TourActions) {
       attachTo: { element: '[data-tour="playback-controls"]', on: "bottom" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        { text: "Play starten", action: () => { actions.startPlayback(); next(); } },
+        {
+          text: "Play starten",
+          action: () => {
+            actions.startPlayback();
+            next();
+          },
+        },
       ],
     });
 
@@ -116,18 +145,30 @@ export function useTour(actions: TourActions) {
       attachTo: { element: '[data-tour="add-run"]', on: "bottom" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        { text: "Round Robin hinzufügen", action: () => { actions.addComparisonRun(); next(); } },
+        {
+          text: "Round Robin hinzufügen",
+          action: () => {
+            actions.addComparisonRun();
+            next();
+          },
+        },
       ],
     });
 
     instance.addStep({
       id: "multi-view",
-      title: "9. Runs in der Multi-View vergleichen",
-      text: "In der Multi-View betrachtest du die Zeitpläne mehrerer Runs nebeneinander. So erkennst du Unterschiede bei Reihenfolge, Preemption und Durchlauf.",
+      title: "9. Runs in der Vergleichsübersicht vergleichen",
+      text: "In der Vergleichsübersicht betrachtest du die Zeitpläne mehrerer Runs nebeneinander. So erkennst du Unterschiede bei Reihenfolge, Preemption und Durchlauf.",
       attachTo: { element: '[data-tour="multi-view"]', on: "top" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        { text: "Multi-View öffnen", action: () => { actions.openMultiView(); window.setTimeout(next, 0); } },
+        {
+          text: "Vergleichsübersicht öffnen",
+          action: () => {
+            actions.openMultiView();
+            window.setTimeout(next, 0);
+          },
+        },
       ],
     });
 
@@ -139,8 +180,12 @@ export function useTour(actions: TourActions) {
       buttons: [{ text: "Tour beenden", action: () => instance.complete() }],
     });
 
-    instance.on("complete", () => window.localStorage.setItem(TOUR_STORAGE_KEY, "1"));
-    instance.on("cancel", () => window.localStorage.setItem(TOUR_STORAGE_KEY, "1"));
+    instance.on("complete", () =>
+      window.localStorage.setItem(TOUR_STORAGE_KEY, "1"),
+    );
+    instance.on("cancel", () =>
+      window.localStorage.setItem(TOUR_STORAGE_KEY, "1"),
+    );
     return instance;
   }
 

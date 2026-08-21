@@ -49,7 +49,7 @@ Reproduzierbarkeit
 
 Grenzfälle & Performance
 
-- `maxTicks` schützt vor Endlosschleifen (Summe Bursts + maxArrival + 25).
+- `maxTicks` schützt vor Endlosschleifen (Summe der Rechenzeiten + maxArrival + 25).
 - Bei grossen Szenarien (50+ Prozesse): erhöhe `snapshotInterval` oder implementiere Snapshot‑Coalescing, um Memory/Performance zu schonen.
 
 Empfehlungen vor Abgabe

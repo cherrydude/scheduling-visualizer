@@ -228,7 +228,7 @@
     </g>
 
     <text v-else x="80" y="120" class="empty-gantt">
-      Noch keine Timeline verfuegbar. Erstelle ein Szenario und starte die
+      Noch keine Visualisierung verfügbar. Erstelle ein Szenario und starte die
       Simulation.
     </text>
 

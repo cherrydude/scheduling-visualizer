@@ -179,7 +179,7 @@
                   <span>ID</span>
                   <span>Name</span>
                   <span>Ankunft</span>
-                  <span>Burst</span>
+                  <span>Rechenzeit</span>
                   <span>Prio</span>
                   <span>Farbe</span>
                   <span></span>
@@ -276,7 +276,9 @@
           v-for="card in statusCards"
           :key="card.label"
           :title="statusCardTitle(card.label)"
-          :data-tour="card.label === 'Algorithmus' ? 'algorithm-card' : undefined"
+          :data-tour="
+            card.label === 'Algorithmus' ? 'algorithm-card' : undefined
+          "
           :role="
             card.label === 'Szenario' || card.label === 'Algorithmus'
               ? 'button'
@@ -305,7 +307,10 @@
           <small>{{ card.help }}</small>
         </article>
 
-        <article class="status-card status-card--switcher" aria-label="Ansicht wechseln">
+        <article
+          class="status-card status-card--switcher"
+          aria-label="Ansicht wechseln"
+        >
           <span class="status-label">Ansicht</span>
           <div class="view-toggle view-toggle--compact">
             <button
@@ -324,15 +329,10 @@
               :title="viewToggleTitle('multi')"
               @click="setActiveView('multi')"
             >
-              Multi‑View
+              Vergleichsübersicht
             </button>
           </div>
-          <div class="sync-indicator" :class="{ 'sync-active': syncActive }" title="Synchronisiert" aria-hidden="false">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 12a9 9 0 10-3.2 6.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 3v6h-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
+
           <small>Wechselt zwischen Detail- und Vergleichsansicht</small>
         </article>
       </section>
@@ -345,10 +345,16 @@
       >
         <div class="section-header">
           <div class="section-header-main">
-              <div class="view-header-row">
-                <h2>{{ activeView === 'focus' ? 'Fokusansicht' : 'Multi‑View' }}</h2>
-              </div>
-              <div class="run-navigation-row">
+            <div class="view-header-row">
+              <h2>
+                {{
+                  activeView === "focus"
+                    ? "Fokusansicht"
+                    : "Vergleichsübersicht"
+                }}
+              </h2>
+            </div>
+            <div class="run-navigation-row">
               <div
                 v-if="activeScenario && activeScenario.runs.length > 1"
                 class="run-navigation"
@@ -389,8 +395,8 @@
         <div v-if="!activeScenario" class="empty-state empty-state--actions">
           <strong>Bitte Szenario erstellen</strong>
           <p>
-            Oeffne das Burgermenue oben links und lege zuerst ein Szenario an
-            oder drücke hier:
+            Öffne das Burgermenü oben links und lege zuerst ein Szenario an oder
+            drücke hier:
             <button
               class="inline-link-button"
               type="button"
@@ -421,11 +427,7 @@
             </button>
           </div>
 
-          <div
-            v-if="activeScenario"
-            class="gantt-wrap"
-            ref="ganttWrapRef"
-          >
+          <div v-if="activeScenario" class="gantt-wrap" ref="ganttWrapRef">
             <GanttWithGsap
               :key="focusRenderKey"
               v-if="activeView === 'focus'"
@@ -506,12 +508,11 @@
           </div>
         </template>
 
-        <div class="timeline-caption">
-          <span>{{ timelineCaptionLeft }}</span>
-          <span>{{ timelineCaptionRight }}</span>
-        </div>
-
-        <section v-if="showMetricsPanel && activeView === 'focus'" class="panel metrics-panel" data-tour="metrics-panel">
+        <section
+          v-if="showMetricsPanel && activeView === 'focus'"
+          class="panel metrics-panel"
+          data-tour="metrics-panel"
+        >
           <div class="section-header compact">
             <h2>Kennzahlen</h2>
           </div>
@@ -521,6 +522,7 @@
               class="metric-panel"
               v-for="metric in metricCards"
               :key="metric.label"
+              :title="metric.tooltip"
             >
               <span class="status-label">{{ metric.label }}</span>
               <strong>{{ metric.value }}</strong>
@@ -562,7 +564,7 @@
           <p class="note-text">{{ simulationNote }}</p>
         </section>
 
-<!--           <section class="panel detail-panel" data-tour="results">
+        <!--           <section class="panel detail-panel" data-tour="results">
         <div class="section-header">
             <h2>Ereignislog</h2>
             <span>{{ currentEventLabel }}</span>
@@ -582,7 +584,6 @@
             </article>
           </div>
         </section> -->
-
       </aside>
 
       <Tooltip
@@ -605,8 +606,8 @@
       <div class="route-copy">
         <template v-if="currentRoute === 'about'">
           <p>
-            Hier entsteht die Seite ueber mich und die Bachelorarbeit. Diese Route
-            ist bereits als stabiler Einstiegspunkt vorgesehen.
+            Hier entsteht die Seite ueber mich und die Bachelorarbeit. Diese
+            Route ist bereits als stabiler Einstiegspunkt vorgesehen.
           </p>
         </template>
 
@@ -653,7 +654,10 @@ import { usePlayback } from "@/composables/usePlayback";
 import { useTour } from "@/composables/useTour";
 import { useFocusTrap } from "@/composables/useFocusTrap";
 import { createTimelineLayout } from "./utils/timelineLayout";
-import { sharedCellWidth, computeSharedCellWidth } from "@/composables/useTimelineSync";
+import {
+  sharedCellWidth,
+  computeSharedCellWidth,
+} from "@/composables/useTimelineSync";
 import type {
   AlgorithmType,
   ScheduleEvent,
@@ -669,6 +673,7 @@ interface MetricCard {
   label: string;
   value: string;
   help: string;
+  tooltip?: string;
   showEditIcon?: boolean;
 }
 
@@ -710,7 +715,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 0,
         burstTime: 4,
         priority: 2,
-        color: 'var(--data-1)',
+        color: "var(--data-1)",
         group: "A",
       },
       {
@@ -719,7 +724,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 1,
         burstTime: 3,
         priority: 1,
-        color: 'var(--data-2)',
+        color: "var(--data-2)",
         group: "A",
       },
       {
@@ -728,7 +733,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 2,
         burstTime: 5,
         priority: 3,
-        color: 'var(--data-3)',
+        color: "var(--data-3)",
         group: "B",
       },
     ],
@@ -746,7 +751,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 0,
         burstTime: 6,
         priority: 2,
-        color: 'var(--data-4)',
+        color: "var(--data-4)",
         group: "A",
       },
       {
@@ -755,7 +760,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 2,
         burstTime: 4,
         priority: 1,
-        color: 'var(--data-5)',
+        color: "var(--data-5)",
         group: "B",
       },
       {
@@ -764,7 +769,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 4,
         burstTime: 3,
         priority: 4,
-        color: 'var(--data-6)',
+        color: "var(--data-6)",
         group: "B",
       },
       {
@@ -773,7 +778,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 5,
         burstTime: 2,
         priority: 2,
-        color: 'var(--data-7)',
+        color: "var(--data-7)",
         group: "C",
       },
     ],
@@ -781,7 +786,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   longTimeline: {
     title: "Extrem lang",
     description:
-      "Langer Zeitstrahl mit wenigen, aber sehr ausgedehnten Bursts für die Zoom- und Scroll-Tests.",
+      "Langer Zeitstrahl mit wenigen, aber sehr ausgedehnten Rechenzeiten für die Zoom- und Scroll-Tests.",
     seed: 101,
     tickSize: 1,
     processes: [
@@ -791,7 +796,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 0,
         burstTime: 14,
         priority: 2,
-        color: 'var(--data-8)',
+        color: "var(--data-8)",
         group: "A",
       },
       {
@@ -800,7 +805,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 6,
         burstTime: 12,
         priority: 1,
-        color: 'var(--data-9)',
+        color: "var(--data-9)",
         group: "A",
       },
       {
@@ -809,7 +814,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 12,
         burstTime: 10,
         priority: 3,
-        color: 'var(--data-10)',
+        color: "var(--data-10)",
         group: "B",
       },
       {
@@ -818,7 +823,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         arrivalTime: 19,
         burstTime: 9,
         priority: 4,
-        color: 'var(--data-3)',
+        color: "var(--data-3)",
         group: "C",
       },
     ],
@@ -830,32 +835,168 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     seed: 202,
     tickSize: 1,
     processes: [
-      { id: "P1", name: "P1", arrivalTime: 0, burstTime: 4, priority: 2, color: 'var(--data-8)', group: "A" },
-      { id: "P2", name: "P2", arrivalTime: 1, burstTime: 3, priority: 1, color: 'var(--data-2)', group: "A" },
-      { id: "P3", name: "P3", arrivalTime: 1, burstTime: 5, priority: 3, color: 'var(--data-3)', group: "A" },
-      { id: "P4", name: "P4", arrivalTime: 2, burstTime: 4, priority: 2, color: 'var(--data-10)', group: "B" },
-      { id: "P5", name: "P5", arrivalTime: 3, burstTime: 6, priority: 4, color: 'var(--data-11)', group: "B" },
-      { id: "P6", name: "P6", arrivalTime: 4, burstTime: 3, priority: 1, color: 'var(--data-12)', group: "C" },
-      { id: "P7", name: "P7", arrivalTime: 5, burstTime: 4, priority: 2, color: 'var(--data-5)', group: "C" },
-      { id: "P8", name: "P8", arrivalTime: 6, burstTime: 5, priority: 3, color: 'var(--data-7)', group: "D" },
-      { id: "P9", name: "P9", arrivalTime: 7, burstTime: 3, priority: 1, color: 'var(--data-4)', group: "D" },
-      { id: "P10", name: "P10", arrivalTime: 8, burstTime: 4, priority: 2, color: 'var(--data-13)', group: "E" },
-      { id: "P11", name: "P11", arrivalTime: 9, burstTime: 3, priority: 4, color: 'var(--data-14)', group: "E" },
+      {
+        id: "P1",
+        name: "P1",
+        arrivalTime: 0,
+        burstTime: 4,
+        priority: 2,
+        color: "var(--data-8)",
+        group: "A",
+      },
+      {
+        id: "P2",
+        name: "P2",
+        arrivalTime: 1,
+        burstTime: 3,
+        priority: 1,
+        color: "var(--data-2)",
+        group: "A",
+      },
+      {
+        id: "P3",
+        name: "P3",
+        arrivalTime: 1,
+        burstTime: 5,
+        priority: 3,
+        color: "var(--data-3)",
+        group: "A",
+      },
+      {
+        id: "P4",
+        name: "P4",
+        arrivalTime: 2,
+        burstTime: 4,
+        priority: 2,
+        color: "var(--data-10)",
+        group: "B",
+      },
+      {
+        id: "P5",
+        name: "P5",
+        arrivalTime: 3,
+        burstTime: 6,
+        priority: 4,
+        color: "var(--data-11)",
+        group: "B",
+      },
+      {
+        id: "P6",
+        name: "P6",
+        arrivalTime: 4,
+        burstTime: 3,
+        priority: 1,
+        color: "var(--data-12)",
+        group: "C",
+      },
+      {
+        id: "P7",
+        name: "P7",
+        arrivalTime: 5,
+        burstTime: 4,
+        priority: 2,
+        color: "var(--data-5)",
+        group: "C",
+      },
+      {
+        id: "P8",
+        name: "P8",
+        arrivalTime: 6,
+        burstTime: 5,
+        priority: 3,
+        color: "var(--data-7)",
+        group: "D",
+      },
+      {
+        id: "P9",
+        name: "P9",
+        arrivalTime: 7,
+        burstTime: 3,
+        priority: 1,
+        color: "var(--data-4)",
+        group: "D",
+      },
+      {
+        id: "P10",
+        name: "P10",
+        arrivalTime: 8,
+        burstTime: 4,
+        priority: 2,
+        color: "var(--data-13)",
+        group: "E",
+      },
+      {
+        id: "P11",
+        name: "P11",
+        arrivalTime: 9,
+        burstTime: 3,
+        priority: 4,
+        color: "var(--data-14)",
+        group: "E",
+      },
     ],
   },
   burstChaos: {
-    title: "Burst-Chaos",
+    title: "Rechenzeit-Chaos",
     description:
-      "Viele kurze Bursts und viele Kontextwechsel für den Stress-Test der Animationen.",
+      "Viele kurze Rechenzeiten und viele Kontextwechsel für den Stress-Test der Animationen.",
     seed: 303,
     tickSize: 1,
     processes: [
-      { id: "C1", name: "C1", arrivalTime: 0, burstTime: 2, priority: 1, color: 'var(--data-8)', group: "A" },
-      { id: "C2", name: "C2", arrivalTime: 0, burstTime: 1, priority: 2, color: 'var(--data-10)', group: "A" },
-      { id: "C3", name: "C3", arrivalTime: 1, burstTime: 2, priority: 3, color: 'var(--data-3)', group: "B" },
-      { id: "C4", name: "C4", arrivalTime: 2, burstTime: 1, priority: 4, color: 'var(--data-11)', group: "B" },
-      { id: "C5", name: "C5", arrivalTime: 2, burstTime: 2, priority: 2, color: 'var(--data-12)', group: "C" },
-      { id: "C6", name: "C6", arrivalTime: 3, burstTime: 1, priority: 1, color: 'var(--data-9)', group: "C" },
+      {
+        id: "C1",
+        name: "C1",
+        arrivalTime: 0,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-8)",
+        group: "A",
+      },
+      {
+        id: "C2",
+        name: "C2",
+        arrivalTime: 0,
+        burstTime: 1,
+        priority: 2,
+        color: "var(--data-10)",
+        group: "A",
+      },
+      {
+        id: "C3",
+        name: "C3",
+        arrivalTime: 1,
+        burstTime: 2,
+        priority: 3,
+        color: "var(--data-3)",
+        group: "B",
+      },
+      {
+        id: "C4",
+        name: "C4",
+        arrivalTime: 2,
+        burstTime: 1,
+        priority: 4,
+        color: "var(--data-11)",
+        group: "B",
+      },
+      {
+        id: "C5",
+        name: "C5",
+        arrivalTime: 2,
+        burstTime: 2,
+        priority: 2,
+        color: "var(--data-12)",
+        group: "C",
+      },
+      {
+        id: "C6",
+        name: "C6",
+        arrivalTime: 3,
+        burstTime: 1,
+        priority: 1,
+        color: "var(--data-9)",
+        group: "C",
+      },
     ],
   },
   sjfVsSrtf: {
@@ -865,10 +1006,42 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     seed: 707,
     tickSize: 1,
     processes: [
-      { id: "L", name: "L", arrivalTime: 0, burstTime: 10, priority: 3, color: 'var(--data-8)', group: "A" },
-      { id: "S1", name: "S1", arrivalTime: 1, burstTime: 1, priority: 2, color: 'var(--data-10)', group: "B" },
-      { id: "S2", name: "S2", arrivalTime: 2, burstTime: 2, priority: 2, color: 'var(--data-3)', group: "B" },
-      { id: "S3", name: "S3", arrivalTime: 3, burstTime: 1, priority: 1, color: 'var(--data-11)', group: "C" },
+      {
+        id: "L",
+        name: "L",
+        arrivalTime: 0,
+        burstTime: 10,
+        priority: 3,
+        color: "var(--data-8)",
+        group: "A",
+      },
+      {
+        id: "S1",
+        name: "S1",
+        arrivalTime: 1,
+        burstTime: 1,
+        priority: 2,
+        color: "var(--data-10)",
+        group: "B",
+      },
+      {
+        id: "S2",
+        name: "S2",
+        arrivalTime: 2,
+        burstTime: 2,
+        priority: 2,
+        color: "var(--data-3)",
+        group: "B",
+      },
+      {
+        id: "S3",
+        name: "S3",
+        arrivalTime: 3,
+        burstTime: 1,
+        priority: 1,
+        color: "var(--data-11)",
+        group: "C",
+      },
     ],
   },
   rrQuantumLab: {
@@ -878,10 +1051,42 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     seed: 808,
     tickSize: 1,
     processes: [
-      { id: "R1", name: "R1", arrivalTime: 0, burstTime: 7, priority: 2, color: 'var(--data-1)', group: "A" },
-      { id: "R2", name: "R2", arrivalTime: 0, burstTime: 6, priority: 2, color: 'var(--data-2)', group: "A" },
-      { id: "R3", name: "R3", arrivalTime: 0, burstTime: 5, priority: 2, color: 'var(--data-4)', group: "B" },
-      { id: "R4", name: "R4", arrivalTime: 0, burstTime: 4, priority: 2, color: 'var(--data-5)', group: "B" },
+      {
+        id: "R1",
+        name: "R1",
+        arrivalTime: 0,
+        burstTime: 7,
+        priority: 2,
+        color: "var(--data-1)",
+        group: "A",
+      },
+      {
+        id: "R2",
+        name: "R2",
+        arrivalTime: 0,
+        burstTime: 6,
+        priority: 2,
+        color: "var(--data-2)",
+        group: "A",
+      },
+      {
+        id: "R3",
+        name: "R3",
+        arrivalTime: 0,
+        burstTime: 5,
+        priority: 2,
+        color: "var(--data-4)",
+        group: "B",
+      },
+      {
+        id: "R4",
+        name: "R4",
+        arrivalTime: 0,
+        burstTime: 4,
+        priority: 2,
+        color: "var(--data-5)",
+        group: "B",
+      },
     ],
   },
   priorityStarvation: {
@@ -891,11 +1096,51 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     seed: 909,
     tickSize: 1,
     processes: [
-      { id: "BG", name: "BG", arrivalTime: 0, burstTime: 14, priority: 5, color: 'var(--data-16)', group: "Hintergrund" },
-      { id: "H1", name: "H1", arrivalTime: 1, burstTime: 2, priority: 1, color: 'var(--data-12)', group: "High" },
-      { id: "H2", name: "H2", arrivalTime: 3, burstTime: 2, priority: 1, color: 'var(--data-13)', group: "High" },
-      { id: "H3", name: "H3", arrivalTime: 5, burstTime: 2, priority: 1, color: 'var(--data-14)', group: "High" },
-      { id: "H4", name: "H4", arrivalTime: 7, burstTime: 2, priority: 1, color: 'var(--data-15)', group: "High" },
+      {
+        id: "BG",
+        name: "BG",
+        arrivalTime: 0,
+        burstTime: 14,
+        priority: 5,
+        color: "var(--data-16)",
+        group: "Hintergrund",
+      },
+      {
+        id: "H1",
+        name: "H1",
+        arrivalTime: 1,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-12)",
+        group: "High",
+      },
+      {
+        id: "H2",
+        name: "H2",
+        arrivalTime: 3,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-13)",
+        group: "High",
+      },
+      {
+        id: "H3",
+        name: "H3",
+        arrivalTime: 5,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-14)",
+        group: "High",
+      },
+      {
+        id: "H4",
+        name: "H4",
+        arrivalTime: 7,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-15)",
+        group: "High",
+      },
     ],
   },
   mlfqStaircase: {
@@ -905,11 +1150,51 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     seed: 1001,
     tickSize: 1,
     processes: [
-      { id: "CPU1", name: "CPU1", arrivalTime: 0, burstTime: 12, priority: 2, color: 'var(--data-9)', group: "CPU" },
-      { id: "CPU2", name: "CPU2", arrivalTime: 0, burstTime: 11, priority: 2, color: 'var(--data-8)', group: "CPU" },
-      { id: "I1", name: "I1", arrivalTime: 2, burstTime: 2, priority: 1, color: 'var(--data-3)', group: "Interaktiv" },
-      { id: "I2", name: "I2", arrivalTime: 6, burstTime: 1, priority: 1, color: 'var(--data-11)', group: "Interaktiv" },
-      { id: "I3", name: "I3", arrivalTime: 9, burstTime: 2, priority: 1, color: 'var(--data-10)', group: "Interaktiv" },
+      {
+        id: "CPU1",
+        name: "CPU1",
+        arrivalTime: 0,
+        burstTime: 12,
+        priority: 2,
+        color: "var(--data-9)",
+        group: "CPU",
+      },
+      {
+        id: "CPU2",
+        name: "CPU2",
+        arrivalTime: 0,
+        burstTime: 11,
+        priority: 2,
+        color: "var(--data-8)",
+        group: "CPU",
+      },
+      {
+        id: "I1",
+        name: "I1",
+        arrivalTime: 2,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-3)",
+        group: "Interaktiv",
+      },
+      {
+        id: "I2",
+        name: "I2",
+        arrivalTime: 6,
+        burstTime: 1,
+        priority: 1,
+        color: "var(--data-11)",
+        group: "Interaktiv",
+      },
+      {
+        id: "I3",
+        name: "I3",
+        arrivalTime: 9,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-10)",
+        group: "Interaktiv",
+      },
     ],
   },
 };
@@ -941,16 +1226,14 @@ const focusViewportWidth = ref(
   typeof window !== "undefined" ? window.innerWidth : 0,
 );
 const savedFocusCellWidth = ref<number | null>(null);
+const savedFocusSvgWidth = ref<number | null>(null);
 const focusCellWidthOverride = ref<number | null>(null);
+const focusSvgWidthOverride = ref<number | null>(null);
 const currentRoute = ref<RouteName>("home");
 const loopPlayback = ref(false);
 let focusViewportObserver: ResizeObserver | null = null;
 
-const activeView = ref<string>(
-  typeof window !== "undefined"
-    ? window.localStorage.getItem("scheduling-visualizer.activeView") ?? "focus"
-    : "focus",
-);
+const activeView = ref<"focus" | "multi">("focus");
 
 const tour = useTour({
   openGenerator: openGeneratorModal,
@@ -966,11 +1249,8 @@ const tour = useTour({
 
 // Theme follows OS; no user control in-app.
 
-function setActiveView(view: string) {
+function setActiveView(view: "focus" | "multi") {
   activeView.value = view;
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem("scheduling-visualizer.activeView", view);
-  }
 }
 
 function updateFocusViewportWidth(): void {
@@ -1197,7 +1477,11 @@ const scenarioTimelineLength = computed(() => {
 
   const maxArrivalEnd = processes.reduce(
     (max, process) =>
-      Math.max(max, Math.floor(process.arrivalTime) + Math.max(1, Math.floor(process.burstTime))),
+      Math.max(
+        max,
+        Math.floor(process.arrivalTime) +
+          Math.max(1, Math.floor(process.burstTime)),
+      ),
     0,
   );
 
@@ -1249,11 +1533,14 @@ const focusLayout = computed(() =>
 );
 
 const focusCellWidth = computed(() => {
-  return focusLayout.value.cellWidth;
+  return focusCellWidthOverride.value ?? focusLayout.value.cellWidth;
 });
 
 const focusTickMarks = computed(() => {
-  return Array.from({ length: focusTimelineLength.value + 1 }, (_, index) => index);
+  return Array.from(
+    { length: focusTimelineLength.value + 1 },
+    (_, index) => index,
+  );
 });
 
 type StackItem = {
@@ -1285,7 +1572,7 @@ function isProcessDone(pid: string, snap: SimulationSnapshot | null) {
 
 function findProcessMeta(pid?: string | null) {
   if (!pid) {
-    return { name: pid ?? "?", color: 'var(--data-15)' };
+    return { name: pid ?? "?", color: "var(--data-15)" };
   }
 
   const seg = visibleSegments.value.find(
@@ -1295,9 +1582,9 @@ function findProcessMeta(pid?: string | null) {
     (process) => process.id === pid,
   );
 
-    return {
+  return {
     name: seg?.processName ?? proc?.name ?? pid,
-    color: seg?.color ?? proc?.color ?? 'var(--data-15)',
+    color: seg?.color ?? proc?.color ?? "var(--data-15)",
   };
 }
 
@@ -1404,7 +1691,9 @@ function waitingTicksAtSnapshot(
     return 0;
   }
 
-  const process = activeScenario.value?.processes.find((item) => item.id === pid);
+  const process = activeScenario.value?.processes.find(
+    (item) => item.id === pid,
+  );
   if (!process) {
     return 0;
   }
@@ -1414,7 +1703,9 @@ function waitingTicksAtSnapshot(
   return Math.max(0, sinceArrival - executed);
 }
 
-function starvationRiskForWaiting(waitingTicks: number): "warn" | "critical" | null {
+function starvationRiskForWaiting(
+  waitingTicks: number,
+): "warn" | "critical" | null {
   if (waitingTicks >= starvationCriticalTicks) {
     return "critical";
   }
@@ -1443,7 +1734,9 @@ function quantumTotalForLevel(level: number | null | undefined): number | null {
   return Math.max(1, baseQuantum * (level + 1));
 }
 
-function currentArrivedProcessIds(snap: SimulationSnapshot | null): Set<string> {
+function currentArrivedProcessIds(
+  snap: SimulationSnapshot | null,
+): Set<string> {
   const arrived = new Set<string>();
   if (!snap) {
     return arrived;
@@ -1470,7 +1763,9 @@ function currentArrivedProcessIds(snap: SimulationSnapshot | null): Set<string> 
   return arrived;
 }
 
-function currentFinishedProcessIds(snap: SimulationSnapshot | null): Set<string> {
+function currentFinishedProcessIds(
+  snap: SimulationSnapshot | null,
+): Set<string> {
   const finished = new Set<string>();
   if (!snap) {
     return finished;
@@ -1499,8 +1794,9 @@ function currentFinishedProcessIds(snap: SimulationSnapshot | null): Set<string>
 
 function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
   const activeId = currentActiveProcessId.value;
-  const snapshotActiveId =
-    snap?.currentProcessId ? resolveSnapshotProcessId(snap, snap.currentProcessId) : null;
+  const snapshotActiveId = snap?.currentProcessId
+    ? resolveSnapshotProcessId(snap, snap.currentProcessId)
+    : null;
   const preemptedId = currentStackPreemptEvent.value?.processId ?? null;
   const arrivedIds = currentArrivedProcessIds(snap);
   const finishedIds = currentFinishedProcessIds(snap);
@@ -1509,7 +1805,9 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
   );
 
   if (preemptedId) {
-    const existingIndex = entries.findIndex((entry) => entry.id === preemptedId);
+    const existingIndex = entries.findIndex(
+      (entry) => entry.id === preemptedId,
+    );
 
     if (existingIndex < 0) {
       const derivedLevel = findReadyQueueLevelByProcessId(snap, preemptedId);
@@ -1537,7 +1835,9 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
           segment.processId === pid && segment.end > (snap?.time ?? 0),
       ) ?? visibleSegments.value.find((segment) => segment.processId === pid);
     const levelLabel =
-      entry.level === null || entry.level === undefined ? "" : `L${entry.level + 1} · `;
+      entry.level === null || entry.level === undefined
+        ? ""
+        : `L${entry.level + 1} · `;
     const quantumTotal = quantumTotalForLevel(entry.level);
     const quantumRemaining =
       activeRun.value?.algorithm === "mlfq"
@@ -1556,15 +1856,16 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
         : entry.level === null || entry.level === undefined
           ? "t done"
           : `${levelLabel}t done${quantumText}`;
-    const status = pid === activeId
-      ? "active"
-      : pid === preemptedId
-        ? "preempted"
-        : arrivedIds.has(pid)
-          ? "arrived"
-          : isFinishedNow
-            ? "finished"
-          : "ready";
+    const status =
+      pid === activeId
+        ? "active"
+        : pid === preemptedId
+          ? "preempted"
+          : arrivedIds.has(pid)
+            ? "arrived"
+            : isFinishedNow
+              ? "finished"
+              : "ready";
     const waitingTicks = waitingTicksAtSnapshot(pid, snap);
     const starvationRisk =
       status === "ready" || status === "preempted"
@@ -1636,6 +1937,10 @@ watch(
     stackItems.value = [];
     resetPlayback();
     sharedCellWidth.value = null;
+    savedFocusCellWidth.value = null;
+    savedFocusSvgWidth.value = null;
+    focusCellWidthOverride.value = null;
+    focusSvgWidthOverride.value = null;
 
     if (activeView.value === "focus") {
       void nextTick(() => {
@@ -1687,17 +1992,17 @@ watch(
 );
 
 watch(activeView, async (view, previousView) => {
-
   if (view === previousView) {
     return;
   }
 
-  await nextTick();
-
-  const grid = dashboardGridRef.value;
-  if (grid) {
-    grid.classList.toggle("dashboard-grid--multi", view === "multi");
+  if (previousView === "focus" && view === "multi") {
+    savedFocusCellWidth.value = focusCellWidth.value;
+    savedFocusSvgWidth.value =
+      focusSvgWidthOverride.value ?? focusLayout.value.svgWidth;
   }
+
+  await nextTick();
 
   const focusColumn = focusColumnRef.value;
   if (focusColumn) {
@@ -1707,14 +2012,13 @@ watch(activeView, async (view, previousView) => {
       { opacity: 1, y: 0, scale: 1, duration: 0.36, ease: "power2.out" },
     );
   }
-  // when leaving focus, remember its computed cellWidth so we can restore it later
-  if (previousView === 'focus' && view === 'multi') {
-    savedFocusCellWidth.value = focusCellWidth.value;
-    focusCellWidthOverride.value = null;
+  if (previousView === "multi" && view === "focus") {
+    focusCellWidthOverride.value = savedFocusCellWidth.value;
+    focusSvgWidthOverride.value = savedFocusSvgWidth.value;
   }
 
   // when coming back from MultiView, restart the focus playback from the beginning
-  if (previousView === 'multi' && view === 'focus') {
+  if (previousView === "multi" && view === "focus") {
     resetPlayback();
   }
 });
@@ -1784,7 +2088,12 @@ const stackQuantumSummaryText = computed(() => {
     const level = item.level;
     const remaining = item.quantumRemaining;
 
-    if (level === null || level === undefined || remaining === null || remaining === undefined) {
+    if (
+      level === null ||
+      level === undefined ||
+      remaining === null ||
+      remaining === undefined
+    ) {
       continue;
     }
 
@@ -1852,7 +2161,9 @@ const isStackSimulationFinished = computed(() => {
   const hasActiveProcess = Boolean(currentActiveProcessId.value);
   const readyQueueSize = snapshot.readyQueue.length;
 
-  return completedCount >= processCount && !hasActiveProcess && readyQueueSize === 0;
+  return (
+    completedCount >= processCount && !hasActiveProcess && readyQueueSize === 0
+  );
 });
 
 const simulationNote = computed(() => runState.value?.note ?? "");
@@ -1904,41 +2215,56 @@ const metricCards = computed<MetricCard[]>(() => {
       label: "Wartezeit",
       value: formatMetric(metrics?.averageWaitingTime),
       help: "Mittelwert",
+      tooltip:
+        "Durchschnittliche Zeit, die Prozesse in der Bereitschaftsschlange auf ihre Ausführung warten.",
     },
     {
       label: "Durchlaufzeit",
       value: formatMetric(metrics?.averageTurnaroundTime),
       help: "Mittelwert",
+      tooltip:
+        "Durchschnittliche Zeit vom Eintreffen eines Prozesses bis zu seiner vollständigen Fertigstellung.",
     },
     {
       label: "Reaktionszeit",
       value: formatMetric(metrics?.averageResponseTime),
       help: "Mittelwert",
+      tooltip:
+        "Durchschnittliche Zeit vom Eintreffen eines Prozesses bis zu seiner ersten Ausführung.",
     },
     {
       label: "Max. Wartezeit",
       value: formatMetric(metrics?.maxWaitingTime),
       help: "höchster Einzelwert",
+      tooltip: "Längste Wartezeit eines einzelnen Prozesses im aktuellen Lauf.",
     },
     {
       label: "Starvation-Fälle",
       value: String(metrics?.starvedProcessCount ?? 0),
       help: `Wartezeit >= ${starvationCriticalTicks} Ticks`,
+      tooltip:
+        "Anzahl der Prozesse, deren Wartezeit den kritischen Schwellenwert erreicht oder überschritten hat.",
     },
     {
       label: "Anzahl Preemptionen",
       value: String(metrics?.preemptionCount ?? 0),
       help: "preempt + quantumExpired",
+      tooltip:
+        "Anzahl der Unterbrechungen, bei denen ein laufender Prozess zugunsten eines anderen Prozesses oder wegen eines abgelaufenen Zeitquantums verdrängt wurde.",
     },
     {
       label: "Kontextwechsel",
       value: String(metrics?.contextSwitches ?? 0),
       help: "Gezählt im Lauf",
+      tooltip:
+        "Anzahl der Wechsel zwischen Prozessen, die vom Prozessor ausgeführt werden.",
     },
     {
       label: "Fairness",
       value: formatMetric(metrics?.fairnessIndex),
       help: "Jain Index",
+      tooltip:
+        "Jain-Fairness-Index der CPU-Verteilung. Ein Wert nahe 1 bedeutet eine gleichmäßige Verteilung.",
     },
   ];
 });
@@ -1955,7 +2281,11 @@ const comparisonCards = computed<ComparisonCard[]>(() => [
     value: "implementiert",
     help: "Präemptiv mit Prioritäten und FIFO-Tie-Break",
   },
-  { label: "MLFQ", value: "implementiert", help: "Queue-Stufen sichtbar im Queue-Panel" },
+  {
+    label: "MLFQ",
+    value: "implementiert",
+    help: "Queue-Stufen sichtbar im Queue-Panel",
+  },
 ]);
 
 const recentEvents = computed<ScheduleEvent[]>(() => {
@@ -1969,22 +2299,62 @@ const recentEvents = computed<ScheduleEvent[]>(() => {
   );
 });
 const focusViewBox = computed(() => {
-  return `0 0 ${Math.max(focusLayout.value.svgWidth, focusViewportWidth.value || 860)} ${chartHeight.value}`;
+  const svgWidth =
+    focusSvgWidthOverride.value ??
+    Math.max(focusLayout.value.svgWidth, focusViewportWidth.value || 860);
+  return `0 0 ${svgWidth} ${chartHeight.value}`;
 });
 
-const scenarioRenderToken = ref(0);
-
-watch(
-  () => activeScenario.value,
-  () => {
-    scenarioRenderToken.value += 1;
-  },
-  { deep: true },
+const focusRenderKey = computed(() =>
+  getScenarioRenderSignature(activeScenario.value),
 );
 
-const focusRenderKey = computed(
-  () =>
-    `${getScenarioRenderSignature(activeScenario.value)}:${activeRunIndex.value}:${scenarioRenderToken.value}`,
+function waitForTwoFrames(): Promise<void> {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
+watch(
+  focusRenderKey,
+  async (renderKey) => {
+    focusCellWidthOverride.value = null;
+    focusSvgWidthOverride.value = null;
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storageKey = `scheduling-visualizer.focus-layout.v3.${window.innerWidth}.${renderKey}`;
+    const storedLayout = JSON.parse(
+      window.localStorage.getItem(storageKey) ?? "null",
+    ) as { cellWidth?: number; svgWidth?: number } | null;
+    if (
+      storedLayout &&
+      Number.isFinite(storedLayout?.cellWidth) &&
+      storedLayout.cellWidth! > 0 &&
+      Number.isFinite(storedLayout?.svgWidth) &&
+      storedLayout.svgWidth! > 0
+    ) {
+      focusCellWidthOverride.value = storedLayout.cellWidth!;
+      focusSvgWidthOverride.value = storedLayout.svgWidth!;
+      return;
+    }
+
+    await nextTick();
+    await waitForTwoFrames();
+    const width = focusLayout.value.cellWidth;
+    const svgWidth = focusLayout.value.svgWidth;
+    focusCellWidthOverride.value = width;
+    focusSvgWidthOverride.value = svgWidth;
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({ cellWidth: width, svgWidth }),
+    );
+  },
+  { immediate: true },
 );
 
 const syncActive = ref(false);
@@ -2493,7 +2863,10 @@ function formatAlgorithmParams(
   }
 
   if (algorithm === "sjf") {
-    const mode = params.sjfMode === "preemptive" ? "SRTF (präemptiv)" : "SJF (nicht-präemptiv)";
+    const mode =
+      params.sjfMode === "preemptive"
+        ? "SRTF (präemptiv)"
+        : "SJF (nicht-präemptiv)";
     return `Variante: ${mode} · kürzeste Restlaufzeit zuerst`;
   }
 
@@ -2514,7 +2887,7 @@ function statusCardTitle(label: string): string {
 function viewToggleTitle(view: "focus" | "multi"): string {
   return view === "focus"
     ? "Fokusansicht: einen einzelnen Run mit Steuerung und Details lesen"
-    : "Multi-View: mehrere Runs parallel vergleichen";
+    : "Vergleichsübersicht: mehrere Runs parallel vergleichen";
 }
 
 function runNavigationTitle(index: number): string {
@@ -2735,7 +3108,7 @@ onBeforeUnmount(() => {
   margin-bottom: 0.75rem;
 }
 
-  scenario-banner p {
+scenario-banner p {
   margin: 0.25rem 0 0;
   color: var(--text);
 }
@@ -2755,7 +3128,7 @@ onBeforeUnmount(() => {
   line-height: 1.4;
 }
 
-  .note-text {
+.note-text {
   margin: 0.75rem 0 0;
   color: var(--muted);
 }
@@ -2765,62 +3138,62 @@ onBeforeUnmount(() => {
   padding: 1rem;
 }
 
-  .route-copy {
+.route-copy {
   max-width: 68ch;
   color: var(--text);
 }
 
-  .help-lead {
-    max-width: 74ch;
-    margin: 0 0 1rem;
-    color: var(--text);
-  }
+.help-lead {
+  max-width: 74ch;
+  margin: 0 0 1rem;
+  color: var(--text);
+}
 
-  .help-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 0.9rem;
-  }
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.9rem;
+}
 
-  .help-card {
-    padding: 0.95rem;
-    border-radius: 18px;
-    display: grid;
-    gap: 0.45rem;
-  }
+.help-card {
+  padding: 0.95rem;
+  border-radius: 18px;
+  display: grid;
+  gap: 0.45rem;
+}
 
-  .help-card h3 {
-    margin: 0;
-    font-size: 1rem;
-  }
+.help-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
 
-  .help-card p {
-    margin: 0;
-    color: var(--muted);
-    line-height: 1.5;
-  }
+.help-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
 
-  .help-card ul {
-    margin: 0.25rem 0 0;
-    padding-left: 1.1rem;
-    display: grid;
-    gap: 0.35rem;
-    color: var(--text);
-  }
+.help-card ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text);
+}
 
-  .help-kicker {
-    display: inline-flex;
-    width: fit-content;
-    padding: 0.16rem 0.5rem;
-    border-radius: 999px;
-    background: rgba(96, 165, 250, 0.12);
-    color: var(--accent);
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
+.help-kicker {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.16rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
-  .loop-toggle {
+.loop-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;

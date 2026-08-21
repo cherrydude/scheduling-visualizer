@@ -7,7 +7,7 @@
         title="Simulation starten oder fortsetzen"
         :disabled="!controlsEnabled"
       >
-        Play
+        Start
       </button>
       <button
         @click="handlePause"

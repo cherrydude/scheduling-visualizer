@@ -2,7 +2,7 @@
   <div class="comparison-panel" data-tour="comparison-table">
     <div class="section-header compact comparison-header">
       <div>
-        <h3>Vergleichsübersicht</h3>
+        <h3>Bewertungsmatrix</h3>
         <p class="subtitle subtitle-meta">
           Wähle einen Anwendungsfall und gewichte die Runs nach den dafür
           relevanten Kennzahlen.

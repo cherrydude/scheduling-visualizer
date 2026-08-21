@@ -37,8 +37,8 @@
     </div>
 
     <div v-else class="empty-state compact">
-      <strong>Keine Runs verfuegbar</strong>
-      <p>Füge zuerst einen Algorithmus zum Szenario hinzu, um die Multi-View zu sehen.</p>
+      <strong>Keine Runs verfügbar</strong>
+      <p>Füge zuerst einen Algorithmus zum Szenario hinzu, um die Visualisierung zu sehen.</p>
     </div>
 </template>
 

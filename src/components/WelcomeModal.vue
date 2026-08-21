@@ -12,7 +12,7 @@
       <header class="welcome-header">
         <div>
           <p class="eyebrow">Scheduling Visualizer</p>
-          <h2 id="welcome-title">Willkommen zur Scheduling-Visualizer</h2>
+          <h2 id="welcome-title">Willkommen zum Scheduling-Visualizer</h2>
         </div>
         <button
           class="icon-button"
@@ -26,7 +26,8 @@
 
       <p id="welcome-desc">
         Interaktive Visualisierung präemptiver Scheduling-Algorithmen — erstelle
-        Szenarien, starte Beispiel-Läufe und vergleiche Kennzahlen.
+        Szenarien, starte Beispiel-Läufe und vergleiche Kennzahlen. <br /><br />
+        Starte direkt hier.
       </p>
 
       <div class="welcome-actions">
@@ -37,20 +38,16 @@
         >
           Szenario erstellen
         </button>
-        <button class="primary-button" type="button" @click="$emit('start-demo')">
-          Beispiel starten
+        <button
+          class="primary-button"
+          type="button"
+          @click="$emit('start-tour')"
+        >
+          Beispiel-Tour starten
         </button>
-        <button class="secondary-button" type="button" @click="$emit('start-tour')">
-          Kurz-Tour starten
+        <button class="secondary-button" type="button" @click="$emit('close')">
+          Schließen
         </button>
-        <button class="link-button" type="button" @click="$emit('open-help')">
-          So liest du die Visualisierung
-        </button>
-      </div>
-
-      <div class="welcome-shortcuts">
-        <strong>Tastenkürzel</strong>
-        <div>Leertaste = Play/Pause <br> ← / → = Schritt <br> R = Reset</div>
       </div>
 
       <div class="welcome-bottom">
@@ -59,35 +56,31 @@
           <span>Diese Meldung nicht mehr anzeigen</span>
         </label>
 
-        <div class="welcome-footer">
-          <button class="secondary-button" type="button" @click="$emit('close')">
-            Schließen
-          </button>
-        </div>
+        <div class="welcome-footer"></div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, watchEffect } from 'vue';
-import { useFocusTrap } from '@/composables/useFocusTrap';
+import { ref, watch, watchEffect } from "vue";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 
 const props = defineProps<{ modelValue: boolean }>();
 
 const emit = defineEmits<{
-  (e: 'close'): void;
-  (e: 'start-demo'): void;
-  (e: 'start-tour'): void;
-  (e: 'create-scenario'): void;
-  (e: 'open-help'): void;
+  (e: "close"): void;
+  (e: "start-demo"): void;
+  (e: "start-tour"): void;
+  (e: "create-scenario"): void;
+  (e: "open-help"): void;
 }>();
 
 const modalRoot = ref<HTMLElement | null>(null);
 const dontShowAgain = ref(false);
 const STORAGE_KEY = "scheduling-visualizer.welcome-seen";
 
-useFocusTrap(modalRoot, () => emit('close'));
+useFocusTrap(modalRoot, () => emit("close"));
 
 watchEffect(() => {
   if (typeof window !== "undefined" && props.modelValue) {
@@ -110,7 +103,7 @@ watch(dontShowAgain, (checked) => {
 
 <style scoped>
 .welcome-modal {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -131,6 +124,7 @@ watch(dontShowAgain, (checked) => {
 .welcome-header h2 {
   margin: 0;
   font-size: clamp(1.5rem, 2vw, 2rem);
+  white-space: nowrap;
 }
 
 .eyebrow {
@@ -168,11 +162,13 @@ watch(dontShowAgain, (checked) => {
   border-radius: 12px;
   padding: 0.78rem 1.1rem;
   min-height: 44px;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .primary-button {
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .primary-button:hover,
@@ -239,5 +235,11 @@ watch(dontShowAgain, (checked) => {
   cursor: pointer;
   padding: 0.2rem 0.4rem;
   border-radius: 8px;
+}
+
+@media (max-width: 700px) {
+  .welcome-header h2 {
+    white-space: normal;
+  }
 }
 </style>

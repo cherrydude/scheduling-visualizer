@@ -22,7 +22,9 @@ npm run dev
 2. Öffne die App im Browser (Vite Dev URL).
 3. Szenario erstellen:
    - Klick auf "+ Szenario" im Burger‑Menü oder nutze das Willkommens‑Modal.
-   - Lege mindestens 2 Prozesse an (ID, Ankunft, Burst, Priorität, Farbe).
+
+- Lege mindestens 2 Prozesse an (ID, Ankunft, Rechenzeit, Priorität, Farbe).
+
 4. Algorithmus anwenden:
    - Öffne „Algorithmus anwenden“ → wähle z. B. Round Robin oder SJF → setze Time Quantum (falls relevant) / SJF‑Mode (preemptive/nonPreemptive).
    - Bestätige; der Run wird erzeugt und ist im Szenario gespeichert.
@@ -86,7 +88,7 @@ Kurzbefehle (Standard):
 - sjfMode: "preemptive" / "nonPreemptive" — für SJF (Shortest Job First) kannst du wählen, ob ein neu ankommender kürzerer Job laufende Prozesse preempten darf.
 - tieBreak‑Strategien: strictPriorityTieBreak, lcfsTieBreak — beeinflussen Auswahl bei Gleichstand.
 
-Empfehlung: Für Lehrdemos 3–5 Prozesse mit variablem arrival (0..n) und Burst 1..15; quantum 1–3; snapshotInterval 1–2.
+Empfehlung: Für Lehrdemos 3–5 Prozesse mit variablem arrival (0..n) und Rechenzeit 1..15; quantum 1–3; snapshotInterval 1–2.
 
 ---
 
@@ -131,11 +133,11 @@ Starvation tritt auf, wenn ein Prozess über sehr lange Zeit keinen CPU‑Zugrif
 - Aging: Erhöhe Priorität von wartenden Prozessen nach Zeit (nicht aktuell implementiert; Vorschlag als Erweiterung).
 - Periodische Priority Boost: Gelegentliche Erhöhung aller Prozesse in niedrigen Levels (MLFQ Erweiterung).
 - Kombiniere SJF‑Einsätze mit Timeout oder maxWait thresholds.
-- In Simulation: überwache waitingTime und löse optional Alarm/Annotation aus, wenn waitingTime > threshold (z. B. 5× durchschnittliche Burst).
+- In Simulation: überwache waitingTime und löse optional Alarm/Annotation aus, wenn waitingTime > threshold (z. B. 5× durchschnittliche Rechenzeit).
 
 ### Beispielaufgabe zur Starvation
 
-- Aufgabe: Erzeuge 1 langen Prozess (Burst=50) und 20 kurze Prozesse (Burst=1..3, zufällig ankommend). Vergleiche: SJF (preemptive), RR (q=1), MLFQ. Diskutiere, welcher Algorithmus Starvation zeigt und warum.
+- Aufgabe: Erzeuge 1 langen Prozess (Rechenzeit=50) und 20 kurze Prozesse (Rechenzeit=1..3, zufällig ankommend). Vergleiche: SJF (preemptive), RR (q=1), MLFQ. Diskutiere, welcher Algorithmus Starvation zeigt und warum.
 
 ---
 
@@ -160,14 +162,14 @@ Mini‑Checkliste (bei Analyse):
 
 ### A) Schnellvergleich von Algorithmen
 
-1. Erstelle ein Szenario (4 Prozesse, verschiedene Arrival/Burst).
+1. Erstelle ein Szenario (4 Prozesse, verschiedene Arrival/Rechenzeit).
 2. Run A: Round Robin (quantum=2) — speichere Run.
 3. Run B: SJF (preemptive) — speichere Run.
 4. Multi‑View vergleichen: Timeline, Event‑Log, Kennzahlen.
 
 ### B) Demonstration von Starvation (SJF)
 
-- Szenario: 1 langer Prozess (burst 50), viele kurze Prozesse (burst 1–3) mit gestaffelten Ankünften.
+- Szenario: 1 langer Prozess (Rechenzeit 50), viele kurze Prozesse (Rechenzeit 1–3) mit gestaffelten Ankünften.
 - Beobachtung: Der lange Prozess erhält ggf. sehr spät CPU → hohes turnaround/ waiting → diskutieren (Affekt von SJF).
 
 ### C) MLFQ vs SJF
@@ -181,7 +183,7 @@ Mini‑Checkliste (bei Analyse):
 - Seed: `createSeededScenarioProcesses(seed, count)` erzeugt deterministische Szenarien. Dokumentiere Seed in Versuchsprotokoll.
 - Speicherung: Szenarien werden in `localStorage` abgelegt.
 - Export/Import: Aktuell Copy/Paste aus Szenario‑Editor; Feature: JSON‑Export/Import kann ergänzt werden.
-- maxTicks: Schutz vor Endlosschleifen. Standardwert: Summe der Bursts + maxArrival + 25. Bei Bedarf anpassen.
+- maxTicks: Schutz vor Endlosschleifen. Standardwert: Summe der Rechenzeiten + maxArrival + 25. Bei Bedarf anpassen.
 
 ---
 
