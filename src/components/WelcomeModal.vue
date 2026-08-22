@@ -25,8 +25,9 @@
       </header>
 
       <p id="welcome-desc">
-        Interaktive Visualisierung präemptiver Scheduling-Algorithmen — erstelle
-        Szenarien, starte Beispiel-Läufe und vergleiche Kennzahlen. <br /><br />
+        Eine Visualisierung präemptiver Scheduling-Algorithmen — erstelle
+        Szenarien, starte Beispiel-Läufe und vergleiche Algorithmen und ihre
+        Verhaltensweisen. <br /><br />
         Starte direkt hier.
       </p>
 
@@ -34,6 +35,7 @@
         <button
           class="secondary-button"
           type="button"
+          data-tour="welcome-create-scenario"
           @click="$emit('create-scenario')"
         >
           Szenario erstellen
@@ -41,6 +43,7 @@
         <button
           class="primary-button"
           type="button"
+          data-tour="welcome-start-tour"
           @click="$emit('start-tour')"
         >
           Beispiel-Tour starten

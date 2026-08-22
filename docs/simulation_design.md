@@ -2,7 +2,7 @@
 
 Kurzüberblick
 
-- Unterstützte Algorithmen: `roundRobin`, `lcfs`, `strictPriority`, `mlfq`.
+- Unterstützte Algorithmen: `roundRobin`, `sjf` (UI: SRTF), `lcfs`, `strictPriority`, `mlfq`.
 - Ziel: deterministische, reproducebare diskrete‑Ereignis‑Simulation für Scheduler‑Visualisierung.
 
 Konfiguration / Eingabe
@@ -12,7 +12,10 @@ Konfiguration / Eingabe
 - `queueLevels` (number): Anzahl MLFQ‑Queues (min 2, default 3).
 - `mlfqMode` ("classic" | "simplified"): Classic speichert verbleibende Quantum‑Restwerte.
 - `strictPriorityTieBreak` ("fifo"|"arrivalTime"|"remainingTime"|"waitingTime"|"id"): Entscheidung bei gleicher Priorität.
-- `lcfsMode` ("preemptive"|"nonpreemptive"): Verhalten bei neuen Ankünften.
+- `sjfMode`: bleibt aus Kompatibilitätsgründen im Datenmodell erhalten und wird immer als präemptives SRTF ausgeführt.
+- `lcfsMode`: bleibt aus Kompatibilitätsgründen im Datenmodell erhalten und wird immer als präemptives LCFS ausgeführt.
+
+Alle unterstützten Verfahren sind präemptiv. Nicht-präemptive SJF- oder LCFS-Varianten werden weder angeboten noch ausgeführt; ältere gespeicherte Werte werden normalisiert.
 
 MLFQ Details
 

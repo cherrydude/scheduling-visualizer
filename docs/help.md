@@ -1,12 +1,12 @@
 # Hilfe — Scheduling Visualizer (aktualisiert)
 
-Diese Hilfeseite fasst alle relevanten Informationen zur Benutzung, Interpretation und Erweiterung der Scheduling Visualizer‑Webapp zusammen. Sie enthält Quickstart‑Anleitungen, UI‑Erklärungen, Parameter‑Beschreibungen, didaktische Aufgaben, Implementierungs‑Hinweise (Reproduzierbarkeit, Tests), eine geplante Kurz‑Tour, Barrierefreiheits‑Hinweise, Troubleshooting sowie neue Hinweise zu Starvation und dem Algorithmus SJF.
+Diese Hilfeseite fasst alle relevanten Informationen zur Benutzung, Interpretation und Erweiterung der Scheduling Visualizer‑Webapp zusammen. Sie enthält Quickstart‑Anleitungen, UI‑Erklärungen, Parameter‑Beschreibungen, didaktische Aufgaben, Implementierungs‑Hinweise (Reproduzierbarkeit, Tests), eine geplante Kurz‑Tour, Barrierefreiheits‑Hinweise, Troubleshooting sowie Hinweise zu Starvation und SRTF.
 
 ---
 
 ## 1. Ziel der App
 
-Die Scheduling Visualizer ist ein clientseitiges Lehrwerkzeug zur interaktiven Demonstration präemptiver Scheduling‑Algorithmen (Round Robin, LCFS, Strict Priority, MLFQ, SJF). Ziel ist, Abläufe (Kontextwechsel, Preemption, Warteschlangen, Queue‑Levels) anschaulich sichtbar zu machen und quantitative Kennzahlen vergleichbar darzustellen. Die Simulation läuft vollständig im Browser; Szenarien werden in `localStorage` gespeichert.
+Die Scheduling Visualizer ist ein clientseitiges Lehrwerkzeug zur interaktiven Demonstration präemptiver Scheduling‑Algorithmen (Round Robin, SRTF, LCFS, Strict Priority, MLFQ). Ziel ist, Abläufe (Kontextwechsel, Preemption, Warteschlangen, Queue‑Levels) anschaulich sichtbar zu machen und quantitative Kennzahlen vergleichbar darzustellen. Die Simulation läuft vollständig im Browser; Szenarien werden in `localStorage` gespeichert.
 
 ---
 
@@ -26,8 +26,10 @@ npm run dev
 - Lege mindestens 2 Prozesse an (ID, Ankunft, Rechenzeit, Priorität, Farbe).
 
 4. Algorithmus anwenden:
-   - Öffne „Algorithmus anwenden“ → wähle z. B. Round Robin oder SJF → setze Time Quantum (falls relevant) / SJF‑Mode (preemptive/nonPreemptive).
-   - Bestätige; der Run wird erzeugt und ist im Szenario gespeichert.
+
+- Öffne „Algorithmus anwenden“ → wähle z. B. Round Robin oder SRTF und setze die relevanten Parameter.
+- Bestätige; der Run wird erzeugt und ist im Szenario gespeichert.
+
 5. Abspielen:
    - Play/Pause in der Timeline (Leertaste) oder Buttons.
    - ← / → für Schritt‑Weise Navigation.
@@ -84,29 +86,26 @@ Kurzbefehle (Standard):
 - snapshotInterval: Abstand (Ticks) zwischen gespeicherten Snapshots. Standard: 1. Größere Werte → weniger Speicher, gröbere Wiedergabe.
 - queueLevels (MLFQ): Anzahl Stufen. App nutzt typ. 2–3. Mehr Stufen möglich, falls erweitert.
 - mlfqMode: "classic" (behalte verbleibendes Quantum) oder "simplified" (neues Level beginnt mit vollem Quantum).
-- lcfsMode: "preemptive"/"nonPreemptive" — bestimmt ob neu ankommende Prozesse laufende unterbrechen.
-- sjfMode: "preemptive" / "nonPreemptive" — für SJF (Shortest Job First) kannst du wählen, ob ein neu ankommender kürzerer Job laufende Prozesse preempten darf.
+- lcfsMode: bleibt aus Kompatibilitätsgründen im Datenmodell erhalten; LCFS ist immer präemptiv.
+- sjfMode: bleibt aus Kompatibilitätsgründen im Datenmodell erhalten; `sjf` wird immer als SRTF präemptiv ausgeführt.
 - tieBreak‑Strategien: strictPriorityTieBreak, lcfsTieBreak — beeinflussen Auswahl bei Gleichstand.
 
 Empfehlung: Für Lehrdemos 3–5 Prozesse mit variablem arrival (0..n) und Rechenzeit 1..15; quantum 1–3; snapshotInterval 1–2.
 
 ---
 
-## 5. Shortest Job First (SJF) — Erklärung und Didaktik
+## 5. Shortest Remaining Time First (SRTF) — Erklärung und Didaktik
 
-SJF (Shortest Job First) wählt den Prozess mit der geringsten verbleibenden Ausführungszeit. In der App gibt es zwei Modi:
-
-- nonPreemptive: Ein gestarteter Prozess läuft bis zum Ende; neu ankommende Jobs warten.
-- preemptive: Neu ankommende Prozesse mit kürzerer verbleibender Zeit können laufende Prozesse preempten (auch bekannt als SRTF — Shortest Remaining Time First).
+SRTF wählt den Prozess mit der geringsten verbleibenden Ausführungszeit. Trifft ein kürzerer Prozess ein, wird der laufende Prozess präemptiert. Bei gleicher Restzeit entscheidet die frühere Ankunft, danach die Prozess-ID.
 
 Didaktische Hinweise:
 
-- SJF minimiert durchschnittliche Wartezeit in vielen Szenarien, provoziert aber Starvation für lange Prozesse, wenn ständig kürzere Jobs ankommen.
-- Verwende SJF im Unterricht, um Trade‑offs zwischen Throughput, averageWaitingTime und Fairness zu demonstrieren. Vergleiche SJF mit RR und MLFQ.
+- SRTF minimiert durchschnittliche Wartezeit in vielen Szenarien, provoziert aber Starvation für lange Prozesse, wenn ständig kürzere Jobs ankommen.
+- Verwende SRTF im Unterricht, um Trade‑offs zwischen Throughput, averageWaitingTime und Fairness zu demonstrieren. Vergleiche SRTF mit RR und MLFQ.
 
 Empirische Aktivität:
 
-- Erstelle ein Szenario mit vielen kurzlebigen Jobs, plus einen sehr langen Job. Vergleiche Runs mit SJF (preemptive), RR (q=1) und MLFQ — beobachte Starvation und Fairnessindex.
+- Erstelle ein Szenario mit vielen kurzlebigen Jobs, plus einen sehr langen Job. Vergleiche Runs mit SRTF, RR (q=1) und MLFQ — beobachte Starvation und Fairnessindex.
 
 ---
 
@@ -114,7 +113,7 @@ Empirische Aktivität:
 
 ### Was ist Starvation?
 
-Starvation tritt auf, wenn ein Prozess über sehr lange Zeit keinen CPU‑Zugriff erhält, typischerweise weil andere Prozesse kontinuierlich bevorzugt werden (z. B. SJF oder Strict Priority ohne Aging).
+Starvation tritt auf, wenn ein Prozess über sehr lange Zeit keinen CPU‑Zugriff erhält, typischerweise weil andere Prozesse kontinuierlich bevorzugt werden (z. B. SRTF oder Strict Priority ohne Aging).
 
 ### Erkennung in der App
 
@@ -125,30 +124,30 @@ Starvation tritt auf, wenn ein Prozess über sehr lange Zeit keinen CPU‑Zugrif
 
 ### Didaktische Diskussion
 
-- Diskutiere, warum SJF zu Starvation führen kann (lange Jobs werden immer verschoben, wenn neue kurze Jobs ankommen).
+- Diskutiere, warum SRTF zu Starvation führen kann (lange Jobs werden immer verschoben, wenn neue kurze Jobs ankommen).
 - Zeige, wie MLFQ versucht, Starvation zu vermeiden (Demotion nach Quantum → lange Jobs wandern in niedrigere Levels, erhalten aber garantiert CPU, ggf. mit aging/boosts).
 
 ### Gegenmaßnahmen (Design‑/Experimentieroptionen)
 
 - Aging: Erhöhe Priorität von wartenden Prozessen nach Zeit (nicht aktuell implementiert; Vorschlag als Erweiterung).
 - Periodische Priority Boost: Gelegentliche Erhöhung aller Prozesse in niedrigen Levels (MLFQ Erweiterung).
-- Kombiniere SJF‑Einsätze mit Timeout oder maxWait thresholds.
+- Kombiniere SRTF‑Einsätze mit Timeout oder maxWait thresholds.
 - In Simulation: überwache waitingTime und löse optional Alarm/Annotation aus, wenn waitingTime > threshold (z. B. 5× durchschnittliche Rechenzeit).
 
 ### Beispielaufgabe zur Starvation
 
-- Aufgabe: Erzeuge 1 langen Prozess (Rechenzeit=50) und 20 kurze Prozesse (Rechenzeit=1..3, zufällig ankommend). Vergleiche: SJF (preemptive), RR (q=1), MLFQ. Diskutiere, welcher Algorithmus Starvation zeigt und warum.
+- Aufgabe: Erzeuge 1 langen Prozess (Rechenzeit=50) und 20 kurze Prozesse (Rechenzeit=1..3, zufällig ankommend). Vergleiche: SRTF, RR (q=1), MLFQ. Diskutiere, welcher Algorithmus Starvation zeigt und warum.
 
 ---
 
 ## 7. Wie liest man die Visualisierung — Interpretationshilfen
 
 - Wer läuft gerade? → aktuelles Segment / currentProcessId im Snapshot.
-- Warum preempted? → Event‑Log (reason gibt an: arrival / higher priority / quantum expired / shorter job arrived bei SJF preemptive).
+- Warum preempted? → Event‑Log (reason gibt an: arrival / higher priority / quantum expired / shorter job arrived bei SRTF).
 - Wo ist die Last? → CPU‑Auslastung vs Idle‑Share.
 - Starvation prüfen: sehr hohe Turnaround/Waiting Time für einzelne Prozesse.
 
-Beispiel: RR, quantum=1 zeigt viele contextSwitches (erwartet). SJF (preemptive) kann sehr niedrige averageWaitingTime, aber hohe Starvation für lange Jobs verursachen.
+Beispiel: RR, quantum=1 zeigt viele contextSwitches (erwartet). SRTF kann sehr niedrige averageWaitingTime, aber hohe Starvation für lange Jobs verursachen.
 
 Mini‑Checkliste (bei Analyse):
 
@@ -158,21 +157,21 @@ Mini‑Checkliste (bei Analyse):
 
 ---
 
-## 8. Typische Workflows / Lehraktivitäten (inkl. SJF & Starvation)
+## 8. Typische Workflows / Lehraktivitäten (inkl. SRTF & Starvation)
 
 ### A) Schnellvergleich von Algorithmen
 
 1. Erstelle ein Szenario (4 Prozesse, verschiedene Arrival/Rechenzeit).
 2. Run A: Round Robin (quantum=2) — speichere Run.
-3. Run B: SJF (preemptive) — speichere Run.
+3. Run B: SRTF — speichere Run.
 4. Multi‑View vergleichen: Timeline, Event‑Log, Kennzahlen.
 
-### B) Demonstration von Starvation (SJF)
+### B) Demonstration von Starvation (SRTF)
 
 - Szenario: 1 langer Prozess (Rechenzeit 50), viele kurze Prozesse (Rechenzeit 1–3) mit gestaffelten Ankünften.
 - Beobachtung: Der lange Prozess erhält ggf. sehr spät CPU → hohes turnaround/ waiting → diskutieren (Affekt von SJF).
 
-### C) MLFQ vs SJF
+### C) MLFQ vs SRTF
 
 - Zeige, wie MLFQ kürzere Jobs bevorzugt, aber durch Demotion/Aging faireren Zugang gewährleistet.
 
@@ -187,26 +186,26 @@ Mini‑Checkliste (bei Analyse):
 
 ---
 
-## 10. Interna: MLFQ, SJF & Implementierungsdetails (für Prüfende)
+## 10. Interna: MLFQ, SRTF & Implementierungsdetails (für Prüfende)
 
 - `isAlgorithmType` enthält jetzt: "roundRobin", "sjf", "lcfs", "strictPriority", "mlfq".
-- `sjfMode` unterstützt "preemptive" (SRTF) und "nonPreemptive".
+- `sjfMode` bleibt aus Kompatibilitätsgründen erhalten und ist immer "preemptive" (SRTF).
 - queueLevels werden auf Minimum 2 normalisiert; default ist 3.
 - `quantumForLevel(base, level) = base * (level + 1)` (lineare Skalierung).
 - `mlfqMode` "classic": verbleibendes Quantum wird beibehalten (`mlfqRemainingQuantum`). "simplified": neues Level beginnt mit vollem Level‑Quantum.
 - Strict Priority tieBreak: unterstützt 'fifo', 'arrivalTime', 'remainingTime', 'waitingTime', 'id'.
 - LCFS: Enqueue/Unshift / Pop‑Logik bildet Stack‑Verhalten ab; in preemptive Mode wird neu ankommender Prozess bevorzugt.
 
-Dokumentiere diese Designentscheidungen: warum lineare Quantum‑Skalierung gewählt wurde, warum queueLevels begrenzt sind, und wie `sjfMode` implementatorisch arbeitet (SJF preemptive überprüft arrivals gegen remainingTime und preempted, falls kürzer).
+Dokumentiere diese Designentscheidungen: warum lineare Quantum‑Skalierung gewählt wurde, warum queueLevels begrenzt sind, und wie SRTF arrivals gegen `remainingTime` prüft und bei strikt kürzerer Restlaufzeit präemptiert.
 
 ---
 
-## 11. Tests & Validierung (inkl. SJF)
+## 11. Tests & Validierung (inkl. SRTF)
 
 Empfehlung: automatisierte Unit‑Tests (Vitest) für Determinismus & Basisszenarien:
 
 - Tests die deterministischen Output für identische Inputs prüfen.
-- Szenarien für: RR quantum expiry, LCFS preemption, Strict Priority tieBreak, MLFQ demotion, SJF preemptive behavior.
+- Szenarien für: RR quantum expiry, LCFS preemption, Strict Priority tieBreak, MLFQ demotion, SRTF behavior.
 
 Beispieltests (Vitest):
 
@@ -229,7 +228,7 @@ it("deterministic for same input", () => {
   expect(JSON.stringify(a.segments)).toBe(JSON.stringify(b.segments));
 });
 
-it("sjf preemptive should preempt longer job when shorter arrives", () => {
+it("SRTF should preempt longer job when shorter arrives", () => {
   const s = {
     algorithm: "sjf",
     algorithmParams: { sjfMode: "preemptive", snapshotInterval: 1 },
@@ -252,13 +251,13 @@ Lege Test‑Fixtures mit erwarteten timelines an — das stärkt die Argumentati
 
 ## 12. Tour: Plan für eine interaktive Kurz‑Tour (4–6 Schritte)
 
-Ziel: Nutzer\*innen in 2–3 Minuten durch die Kernfunktionen führen und ein Beispiel‑Szenario abspielen. Tour aktualisiert, damit SJF & Hinweise zu Starvation sichtbar werden.
+Ziel: Nutzer\*innen in 2–3 Minuten durch die Kernfunktionen führen und ein Beispiel‑Szenario abspielen. Tour aktualisiert, damit SRTF & Hinweise zu Starvation sichtbar werden.
 
 ### Steps (deutsch):
 
 1. Begrüßung – Kurzer Überblick. CTA: Tour starten / Später.
 2. Szenario‑Generator – Öffne Generator, zeige Prozessfeld, + Prozess hinzufügen.
-3. Algorithmus anwenden – Öffne Algorithmus‑Modal, wähle SJF (preemptive) und Round Robin zum Vergleich.
+3. Algorithmus anwenden – Öffne Algorithmus‑Modal, wähle SRTF und Round Robin zum Vergleich.
 4. Timeline & Wiedergabe – Zeige Play/Pause, Schrittsteuerung, Eventlog; hebe Preempt/quantumExpired Events hervor.
 5. Starvation‑Check – Zeige wo im UI wartende Prozesse mit hoher waitingTime sichtbar sind, erkläre Fairnessindex und Vorschläge zur Gegensteuerung (Aging, Priority Boost).
 6. Abschluss – Tour beenden, Key saved to localStorage (scheduling-visualizer.tourSeen = 'true').
@@ -312,7 +311,7 @@ Q: Szenarien teilen?
 
 - `bibliography_selected.bib` (Repo root) — zentrale Referenzen zur Didaktik & Scheduling.
 - `preparation/Exposé – Scheduling-visualisierung.txt` — Exposé / Motivation.
-- `src/simulation.ts` — Simulationslogik (MLFQ, RR, LCFS, Strict Priority, SJF).
+- `src/simulation.ts` — Simulationslogik (MLFQ, RR, LCFS, Strict Priority, SRTF).
 
 ---
 

@@ -76,11 +76,11 @@
 
             <h4>Kontextwechsel</h4>
             <p>
-              Signalisiert Preemption- und Scheduling-Overhead; niedriger ist
+              Signalisiert Präemptions- und Scheduling-Overhead; niedriger ist
               besser.
             </p>
 
-            <h4>Präemptions</h4>
+            <h4>Präemptionen</h4>
             <p>
               Hilft bei Fällen, in denen häufige Unterbrechungen unerwünscht
               sind.
@@ -140,7 +140,7 @@ function formatKey(key: string) {
   if (key === "averageWaitingTime") return "Wartezeit";
   if (key === "throughput") return "Durchsatz";
   if (key === "contextSwitches") return "Kontextwechsel";
-  if (key === "preemptionCount") return "Präemptions";
+  if (key === "preemptionCount") return "Präemptionen";
   if (key === "fairnessIndex") return "Fairness";
   return key;
 }

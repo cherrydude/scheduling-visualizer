@@ -4,9 +4,8 @@ import "shepherd.js/dist/css/shepherd.css";
 export interface TourActions {
   openGenerator: () => void;
   loadStaggered: () => void;
-  openAlgorithm: () => void;
-  applySjf: () => void;
-  addComparisonRun: () => void;
+  applyRoundRobin: () => void;
+  openComparisonRun: () => void;
   startPlayback: () => void;
   openMultiView: () => void;
 }
@@ -48,31 +47,56 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "welcome",
       title: "Kurz-Tour: Erste Schritte",
-      text: "Diese Tour zeigt dir die wichtigsten Schritte: Szenario anlegen, Simulation starten und Runs vergleichen.",
+      text: "Diese Tour zeigt dir die wichtigsten Schritte: Szenario anlegen, Visualisierung starten und Runs vergleichen.",
       buttons: [{ text: "Tour starten", action: next }],
     });
 
     instance.addStep({
       id: "generator-entry",
-      title: "1. Szenario vorbereiten",
-      text: "Öffne den Szenario-Generator, um Prozesse und ihre Ausgangsdaten festzulegen.",
+      title: "1. Szenario anlegen",
+      text: "Klicke zuerst auf das Burger-Menü, um die Szenarioverwaltung zu öffnen.",
       attachTo: { element: '[data-tour="burger-button"]', on: "bottom" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="burger-button"]')
+            ?.addEventListener("click", () => window.setTimeout(next, 0), {
+              once: true,
+            });
+        },
+      },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        {
-          text: "Generator öffnen",
-          action: () => {
-            actions.openGenerator();
-            next();
-          },
+      ],
+    });
+
+    instance.addStep({
+      id: "generator-entry-plus",
+      title: "2. Szenario-Generator öffnen",
+      text: "Klicke im geöffneten Burger-Menü auf das Plus, um ein neues Szenario anzulegen.",
+      attachTo: { element: '[data-tour="open-generator"]', on: "bottom" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="open-generator"]')
+            ?.addEventListener("click", () => window.setTimeout(next, 0), {
+              once: true,
+            });
         },
+      },
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
       ],
     });
 
     instance.addStep({
       id: "generator",
-      title: "2. Szenario und Prozesse laden",
-      text: "Klicke jetzt auf den Button „Versetzt“, um ein vorbereitetes Szenario zu laden.",
+      title: "3. Szenario und Prozesse laden",
+      text: "Klicke jetzt auf „Versetzt“, um ein vorbereitetes Szenario zu laden.",
       attachTo: { element: '[data-tour="preset-staggered"]', on: "left" },
       canClickTarget: true,
       beforeShowPromise: waitForLayout,
@@ -80,26 +104,21 @@ export function useTour(actions: TourActions) {
         show() {
           document
             .querySelector<HTMLElement>('[data-tour="preset-staggered"]')
-            ?.addEventListener("click", next, { once: true });
+            ?.addEventListener("click", () => window.setTimeout(next, 0), {
+              once: true,
+            });
         },
       },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        {
-          text: "Weiter",
-          action: () => {
-            actions.loadStaggered();
-            next();
-          },
-        },
       ],
     });
 
     instance.addStep({
       id: "generator-details",
-      title: "3. Den Szenario-Generator verstehen",
-      text: "Prüfe kurz die angezeigten Szenario- und Prozessdaten. Die Vorschau hilft dir beim Überblick; mit „Szenario übernehmen“ startest du mit diesen Daten in die Simulation.",
-      attachTo: { element: '[data-tour="complete-generator"]', on: "top" },
+      title: "4. Szenario anwenden",
+      text: "Prüfe kurz die angezeigten Szenario- und Prozessdaten. Bestätige danach unten mit „Szenario anwenden“, um diese Daten in die Visualisierung zu übernehmen.",
+      attachTo: { element: '[data-tour="generator-modal"]', on: "left" },
       canClickTarget: true,
       beforeShowPromise: waitForLayout,
       when: {
@@ -118,37 +137,30 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "algorithm",
-      title: "4. Algorithmus anwenden",
-      text: "Öffne hier das Modal, um einen Algorithmus und seine Einstellungen auszuwählen.",
-      attachTo: { element: '[data-tour="algorithm-card"]', on: "bottom" },
+      title: "5. Algorithmus anwenden",
+      text: "Klicke nun auf „+ Algorithmus anwenden“, um das Modal für den anzuwendenden Algorithmus zu öffnen.",
+      attachTo: { element: '[data-tour="open-algorithm"]', on: "top" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="open-algorithm"]')
+            ?.addEventListener("click", () => window.setTimeout(next, 0), {
+              once: true,
+            });
+        },
+      },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        {
-          text: "Modal öffnen",
-          action: () => {
-            actions.openAlgorithm();
-            window.setTimeout(next, 0);
-          },
-        },
       ],
     });
 
     instance.addStep({
       id: "algorithm-modal",
-      title: "5. Algorithmus auswählen",
-      text: "Wähle in diesem Feld „Shortest Job First“ aus.",
+      title: "6. Algorithmus auswählen",
+      text: "Wähle in diesem Feld Round Robin aus. Das Quantum legt fest, wie viele Takte ein Prozess höchstens am Stück erhält. Wir belassen es hier erstmal bei 2. Klicke danach auf „Weiter“.",
       attachTo: { element: '[data-tour="algorithm-select"]', on: "left" },
-      buttons: [
-        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        { text: "Weiter", action: next },
-      ],
-    });
-
-    instance.addStep({
-      id: "algorithm-mode",
-      title: "6. Ausführungsmodus wählen",
-      text: "Wähle anschließend den Modus „Präemptiv (SRTF)“.",
-      attachTo: { element: '[data-tour="sjf-mode-select"]', on: "left" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
         { text: "Weiter", action: next },
@@ -158,7 +170,7 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "apply-algorithm",
       title: "7. Algorithmus anwenden",
-      text: "Klicke jetzt auf den echten Button „Algorithmus anwenden“, um deine Auswahl zu bestätigen.",
+      text: "Klicke jetzt auf den Button „Algorithmus anwenden“, um Round Robin mit dem gewählten Quantum zu bestätigen und auf das Szenario anzuwenden.",
       attachTo: { element: '[data-tour="apply-algorithm"]', on: "top" },
       canClickTarget: true,
       when: {
@@ -178,7 +190,7 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "focus-view",
       title: "8. Fokusansicht lesen",
-      text: "Die Fokusansicht zeigt einen Run im Detail: Timeline, aktuelle CPU-Zeit und die Zustände der Prozesse werden gemeinsam sichtbar.",
+      text: "Die Fokusansicht zeigt einen Run im Detail: Dargestellt wird, in welcher Reihenfolge der Algorithmus die zuvor geladenen Prozesse aus dem Szenario abarbeitet. Tritt eine Präemption auf, erfolgt eine Animation der entsprechenden Prozesssegmente.",
       attachTo: { element: '[data-tour="focus-view"]', on: "top" },
     });
 
@@ -191,13 +203,13 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "playback",
-      title: "10. Simulation abspielen",
-      text: "Starte die Simulation und beobachte, wie sich die Timeline und die Prozesszustände Schritt für Schritt verändern.",
+      title: "10. Visualisierung abspielen",
+      text: "Starte die Visualisierung und beobachte, wie sich Timeline und Prozesszustände Schritt für Schritt verändern. Du kannst auch die Tastatur verwenden: Leertaste für Start/Pause, Pfeil rechts für einen Schritt vor, Pfeil links für einen Schritt zurück und R zum Zurücksetzen.",
       attachTo: { element: '[data-tour="playback-controls"]', on: "bottom" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
         {
-          text: "Play starten",
+          text: "Visualisierung starten",
           action: () => {
             actions.startPlayback();
             next();
@@ -208,8 +220,8 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "results",
-      title: "11. Stack-Simulation verstehen",
-      text: "Die Stack-Simulation zeigt aktive, bereite und verdrängte Prozesse. Lange Wartezeiten können auf mögliche Starvation hinweisen.",
+      title: "11. Stack-Visualisierung verstehen",
+      text: "Die Stack-Visualisierung zeigt aktive, bereite und preämptierte Prozesse. Lange Wartezeiten können auf mögliche Starvation hinweisen.",
       attachTo: { element: '[data-tour="stack-simulation"]', on: "top" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
@@ -220,25 +232,101 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "add-run",
       title: "12. Einen weiteren Run hinzufügen",
-      text: "Ein zweiter Run macht Unterschiede zwischen Algorithmen sichtbar. Füge für dasselbe Szenario einen Round-Robin-Run hinzu.",
+      text: "Ein zweiter Run macht Unterschiede zwischen Algorithmen sichtbar. Öffne das Modal und bestätige dort einen Round Robin mit einem Quantum von 3.",
       attachTo: { element: '[data-tour="add-run"]', on: "bottom" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="add-run"]')
+            ?.addEventListener(
+              "click",
+              (event) => {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                actions.openComparisonRun();
+                window.setTimeout(next, 0);
+              },
+              { once: true, capture: true },
+            );
+        },
+      },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-        {
-          text: "Round Robin hinzufügen",
-          action: () => {
-            actions.addComparisonRun();
-            next();
-          },
+      ],
+    });
+
+    instance.addStep({
+      id: "comparison-algorithm",
+      title: "13. Round Robin für den Vergleich wählen",
+      text: "Wähle im Modal Round Robin aus und klicke anschließend auf „Weiter“.",
+      attachTo: { element: '[data-tour="algorithm-select"]', on: "left" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
+        { text: "Weiter", action: next },
+      ],
+    });
+
+    instance.addStep({
+      id: "comparison-quantum",
+      title: "14. Zeitscheibe festlegen",
+      text: "Wähle hier eine Zeitscheibe größer gleich 3 und trage den Wert 3 ein. Klicke danach auf „Weiter“.",
+      attachTo: { element: '[data-tour="algorithm-quantum"]', on: "left" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
+        { text: "Weiter", action: next },
+      ],
+    });
+
+    instance.addStep({
+      id: "comparison-apply",
+      title: "15. Algorithmus anwenden",
+      text: "Bestätige jetzt deine Auswahl mit diesem Button „Algorithmus anwenden“.",
+      attachTo: { element: '[data-tour="apply-algorithm"]', on: "top" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="apply-algorithm"]')
+            ?.addEventListener("click", () => window.setTimeout(next, 0), {
+              once: true,
+            });
         },
+      },
+      buttons: [
+        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
       ],
     });
 
     instance.addStep({
       id: "multi-view",
-      title: "13. Runs in der Vergleichsübersicht vergleichen",
-      text: "In der Vergleichsübersicht betrachtest du die Zeitpläne mehrerer Runs nebeneinander. So erkennst du Unterschiede bei Reihenfolge, Preemption und Durchlauf.",
-      attachTo: { element: '[data-tour="multi-view"]', on: "top" },
+      title: "16. Runs in der Vergleichsübersicht vergleichen",
+      text: "In der Vergleichsübersicht betrachtest du die Zeitpläne mehrerer Runs nebeneinander. So erkennst du Unterschiede bei Reihenfolge, Preämption und Durchlauf.",
+      attachTo: { element: '[data-tour="open-multi-view"]', on: "top" },
+      canClickTarget: true,
+      beforeShowPromise: waitForLayout,
+      when: {
+        show() {
+          document
+            .querySelector<HTMLElement>('[data-tour="open-multi-view"]')
+            ?.addEventListener(
+              "click",
+              (event) => {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                actions.openMultiView();
+                window.setTimeout(next, 0);
+              },
+              { once: true, capture: true },
+            );
+        },
+      },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
         {
@@ -253,7 +341,7 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "multi-view-details",
-      title: "14. Vergleichsübersicht lesen",
+      title: "17. Vergleichsübersicht lesen",
       text: "Hier siehst du die Runs mit ihren Zeitplänen nebeneinander. Vergleiche, wann Prozesse ausgeführt werden und wie oft sie unterbrochen werden.",
       attachTo: { element: '[data-tour="multi-view"]', on: "top" },
       buttons: [
@@ -264,7 +352,7 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "comparison-table",
-      title: "15. Bewertungsmatrix lesen",
+      title: "18. Bewertungsmatrix lesen",
       text: "Die Bewertungsmatrix stellt die Runs anhand ausgewählter Kennzahlen gegenüber. Der gewählte Anwendungsfall bestimmt sichtbare Spalten und Gewichtungen für den Score.",
       attachTo: { element: '[data-tour="comparison-table"]', on: "top" },
       buttons: [{ text: "Tour beenden", action: () => instance.complete() }],

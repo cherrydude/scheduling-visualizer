@@ -36,7 +36,7 @@
               data-tour="algorithm-select"
             >
               <option value="roundRobin">Round Robin</option>
-              <option value="sjf">Shortest Job First</option>
+              <option value="sjf">SRTF (Shortest Remaining Time First)</option>
               <option value="lcfs">LCFS</option>
               <option value="strictPriority">Strict Priority</option>
               <option value="mlfq">MLFQ</option>
@@ -48,20 +48,13 @@
             <input
               v-model.number="timeQuantum"
               class="algorithm-control"
+              data-tour="algorithm-quantum"
               type="number"
               min="1"
             />
           </label>
 
           <template v-else-if="algorithm === 'lcfs'">
-            <label class="algorithm-field">
-              <span>Variante</span>
-              <select v-model="lcfsMode" class="algorithm-control">
-                <option value="preemptive">Präemptiv</option>
-                <option value="nonPreemptive">Nicht-präemptiv</option>
-              </select>
-            </label>
-
             <label class="algorithm-field">
               <span>Tie-Break</span>
               <select v-model="lcfsTieBreak" class="algorithm-control">
@@ -131,23 +124,11 @@
               </p>
             </template>
             <template v-else-if="algorithm === 'sjf'">
-              <label class="algorithm-field">
-                <span>Modus</span>
-                <select
-                  v-model="sjfMode"
-                  class="algorithm-control"
-                  data-tour="sjf-mode-select"
-                >
-                  <option value="nonPreemptive">Nicht-präemptiv (SJF)</option>
-                  <option value="preemptive">Präemptiv (SRTF)</option>
-                </select>
-              </label>
-
               <p class="subtitle">
-                Bei SRTF wird ein laufender Prozess verdrängt, wenn ein neuer
-                Prozess mit kürzerer Restlaufzeit eintrifft.
+                SRTF verdrängt einen laufenden Prozess, wenn ein neuer Prozess
+                mit kürzerer Restlaufzeit eintrifft.
               </p>
-              <p class="warning-note" v-if="sjfMode === 'preemptive'">
+              <p class="warning-note">
                 Achtung: Lange Jobs können durch viele kurze Ankünfte stark
                 verzögert werden (Starvation-Risiko).
               </p>
@@ -210,7 +191,7 @@ const props = defineProps<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
-    sjfMode?: "nonPreemptive" | "preemptive";
+    sjfMode?: "preemptive";
     mlfqMode?: "classic" | "simplified";
     strictPriorityTieBreak?:
       | "fifo"
@@ -218,7 +199,7 @@ const props = defineProps<{
       | "remainingTime"
       | "waitingTime"
       | "id";
-    lcfsMode?: "preemptive" | "nonPreemptive";
+    lcfsMode?: "preemptive";
     lcfsTieBreak?: "stack" | "id";
   };
   confirmLabel?: string;
@@ -235,7 +216,7 @@ const emit = defineEmits<{
         timeQuantum: number;
         snapshotInterval: number;
         queueLevels: number;
-        sjfMode?: "nonPreemptive" | "preemptive";
+        sjfMode?: "preemptive";
         mlfqMode?: "classic" | "simplified";
         strictPriorityTieBreak?:
           | "fifo"
@@ -243,7 +224,7 @@ const emit = defineEmits<{
           | "remainingTime"
           | "waitingTime"
           | "id";
-        lcfsMode?: "preemptive" | "nonPreemptive";
+        lcfsMode?: "preemptive";
         lcfsTieBreak?: "stack" | "id";
       };
     },
@@ -257,12 +238,12 @@ useFocusTrap(modalRoot, () => emit("close"));
 const timeQuantum = ref(2);
 const snapshotInterval = ref(1);
 const queueLevels = ref(3);
-const sjfMode = ref<"nonPreemptive" | "preemptive">("nonPreemptive");
+const sjfMode = ref<"preemptive">("preemptive");
 const mlfqMode = ref<"classic" | "simplified">("classic");
 const strictPriorityTieBreak = ref<
   "fifo" | "arrivalTime" | "remainingTime" | "waitingTime" | "id"
 >("fifo");
-const lcfsMode = ref<"preemptive" | "nonPreemptive">("preemptive");
+const lcfsMode = ref<"preemptive">("preemptive");
 const lcfsTieBreak = ref<"stack" | "id">("stack");
 
 const confirmLabel = computed(
@@ -288,30 +269,24 @@ const algorithmInfo = computed(() => {
     return {
       title: "LCFS",
       description:
-        "Last Come, First Served bevorzugt den zuletzt eingetroffenen Prozess. Neue Ankünfte werden wie bei einem Stack behandelt und können den laufenden Prozess je nach Variante direkt verdrängen.",
+        "Last Come, First Served bevorzugt den zuletzt eingetroffenen Prozess. Neue Ankünfte werden wie bei einem Stack behandelt und verdrängen den laufenden Prozess direkt.",
       parameterImpact: [
-        "Variante: Präemptiv LCFS unterbricht den laufenden Prozess bei neuer Ankunft, Nicht-präemptiv erst nach Abschluss.",
+        "Neue Ankünfte unterbrechen den laufenden Prozess und werden oben auf dem Stack eingeordnet.",
         "Tie-Break: Stack-Reihenfolge bevorzugt die zuletzt eingefügten Prozesse, ID sorgt für stabile, alphabetische Entscheidung bei Gleichstand.",
       ],
     };
   }
 
   if (algorithm.value === "sjf") {
-    const isSrtf = sjfMode.value === "preemptive";
     return {
-      title: isSrtf ? "Shortest Remaining Time First" : "Shortest Job First",
-      description: isSrtf
-        ? "SRTF ist die präemptive Variante von SJF. Trifft ein kürzerer Job ein, wird der laufende Prozess unterbrochen."
-        : "SJF wählt den Prozess mit der kürzesten verbleibenden Laufzeit aus der Ready Queue und führt ihn ohne Unterbrechung zu Ende.",
+      title: "Shortest Remaining Time First",
+      description:
+        "SRTF ist präemptiv: Trifft ein Prozess mit kürzerer Restlaufzeit ein, wird der laufende Prozess unterbrochen.",
       parameterImpact: [
-        isSrtf
-          ? "Kurze Jobs reagieren schneller, dafür steigen Kontextwechsel durch mögliche Verdrängungen."
-          : "Kürzere Jobs werden bevorzugt und oft schneller abgeschlossen.",
+        "Kurze Jobs reagieren schneller, dafür steigen Kontextwechsel durch mögliche Verdrängungen.",
         "Bei gleicher Restzeit entscheidet zuerst die frühere Ankunft, danach die Prozess-ID.",
       ],
-      note: isSrtf
-        ? "Die Verdrängung erfolgt nur bei strikt kürzerer Restlaufzeit. Achtung: Viele kurze Ankünfte können lange Jobs stark verzögern (Starvation-Risiko)."
-        : "Nicht-präemptiv: Ein laufender Prozess wird nicht verdrängt.",
+      note: "Die Verdrängung erfolgt nur bei strikt kürzerer Restlaufzeit. Achtung: Viele kurze Ankünfte können lange Jobs stark verzögern (Starvation-Risiko).",
     };
   }
 
@@ -382,11 +357,11 @@ watch(
     snapshotInterval.value =
       props.initialAlgorithmParams?.snapshotInterval ?? 1;
     queueLevels.value = props.initialAlgorithmParams?.queueLevels ?? 3;
-    sjfMode.value = props.initialAlgorithmParams?.sjfMode ?? "nonPreemptive";
+    sjfMode.value = "preemptive";
     mlfqMode.value = props.initialAlgorithmParams?.mlfqMode ?? "classic";
     strictPriorityTieBreak.value =
       props.initialAlgorithmParams?.strictPriorityTieBreak ?? "fifo";
-    lcfsMode.value = props.initialAlgorithmParams?.lcfsMode ?? "preemptive";
+    lcfsMode.value = "preemptive";
     lcfsTieBreak.value = props.initialAlgorithmParams?.lcfsTieBreak ?? "stack";
   },
 );

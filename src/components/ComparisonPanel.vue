@@ -8,7 +8,6 @@
           relevanten Kennzahlen.
         </p>
       </div>
-
     </div>
 
     <div class="case-selector" role="tablist" aria-label="Anwendungsfälle">
@@ -45,13 +44,9 @@
     />
 
     <div class="comparison-table">
-      <div
-        class="visually-hidden"
-        role="status"
-        aria-live="polite"
-      >
-        {{ bestRowId ? `Bester Lauf: Run ${bestRowId}.` : '' }}
-        {{ worstRowId ? `Schwächster Lauf: Run ${worstRowId}.` : '' }}
+      <div class="visually-hidden" role="status" aria-live="polite">
+        {{ bestRowId ? `Bester Lauf: Run ${bestRowId}.` : "" }}
+        {{ worstRowId ? `Schwächster Lauf: Run ${worstRowId}.` : "" }}
       </div>
       <div class="table-shell">
         <table>
@@ -60,7 +55,9 @@
               <th>Run-ID</th>
               <th>Algorithmus</th>
               <th>Status</th>
-              <th v-for="col in visibleColumns" :key="col.key">{{ col.label }}</th>
+              <th v-for="col in visibleColumns" :key="col.key">
+                {{ col.label }}
+              </th>
               <th>Score</th>
             </tr>
           </thead>
@@ -101,12 +98,20 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { useScenarioWorkspace, type ScenarioRecord } from "@/composables/useScenarioWorkspace";
+import {
+  useScenarioWorkspace,
+  type ScenarioRecord,
+} from "@/composables/useScenarioWorkspace";
 import { useComparison } from "@/composables/useComparison";
 import type { ComparisonMetricKey, ComparisonRow } from "@/utils/compare";
 import RankingEditModal from "./RankingEditModal.vue";
 
-type ComparisonCaseId = "interactive" | "batch" | "webServer" | "softRealtime" | "custom";
+type ComparisonCaseId =
+  | "interactive"
+  | "batch"
+  | "webServer"
+  | "softRealtime"
+  | "custom";
 
 type ComparisonCase = {
   id: ComparisonCaseId;
@@ -138,7 +143,7 @@ const allColumns: ColumnDefinition[] = [
   { key: "throughput", label: "Durchsatz" },
   { key: "fairnessIndex", label: "Fairness" },
   { key: "contextSwitches", label: "Kontextwechsel" },
-  { key: "preemptionCount", label: "Präemptions" },
+  { key: "preemptionCount", label: "Präemptionen" },
   { key: "maxWaitingTime", label: "Max. Wartezeit" },
   { key: "starvedProcessCount", label: "Starvation" },
 ];
@@ -268,7 +273,9 @@ const caseOptions: ComparisonCase[] = [
   },
 ];
 
-const activeScenario = computed(() => props.scenario ?? workspace.activeScenario.value);
+const activeScenario = computed(
+  () => props.scenario ?? workspace.activeScenario.value,
+);
 
 const selectedCaseId = ref<ComparisonCaseId>(loadSelectedCaseId());
 const showCustomModal = ref(false);
@@ -288,11 +295,16 @@ watch(
 );
 
 const activeCase = computed(() => {
-  return caseOptions.find((entry) => entry.id === selectedCaseId.value) ?? caseOptions[0];
+  return (
+    caseOptions.find((entry) => entry.id === selectedCaseId.value) ??
+    caseOptions[0]
+  );
 });
 
 const resolvedWeights = computed(() =>
-  activeCase.value.id === "custom" ? comparison.state.weights : activeCase.value.weights,
+  activeCase.value.id === "custom"
+    ? comparison.state.weights
+    : activeCase.value.weights,
 );
 
 const rows = computed(() => {
@@ -318,23 +330,37 @@ const selectedCustomColumns = ref<ComparisonMetricKey[]>([
 
 const visibleColumns = computed(() => {
   if (activeCase.value.id === "custom") {
-    return allColumns.filter((column) => selectedCustomColumns.value.includes(column.key));
+    return allColumns.filter((column) =>
+      selectedCustomColumns.value.includes(column.key),
+    );
   }
 
-  return allColumns.filter((column) => activeCase.value.columns.includes(column.key));
+  return allColumns.filter((column) =>
+    activeCase.value.columns.includes(column.key),
+  );
 });
 
 const bestRowId = computed(() => rows.value[0]?.id ?? null);
-const worstRowId = computed(() => rows.value[rows.value.length - 1]?.id ?? null);
+const worstRowId = computed(
+  () => rows.value[rows.value.length - 1]?.id ?? null,
+);
 
-function formatColumnValue(row: ComparisonRow, key: ComparisonMetricKey): string {
+function formatColumnValue(
+  row: ComparisonRow,
+  key: ComparisonMetricKey,
+): string {
   const value = row.rawValues[key];
 
   if (value === null || value === undefined || Number.isNaN(value)) {
     return "--";
   }
 
-  if (key === "contextSwitches" || key === "preemptionCount" || key === "starvedProcessCount" || key === "maxWaitingTime") {
+  if (
+    key === "contextSwitches" ||
+    key === "preemptionCount" ||
+    key === "starvedProcessCount" ||
+    key === "maxWaitingTime"
+  ) {
     return String(Math.round(value));
   }
 
@@ -424,7 +450,10 @@ function loadSelectedCaseId(): ComparisonCaseId {
   background: var(--panel-bg);
   color: var(--text);
   box-shadow: var(--panel-shadow);
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
 }
 
 .case-card strong {

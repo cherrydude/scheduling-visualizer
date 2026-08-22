@@ -1,6 +1,7 @@
 ## Scheduling Visualizer
 
 ## Project Description
+
 The Scheduling Visualizer is a Vue 3 web application for exploring scheduling algorithms with an animated timeline, scenario editor, and comparison views.
 
 ## Features
@@ -8,7 +9,7 @@ The Scheduling Visualizer is a Vue 3 web application for exploring scheduling al
 - Interactive visualization of scheduling algorithms
 - Custom scenario creation with process editing
 - Playback, event log, metrics, and comparison panels
-- Support for Round Robin and LCFS in the current simulation engine
+- Support for Round Robin and LCFS in the current visualization engine
 - GSAP-based timeline animations
 
 ## Tech Stack
@@ -16,4 +17,4 @@ The Scheduling Visualizer is a Vue 3 web application for exploring scheduling al
 - Frontend: Vue 3, TypeScript, Vite
 - Visualization Library: GSAP
 - Persistence: Browser `localStorage`
-- Simulation: In-browser scheduling engine
+- Visualization: In-browser scheduling engine

@@ -20,7 +20,7 @@ export interface AlgorithmParams {
   /** Anzahl Ticks zwischen automatischen Snapshots (1 = jeder Tick) */
   snapshotInterval?: number;
   queueLevels?: number;
-  sjfMode?: "nonPreemptive" | "preemptive";
+  sjfMode?: "preemptive";
   mlfqMode?: "classic" | "simplified";
   strictPriorityTieBreak?:
     | "fifo"
@@ -28,7 +28,7 @@ export interface AlgorithmParams {
     | "remainingTime"
     | "waitingTime"
     | "id";
-  lcfsMode?: "preemptive" | "nonPreemptive";
+  lcfsMode?: "preemptive";
   lcfsTieBreak?: "stack" | "id";
 }
 

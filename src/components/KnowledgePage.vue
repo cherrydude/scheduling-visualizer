@@ -8,14 +8,44 @@
           Diese Seite erklärt die wichtigsten Bereiche der Visualisierung, ihre
           Bedienung und die Bedeutung der Ergebnisse.
         </p>
+        <div class="knowledge-actions" aria-label="Schnellstart">
+          <button
+            class="primary-button"
+            type="button"
+            data-tour="knowledge-start-demo"
+            @click="$emit('start-demo')"
+          >
+            Beispiel starten
+          </button>
+          <button
+            class="secondary-button"
+            type="button"
+            data-tour="knowledge-create-scenario"
+            @click="$emit('create-scenario')"
+          >
+            Szenario erstellen
+          </button>
+          <button
+            class="secondary-button"
+            type="button"
+            data-tour="knowledge-start-tour"
+            @click="$emit('start-tour')"
+          >
+            Kurz-Tour starten
+          </button>
+        </div>
       </div>
       <div class="knowledge-hero-mark" aria-hidden="true">01</div>
     </header>
 
     <nav class="knowledge-nav" aria-label="Auf dieser Seite">
       <a href="#start">Schnellstart</a>
+      <a href="#oberflaeche">Oberfläche</a>
+      <a href="#prozessdaten">Prozessdaten</a>
+      <a href="#screenshots">Screenshots</a>
       <a href="#fokusansicht">Fokusansicht</a>
-      <a href="#stack">Stack-Simulation</a>
+      <a href="#stack">Stack-Visualisierung</a>
+      <a href="#ereignisse">Ereignisse</a>
       <a href="#kennzahlen">Kennzahlen</a>
       <a href="#vergleich">Vergleichen</a>
       <a href="#praemption">Präemption</a>
@@ -24,7 +54,7 @@
     <section id="start" class="knowledge-section knowledge-section--intro">
       <div class="section-heading-block">
         <span class="knowledge-kicker">01 · Einstieg</span>
-        <h2>In drei Schritten zur ersten Simulation</h2>
+        <h2>In drei Schritten zur ersten Visualisierung</h2>
       </div>
       <div class="step-grid">
         <article class="knowledge-step">
@@ -32,31 +62,177 @@
           <h3>Szenario anlegen</h3>
           <p>
             Öffne das Burgermenü und wähle <strong>+ Szenario</strong>. Lege für
-            jeden Prozess ID, Ankunftszeit, Rechenzeit und Priorität fest.
+            jeden Prozess ID, Ankunftszeit, Rechenzeit und Priorität fest oder
+            lade eins der Beispiel-Szenarien.
           </p>
         </article>
         <article class="knowledge-step">
           <span class="step-number">2</span>
           <h3>Algorithmus anwenden</h3>
-          <p>
-            Wähle einen Algorithmus und bestätige die Parameter. Für SJF kannst
-            du zwischen nicht-präemptivem SJF und präemptivem SRTF wählen.
-          </p>
+          <p>Wähle einen Algorithmus und bestätige die Parameter.</p>
         </article>
         <article class="knowledge-step">
           <span class="step-number">3</span>
           <h3>Ablauf untersuchen</h3>
           <p>
-            Starte Play oder gehe mit den Pfeiltasten Takt für Takt durch den
-            Run. Lies dabei Timeline, Stack-Simulation und Kennzahlen zusammen.
+            Starte die Visualisierung oder gehe mit den Pfeiltasten Takt für
+            Takt durch den Run. Lies dabei Timeline, Stack-Visualisierung und
+            Kennzahlen zusammen.
           </p>
         </article>
       </div>
     </section>
 
+    <section id="oberflaeche" class="knowledge-section knowledge-section--ui">
+      <div class="section-heading-block">
+        <span class="knowledge-kicker">02 · Orientierung</span>
+        <h2>Die Oberfläche von oben nach unten lesen</h2>
+        <p>
+          Lies die Oberfläche in dieser Reihenfolge: erst den Kontext oben, dann
+          den Ablauf in der Mitte und zuletzt Zustand und Bewertung rechts
+          beziehungsweise darunter.
+        </p>
+      </div>
+      <div class="ui-map">
+        <article class="ui-map-item">
+          <span class="ui-map-number">01</span>
+          <div>
+            <h3>Statusleiste</h3>
+            <p>
+              Zeigt das aktive Szenario, den angewendeten Algorithmus und die
+              aktuelle Ansicht. Szenario und Algorithmus kannst du dort direkt
+              öffnen und bearbeiten.
+            </p>
+          </div>
+        </article>
+        <article class="ui-map-item">
+          <span class="ui-map-number">02</span>
+          <div>
+            <h3>Ansichtsschalter</h3>
+            <p>
+              <strong>Fokusansicht</strong> zeigt einen Run im Detail.
+              <strong>Vergleichsübersicht</strong> stellt mehrere Runs für
+              dasselbe Szenario gegenüber.
+            </p>
+          </div>
+        </article>
+        <article class="ui-map-item">
+          <span class="ui-map-number">03</span>
+          <div>
+            <h3>Timeline und Steuerung</h3>
+            <p>
+              Die Timeline beantwortet „Wer läuft wann?“. Die Steuerung bewegt
+              den aktuellen Zeitpunkt, ohne die Prozessdaten zu verändern.
+            </p>
+          </div>
+        </article>
+        <article class="ui-map-item">
+          <span class="ui-map-number">04</span>
+          <div>
+            <h3>Zustand und Bewertung</h3>
+            <p>
+              Stack-Visualisierung und Kennzahlen erklären, warum die Timeline
+              so aussieht. Lies sie immer gemeinsam mit dem aktuellen Zeitpunkt.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section
+      id="prozessdaten"
+      class="knowledge-section knowledge-section--split"
+    >
+      <div class="section-heading-block">
+        <span class="knowledge-kicker">03 · Eingabe</span>
+        <h2>Prozessdaten richtig lesen</h2>
+        <p>
+          Die Prozessliste beschreibt die Ausgangslage. Sie ist noch kein
+          Ablaufplan: Der Algorithmus entscheidet erst daraus, wann ein Prozess
+          tatsächlich CPU-Zeit erhält.
+        </p>
+      </div>
+      <div class="reading-list">
+        <div>
+          <strong>ID / Name</strong>
+          <span
+            >Identifiziert den Prozess in Timeline, Queue und Ereignissen.</span
+          >
+        </div>
+        <div>
+          <strong>Ankunft</strong>
+          <span
+            >Ab diesem Zeitpunkt darf der Prozess in die Ready Queue
+            gelangen.</span
+          >
+        </div>
+        <div>
+          <strong>Rechenzeit</strong>
+          <span
+            >Gesamte CPU-Zeit, die bis zur Fertigstellung benötigt wird.</span
+          >
+        </div>
+        <div>
+          <strong>Priorität</strong>
+          <span
+            >Wird bei Strict Priority verwendet; kleinere Zahlen haben
+            Vorrang.</span
+          >
+        </div>
+      </div>
+    </section>
+    <section id="screenshots" class="knowledge-section">
+      <div class="section-heading-block">
+        <span class="knowledge-kicker">04 · Bild für Bild</span>
+        <h2>Die Oberfläche an echten Ansichten lesen</h2>
+        <p>
+          Die folgenden Aufnahmen zeigen, wo die beschriebenen Elemente in der
+          Anwendung liegen. Die Markierungen dienen als Orientierung und sind
+          keine zusätzlichen Bedienfunktionen.
+        </p>
+      </div>
+      <div class="screenshot-grid">
+        <figure class="ui-screenshot ui-screenshot--wide">
+          <img
+            :src="focusScreenshot"
+            alt="Fokusansicht mit Timeline, Stack-Visualisierung und Kennzahlen"
+            loading="lazy"
+          />
+          <figcaption>
+            <strong>Fokusansicht:</strong> Oben liegen Kontext und Run-Auswahl.
+            In der Mitte liest du den Zeitablauf; rechts stehen Queue und
+            Kennzahlen.
+          </figcaption>
+        </figure>
+        <figure class="ui-screenshot">
+          <img
+            :src="comparisonScreenshot"
+            alt="Vergleichsübersicht mit mehreren Runs und Ranking"
+            loading="lazy"
+          />
+          <figcaption>
+            <strong>Vergleichsübersicht:</strong> Mehrere Runs werden parallel
+            betrachtet. Ranking und Vergleichstabelle helfen bei der Einordnung.
+          </figcaption>
+        </figure>
+        <figure class="ui-screenshot">
+          <img
+            :src="mlfqScreenshot"
+            alt="Schema einer MLFQ-Timeline mit drei Queue-Leveln"
+            loading="lazy"
+          />
+          <figcaption>
+            <strong>MLFQ:</strong> Die Ebenen L1 bis L3 zeigen, in welcher Queue
+            ein Prozess eingeordnet ist. Nach einem Quantum kann er nach unten
+            verschoben werden.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
     <section id="fokusansicht" class="knowledge-section">
       <div class="section-heading-block">
-        <span class="knowledge-kicker">02 · Ablauf</span>
+        <span class="knowledge-kicker">05 · Ablauf</span>
         <h2>Die Fokusansicht</h2>
         <p>
           Die Fokusansicht zeigt einen einzelnen Run im Detail. Sie beantwortet
@@ -87,7 +263,8 @@
           <h3>Steuerung</h3>
           <ul>
             <li>
-              <strong>Play / Pause:</strong> Simulation starten oder anhalten.
+              <strong>Play / Pause:</strong> Visualisierung starten oder
+              anhalten.
             </li>
             <li><strong>← / →:</strong> einen Takt zurück oder vor.</li>
             <li>
@@ -109,12 +286,12 @@
 
     <section id="stack" class="knowledge-section knowledge-section--split">
       <div class="section-heading-block">
-        <span class="knowledge-kicker">03 · Zustand</span>
-        <h2>Die Stack-Simulation</h2>
+        <span class="knowledge-kicker">06 · Zustand</span>
+        <h2>Die Stack-Visualisierung</h2>
         <p>
-          Die Stack-Simulation zeigt den Zustand der Ready Queue zum aktuellen
-          Zeitpunkt. Sie ergänzt die Timeline um die Prozesse, die gerade nicht
-          laufen.
+          Die Stack-Visualisierung zeigt den Zustand der Ready Queue zum
+          aktuellen Zeitpunkt. Sie ergänzt die Timeline um die Prozesse, die
+          gerade nicht laufen.
         </p>
       </div>
       <div class="reading-list">
@@ -143,9 +320,52 @@
       </div>
     </section>
 
+    <section
+      id="ereignisse"
+      class="knowledge-section knowledge-section--accent"
+    >
+      <div class="section-heading-block">
+        <span class="knowledge-kicker">07 · Erklärung</span>
+        <h2>Ereignisse als Begründung lesen</h2>
+        <p>
+          Wenn ein Balken wechselt, suche den passenden Zeitpunkt im Ereignis-
+          und Zustandsbereich. Das Ereignis erklärt die Entscheidung des
+          Schedulers, die Timeline zeigt ihre sichtbare Folge.
+        </p>
+      </div>
+      <div class="callout-grid">
+        <article>
+          <strong>Arrival</strong>
+          <p>Ein Prozess kommt an und wird bereit für die CPU.</p>
+        </article>
+        <article>
+          <strong>Dispatch / Start</strong>
+          <p>Der Scheduler wählt einen bereiten Prozess zur Ausführung aus.</p>
+        </article>
+        <article>
+          <strong>Finish</strong>
+          <p>
+            Die verbleibende Rechenzeit ist null; der Prozess ist abgeschlossen.
+          </p>
+        </article>
+        <article>
+          <strong>Präemption</strong>
+          <p>Der laufende Prozess wird unterbrochen und später fortgesetzt.</p>
+        </article>
+        <article>
+          <strong>Quantum expired</strong>
+          <p>Die Zeitscheibe endet, etwa bei Round Robin oder MLFQ.</p>
+        </article>
+        <article>
+          <strong>Context switch</strong>
+          <p>Die CPU wechselt von einem Prozess zu einem anderen.</p>
+        </article>
+      </div>
+    </section>
+
     <section id="kennzahlen" class="knowledge-section">
       <div class="section-heading-block">
-        <span class="knowledge-kicker">04 · Bewertung</span>
+        <span class="knowledge-kicker">08 · Bewertung</span>
         <h2>Kennzahlen richtig einordnen</h2>
         <p>
           Eine einzelne Kennzahl erklärt keinen Algorithmus vollständig.
@@ -178,7 +398,7 @@
           <strong>Durchsatz</strong
           ><span
             >Anzahl fertiggestellter Prozesse im Verhältnis zur
-            Simulationszeit.</span
+            Visualisierungszeit.</span
           >
         </div>
         <div class="metric-row">
@@ -203,7 +423,7 @@
       class="knowledge-section knowledge-section--accent"
     >
       <div class="section-heading-block">
-        <span class="knowledge-kicker">05 · Unterbrechung</span>
+        <span class="knowledge-kicker">09 · Unterbrechung</span>
         <h2>Präemption erkennen</h2>
         <p>
           Eine Markierung am Ende eines Timeline-Segments zeigt, dass die
@@ -212,7 +432,7 @@
       </div>
       <div class="callout-grid">
         <article>
-          <strong>Preempt</strong>
+          <strong>Präemption</strong>
           <p>
             Ein anderer Prozess wird bevorzugt, zum Beispiel weil er kürzer ist
             oder eine höhere Priorität besitzt.
@@ -237,7 +457,7 @@
 
     <section id="vergleich" class="knowledge-section">
       <div class="section-heading-block">
-        <span class="knowledge-kicker">06 · Vergleich</span>
+        <span class="knowledge-kicker">10 · Vergleich</span>
         <h2>Runs in der Vergleichsübersicht vergleichen</h2>
         <p>
           Ein Vergleich ist aussagekräftig, wenn alle Runs dasselbe Szenario,
@@ -285,6 +505,18 @@
   </div>
 </template>
 
+<script setup lang="ts">
+import focusScreenshot from "../../documents/fokusansicht für mehrere algos.jpg";
+import comparisonScreenshot from "../../documents/multi-view.png";
+import mlfqScreenshot from "../../documents/mlfq.png";
+
+defineEmits<{
+  (event: "start-demo"): void;
+  (event: "create-scenario"): void;
+  (event: "start-tour"): void;
+}>();
+</script>
+
 <style scoped>
 .knowledge-page {
   display: grid;
@@ -309,6 +541,12 @@
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
+}
+.knowledge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
 }
 .knowledge-hero-mark {
   font-size: 5rem;
@@ -350,6 +588,12 @@
 .knowledge-section--intro {
   padding-top: 0.25rem;
 }
+.knowledge-section--ui {
+  padding: 1.25rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.1), var(--panel-bg));
+}
 .knowledge-section--accent {
   padding: 1.25rem;
   border: 1px solid rgba(245, 158, 11, 0.35);
@@ -372,6 +616,68 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.8rem;
+}
+.ui-map {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.ui-map-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: start;
+  padding: 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.ui-map-number {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.ui-map-item h3 {
+  margin: 0 0 0.4rem;
+}
+.ui-map-item p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.screenshot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.ui-screenshot {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+}
+.ui-screenshot--wide {
+  grid-column: span 2;
+}
+.ui-screenshot img {
+  display: block;
+  width: 100%;
+  max-height: 34rem;
+  object-fit: contain;
+  background: var(--surface);
+}
+.ui-screenshot--wide img {
+  max-height: 42rem;
+}
+.ui-screenshot figcaption {
+  padding: 0.85rem 1rem 1rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.ui-screenshot figcaption strong {
+  color: var(--text);
 }
 .knowledge-step,
 .explanation-card,
@@ -527,6 +833,15 @@
   .comparison-guide,
   .knowledge-section--split {
     grid-template-columns: 1fr;
+  }
+  .ui-map {
+    grid-template-columns: 1fr;
+  }
+  .screenshot-grid {
+    grid-template-columns: 1fr;
+  }
+  .ui-screenshot--wide {
+    grid-column: auto;
   }
   .explanation-card--wide {
     grid-column: auto;

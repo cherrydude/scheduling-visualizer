@@ -55,16 +55,13 @@ function normalizeScenarioInput(scenario: Scenario): Scenario {
           typeof process.name === "string" && process.name.trim()
             ? process.name
             : `P${index + 1}`,
-        arrivalTime: Math.max(
-          0,
-          Math.floor(Number(process.arrivalTime) || 0),
-        ),
+        arrivalTime: Math.max(0, Math.floor(Number(process.arrivalTime) || 0)),
         burstTime: Math.max(1, Math.floor(Number(process.burstTime) || 1)),
         priority: Math.max(0, Math.floor(Number(process.priority) || 0)),
         color:
           typeof process.color === "string" && process.color.trim()
             ? process.color
-            : 'var(--data-2)',
+            : "var(--data-2)",
         group:
           typeof process.group === "string" && process.group.trim()
             ? process.group
@@ -76,7 +73,10 @@ function normalizeScenarioInput(scenario: Scenario): Scenario {
     ...scenario,
     algorithm: normalizedAlgorithm,
     algorithmParams: {
-      timeQuantum: clampPositiveInteger(scenario.algorithmParams?.timeQuantum, 2),
+      timeQuantum: clampPositiveInteger(
+        scenario.algorithmParams?.timeQuantum,
+        2,
+      ),
       snapshotInterval: clampPositiveInteger(
         scenario.algorithmParams?.snapshotInterval,
         1,
@@ -85,17 +85,14 @@ function normalizeScenarioInput(scenario: Scenario): Scenario {
         2,
         clampPositiveInteger(scenario.algorithmParams?.queueLevels, 3),
       ),
-      sjfMode:
-        scenario.algorithmParams?.sjfMode === "preemptive"
-          ? "preemptive"
-          : "nonPreemptive",
+      sjfMode: "preemptive",
       mlfqMode:
         scenario.algorithmParams?.mlfqMode === "simplified"
           ? "simplified"
           : "classic",
       strictPriorityTieBreak:
         scenario.algorithmParams?.strictPriorityTieBreak ?? "fifo",
-      lcfsMode: scenario.algorithmParams?.lcfsMode ?? "preemptive",
+      lcfsMode: "preemptive",
       lcfsTieBreak: scenario.algorithmParams?.lcfsTieBreak ?? "stack",
     },
     processes: normalizedProcesses,
@@ -314,12 +311,12 @@ function dispatchProcess(
     algorithm === "mlfq"
       ? (readyQueue.shift() ?? null)
       : algorithm === "strictPriority"
-      ? selectStrictPriorityProcess(readyQueue, time, strictPriorityTieBreak)
-      : algorithm === "sjf"
-        ? selectSjfProcess(readyQueue)
-      : algorithm === "lcfs"
-        ? (readyQueue.pop() ?? null)
-        : (readyQueue.shift() ?? null);
+        ? selectStrictPriorityProcess(readyQueue, time, strictPriorityTieBreak)
+        : algorithm === "sjf"
+          ? selectSjfProcess(readyQueue)
+          : algorithm === "lcfs"
+            ? (readyQueue.pop() ?? null)
+            : (readyQueue.shift() ?? null);
   if (!nextCurrent) {
     return {
       nextCurrent: null,
@@ -339,7 +336,8 @@ function dispatchProcess(
   const nextQuantum =
     algorithm === "mlfq"
       ? mlfqMode === "classic"
-        ? nextCurrent.mlfqRemainingQuantum && nextCurrent.mlfqRemainingQuantum > 0
+        ? nextCurrent.mlfqRemainingQuantum &&
+          nextCurrent.mlfqRemainingQuantum > 0
           ? nextCurrent.mlfqRemainingQuantum
           : quantumForLevel(mlfqBaseQuantum, nextCurrent.queueLevel ?? 0)
         : quantumForLevel(mlfqBaseQuantum, nextCurrent.queueLevel ?? 0)
@@ -374,9 +372,14 @@ function enqueueReadyProcess(
   process.status = "ready";
 
   if (algorithm === "mlfq") {
-    process.queueLevel = clampInteger(process.queueLevel ?? 0, 0, mlfqQueueLevels - 1);
+    process.queueLevel = clampInteger(
+      process.queueLevel ?? 0,
+      0,
+      mlfqQueueLevels - 1,
+    );
     const insertionIndex = readyQueue.findIndex(
-      (queuedProcess) => (queuedProcess.queueLevel ?? 0) > (process.queueLevel ?? 0),
+      (queuedProcess) =>
+        (queuedProcess.queueLevel ?? 0) > (process.queueLevel ?? 0),
     );
 
     if (insertionIndex === -1) {
@@ -441,35 +444,14 @@ function shouldPreemptSjf(
   }
 
   return readyQueue.some((queuedProcess) => {
-    if (queuedProcess.remainingTime < currentProcess.remainingTime) {
-      return true;
-    }
-
-    if (queuedProcess.remainingTime > currentProcess.remainingTime) {
-      return false;
-    }
-
-    if (queuedProcess.arrivalTime < currentProcess.arrivalTime) {
-      return true;
-    }
-
-    if (queuedProcess.arrivalTime > currentProcess.arrivalTime) {
-      return false;
-    }
-
-    return queuedProcess.id.localeCompare(currentProcess.id) < 0;
+    return queuedProcess.remainingTime < currentProcess.remainingTime;
   });
 }
 
 function strictPriorityScore(
   process: ProcessRuntime,
   time: number,
-  tieBreak:
-    | "fifo"
-    | "arrivalTime"
-    | "remainingTime"
-    | "waitingTime"
-    | "id",
+  tieBreak: "fifo" | "arrivalTime" | "remainingTime" | "waitingTime" | "id",
 ): number {
   switch (tieBreak) {
     case "arrivalTime":
@@ -489,12 +471,7 @@ function strictPriorityScore(
 function selectStrictPriorityProcess(
   readyQueue: ProcessRuntime[],
   time: number,
-  tieBreak:
-    | "fifo"
-    | "arrivalTime"
-    | "remainingTime"
-    | "waitingTime"
-    | "id",
+  tieBreak: "fifo" | "arrivalTime" | "remainingTime" | "waitingTime" | "id",
 ): ProcessRuntime | null {
   if (readyQueue.length === 0) {
     return null;
@@ -628,9 +605,8 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     1,
     2,
   );
-  const sjfMode = simulationScenario.algorithmParams.sjfMode ?? "nonPreemptive";
-  const lcfsMode = simulationScenario.algorithmParams.lcfsMode ?? "preemptive";
-  const lcfsTieBreak = simulationScenario.algorithmParams.lcfsTieBreak ?? "stack";
+  const lcfsTieBreak =
+    simulationScenario.algorithmParams.lcfsTieBreak ?? "stack";
   const strictPriorityTieBreak =
     simulationScenario.algorithmParams.strictPriorityTieBreak ?? "fifo";
   const mlfqQueueLevels = clampInteger(
@@ -784,7 +760,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       processName: "Idle",
       start: idleSegmentStart,
       end: endTime,
-      color: 'var(--data-16)',
+      color: "var(--data-16)",
       idle: true,
     });
 
@@ -919,25 +895,19 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
 
     const arrivedNow = enqueueArrivals(time);
 
-    if (
-      isLcfs &&
-      lcfsMode === "preemptive" &&
-      arrivedNow &&
-      currentProcess.remainingTime > 0
-    ) {
+    if (isLcfs && arrivedNow && currentProcess.remainingTime > 0) {
       preemptCurrentProcess(
-        `New arrival preempts ${currentProcess.name} in LCFS preemptive mode.`,
+        `Eine neue Ankunft präemptiert ${currentProcess.name} im präemptiven LCFS-Verfahren.`,
       );
     }
 
     if (
       isSjf &&
-      sjfMode === "preemptive" &&
       currentProcess.remainingTime > 0 &&
       shouldPreemptSjf(currentProcess, readyQueue)
     ) {
       preemptCurrentProcess(
-        `A shorter remaining-time process preempts ${currentProcess.name} in SRTF mode.`,
+        `Ein Prozess mit kürzerer Restlaufzeit präemptiert ${currentProcess.name} im SRTF-Verfahren.`,
       );
     }
 
@@ -947,7 +917,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       shouldPreemptStrictPriority(currentProcess, readyQueue)
     ) {
       preemptCurrentProcess(
-        `A higher-priority process preempts ${currentProcess.name}.`,
+        `Ein Prozess mit höherer Priorität präemptiert ${currentProcess.name}.`,
       );
     }
 
@@ -958,7 +928,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       shouldPreemptMlfq(currentProcess, readyQueue)
     ) {
       preemptCurrentProcess(
-        `A higher-level queue preempts ${currentProcess.name}.`,
+        `Eine höher priorisierte Queue präemptiert ${currentProcess.name}.`,
       );
     }
 
@@ -1024,12 +994,18 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       currentSegmentStart = time;
       currentSegmentLevel = null;
       pushIdleSegment(time);
-    } else if (remainingQuantum <= 0 && simulationScenario.algorithm === "mlfq") {
+    } else if (
+      remainingQuantum <= 0 &&
+      simulationScenario.algorithm === "mlfq"
+    ) {
       const currentLevel = currentProcess.queueLevel ?? 0;
       const nextLevel = Math.min(currentLevel + 1, mlfqQueueLevels - 1);
       currentProcess.queueLevel = nextLevel;
       if (mlfqMode === "classic") {
-        currentProcess.mlfqRemainingQuantum = quantumForLevel(mlfqBaseQuantum, nextLevel);
+        currentProcess.mlfqRemainingQuantum = quantumForLevel(
+          mlfqBaseQuantum,
+          nextLevel,
+        );
       }
       currentProcess.status = "preempted";
       pushSegment(time);
@@ -1052,13 +1028,17 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       events.push(quantumExpiredEvent);
       lastEvent = quantumExpiredEvent;
       currentProcess = null;
-      remainingQuantum = mlfqMode === "classic"
-        ? 0
-        : quantumForLevel(mlfqBaseQuantum, nextLevel);
+      remainingQuantum =
+        mlfqMode === "classic"
+          ? 0
+          : quantumForLevel(mlfqBaseQuantum, nextLevel);
       currentSegmentStart = time;
       currentSegmentLevel = null;
       pushIdleSegment(time);
-    } else if (remainingQuantum <= 0 && simulationScenario.algorithm === "roundRobin") {
+    } else if (
+      remainingQuantum <= 0 &&
+      simulationScenario.algorithm === "roundRobin"
+    ) {
       if (readyQueue.length > 0) {
         currentProcess.status = "preempted";
         pushSegment(time);
@@ -1126,12 +1106,12 @@ export function createSeededScenarioProcesses(
 ): Scenario["processes"] {
   const random = seededRandom(seed);
   const palette = [
-    'var(--data-1)',
-    'var(--data-2)',
-    'var(--data-3)',
-    'var(--data-4)',
-    'var(--data-6)',
-    'var(--data-5)',
+    "var(--data-1)",
+    "var(--data-2)",
+    "var(--data-3)",
+    "var(--data-4)",
+    "var(--data-6)",
+    "var(--data-5)",
   ];
 
   return Array.from({ length: count }, (_, index) => {

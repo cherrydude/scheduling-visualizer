@@ -13,8 +13,22 @@ describe("Simulation additional checks", () => {
         mlfqMode: "classic",
       },
       processes: [
-        { id: "P1", name: "P1", arrivalTime: 0, burstTime: 3, priority: 1, color: "" },
-        { id: "P2", name: "P2", arrivalTime: 0, burstTime: 1, priority: 1, color: "" },
+        {
+          id: "P1",
+          name: "P1",
+          arrivalTime: 0,
+          burstTime: 3,
+          priority: 1,
+          color: "",
+        },
+        {
+          id: "P2",
+          name: "P2",
+          arrivalTime: 0,
+          burstTime: 1,
+          priority: 1,
+          color: "",
+        },
       ],
     };
 
@@ -28,10 +42,27 @@ describe("Simulation additional checks", () => {
   it("StrictPriority tieBreak 'remainingTime' selects shorter remaining job first", () => {
     const scenario: Scenario = {
       algorithm: "strictPriority",
-      algorithmParams: { strictPriorityTieBreak: "remainingTime", snapshotInterval: 1 },
+      algorithmParams: {
+        strictPriorityTieBreak: "remainingTime",
+        snapshotInterval: 1,
+      },
       processes: [
-        { id: "A", name: "A", arrivalTime: 0, burstTime: 5, priority: 1, color: "" },
-        { id: "B", name: "B", arrivalTime: 0, burstTime: 1, priority: 1, color: "" },
+        {
+          id: "A",
+          name: "A",
+          arrivalTime: 0,
+          burstTime: 5,
+          priority: 1,
+          color: "",
+        },
+        {
+          id: "B",
+          name: "B",
+          arrivalTime: 0,
+          burstTime: 1,
+          priority: 1,
+          color: "",
+        },
       ],
     };
 
@@ -40,29 +71,46 @@ describe("Simulation additional checks", () => {
     expect(firstDispatch?.processId).toBe("B");
   });
 
-  it("SJF is non-preemptive and picks the shortest ready job after completion", () => {
+  it("SRTF preempts the running job when a shorter job arrives", () => {
     const scenario: Scenario = {
       algorithm: "sjf",
-      algorithmParams: { snapshotInterval: 1, sjfMode: "nonPreemptive" },
+      algorithmParams: { snapshotInterval: 1, sjfMode: "preemptive" },
       processes: [
-        { id: "P1", name: "P1", arrivalTime: 0, burstTime: 5, priority: 1, color: "" },
-        { id: "P2", name: "P2", arrivalTime: 1, burstTime: 1, priority: 1, color: "" },
-        { id: "P3", name: "P3", arrivalTime: 1, burstTime: 2, priority: 1, color: "" },
+        {
+          id: "P1",
+          name: "P1",
+          arrivalTime: 0,
+          burstTime: 5,
+          priority: 1,
+          color: "",
+        },
+        {
+          id: "P2",
+          name: "P2",
+          arrivalTime: 1,
+          burstTime: 1,
+          priority: 1,
+          color: "",
+        },
+        {
+          id: "P3",
+          name: "P3",
+          arrivalTime: 1,
+          burstTime: 2,
+          priority: 1,
+          color: "",
+        },
       ],
     };
 
     const run = simulateScenario(scenario);
-    const firstFinish = run.events.find((e) => e.type === "finish");
-    const dispatchOrder = run.events
-      .filter((event) => event.type === "dispatch")
-      .map((event) => event.processId);
     const p1Preempted = run.events.some(
       (event) => event.type === "preempt" && event.processId === "P1",
     );
 
-    expect(firstFinish?.processId).toBe("P1");
-    expect(dispatchOrder.slice(0, 3)).toEqual(["P1", "P2", "P3"]);
-    expect(p1Preempted).toBe(false);
+    const firstFinished = run.events.find((event) => event.type === "finish");
+    expect(p1Preempted).toBe(true);
+    expect(firstFinished?.processId).toBe("P2");
   });
 
   it("SRTF preempts when a shorter remaining-time process arrives", () => {
@@ -70,8 +118,22 @@ describe("Simulation additional checks", () => {
       algorithm: "sjf",
       algorithmParams: { snapshotInterval: 1, sjfMode: "preemptive" },
       processes: [
-        { id: "P1", name: "P1", arrivalTime: 0, burstTime: 5, priority: 1, color: "" },
-        { id: "P2", name: "P2", arrivalTime: 1, burstTime: 1, priority: 1, color: "" },
+        {
+          id: "P1",
+          name: "P1",
+          arrivalTime: 0,
+          burstTime: 5,
+          priority: 1,
+          color: "",
+        },
+        {
+          id: "P2",
+          name: "P2",
+          arrivalTime: 1,
+          burstTime: 1,
+          priority: 1,
+          color: "",
+        },
       ],
     };
 
@@ -83,5 +145,104 @@ describe("Simulation additional checks", () => {
 
     expect(p1Preempted).toBe(true);
     expect(firstFinished?.processId).toBe("P2");
+  });
+
+  it("normalizes legacy non-preemptive SJF data to SRTF", () => {
+    const scenario = {
+      algorithm: "sjf",
+      algorithmParams: {
+        snapshotInterval: 1,
+        sjfMode: "nonPreemptive",
+      },
+      processes: [
+        {
+          id: "P1",
+          name: "P1",
+          arrivalTime: 0,
+          burstTime: 5,
+          priority: 1,
+          color: "",
+        },
+        {
+          id: "P2",
+          name: "P2",
+          arrivalTime: 1,
+          burstTime: 1,
+          priority: 1,
+          color: "",
+        },
+      ],
+    } as unknown as Scenario;
+
+    const run = simulateScenario(scenario);
+
+    expect(run.events).toContainEqual(
+      expect.objectContaining({ type: "preempt", processId: "P1" }),
+    );
+  });
+
+  it("does not preempt SRTF when remaining times are equal", () => {
+    const scenario: Scenario = {
+      algorithm: "sjf",
+      algorithmParams: { snapshotInterval: 1, sjfMode: "preemptive" },
+      processes: [
+        {
+          id: "P1",
+          name: "P1",
+          arrivalTime: 0,
+          burstTime: 3,
+          priority: 1,
+          color: "",
+        },
+        {
+          id: "P2",
+          name: "P2",
+          arrivalTime: 1,
+          burstTime: 2,
+          priority: 1,
+          color: "",
+        },
+      ],
+    };
+
+    const run = simulateScenario(scenario);
+
+    expect(run.events).not.toContainEqual(
+      expect.objectContaining({ type: "preempt", processId: "P1" }),
+    );
+  });
+
+  it("creates visible starvation for a low-priority process", () => {
+    const highPriorityJobs = Array.from({ length: 8 }, (_, index) => ({
+      id: `H${index + 1}`,
+      name: `H${index + 1}`,
+      arrivalTime: index * 2 + 1,
+      burstTime: 2,
+      priority: 1,
+      color: "",
+    }));
+    const scenario: Scenario = {
+      algorithm: "strictPriority",
+      algorithmParams: { snapshotInterval: 1 },
+      processes: [
+        {
+          id: "BG",
+          name: "BG",
+          arrivalTime: 0,
+          burstTime: 14,
+          priority: 5,
+          color: "",
+        },
+        ...highPriorityJobs,
+      ],
+    };
+
+    const run = simulateScenario(scenario);
+    const backgroundProcess = run.processStates.find(
+      (process) => process.id === "BG",
+    );
+
+    expect(backgroundProcess?.waitingTime).toBeGreaterThanOrEqual(14);
+    expect(run.finalMetrics.starvedProcessCount).toBeGreaterThanOrEqual(1);
   });
 });

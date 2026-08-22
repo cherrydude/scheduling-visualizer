@@ -200,7 +200,7 @@ function algorithmLabel(algorithm: string): string {
     case "roundRobin":
       return "Round Robin";
     case "sjf":
-      return "Shortest Job First";
+      return "SRTF";
     case "lcfs":
       return "LCFS";
     case "strictPriority":
@@ -221,14 +221,10 @@ function getParamBadges(algorithm: string, params?: AlgorithmParams): string[] {
     case "roundRobin":
       return params.timeQuantum ? [`Q ${params.timeQuantum}`] : [];
     case "sjf":
-      return [
-        params.sjfMode === "preemptive"
-          ? "SRTF (preemptive)"
-          : "SJF (non-preemptive)",
-      ];
+      return ["SRTF (präemptiv)"];
     case "lcfs":
       return [
-        params.lcfsMode === "nonPreemptive" ? "non-preemptive" : "preemptive",
+        "präemptiv",
         ...(params.lcfsTieBreak
           ? [`Tie: ${formatTieBreak(params.lcfsTieBreak)}`]
           : []),

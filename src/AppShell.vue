@@ -131,7 +131,7 @@
                 type="button"
                 @click="loadPreset('sjfVsSrtf')"
               >
-                SJF/SRTF
+                SRTF
               </button>
               <button
                 class="secondary-button"
@@ -145,7 +145,7 @@
                 type="button"
                 @click="loadPreset('priorityStarvation')"
               >
-                Starvation
+                Strict-Priority-Starvation
               </button>
               <button
                 class="secondary-button"
@@ -330,6 +330,7 @@
             <button
               type="button"
               class="secondary-button"
+              data-tour="open-multi-view"
               :class="{ 'primary-button': activeView === 'multi' }"
               :title="viewToggleTitle('multi')"
               @click="setActiveView('multi')"
@@ -425,6 +426,7 @@
             </div>
             <button
               class="primary-button"
+              data-tour="open-algorithm"
               type="button"
               @click="openAlgorithmModal('create')"
             >
@@ -492,7 +494,7 @@
                 runState.note ?? "Algorithmus noch nicht unterstützt"
               }}</strong>
               <p>
-                Die Rohansicht bleibt sichtbar, aber die Simulation ist fuer
+                Die Rohansicht bleibt sichtbar, aber die Visualisierung ist fuer
                 diesen Algorithmus noch nicht aktiv.
               </p>
             </div>
@@ -540,8 +542,8 @@
       <aside v-if="activeView === 'focus'" class="side-column">
         <section class="panel small-panel" data-tour="stack-simulation">
           <div class="section-header">
-            <h2>Stack-Simulation</h2>
-            <span>Simulation</span>
+            <h2>Stack-Visualisierung</h2>
+            <span>Visualisierung</span>
           </div>
 
           <div class="stack-area">
@@ -613,7 +615,11 @@
         </template>
 
         <template v-else>
-          <KnowledgePage />
+          <KnowledgePage
+            @start-demo="startWelcomeDemo"
+            @create-scenario="openGeneratorModal"
+            @start-tour="startTour"
+          />
         </template>
       </div>
     </main>
@@ -706,7 +712,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   classroom: {
     title: "Klassenzimmer",
     description:
-      "Ein ausgewogenes Beispiel mit drei Prozessen und mittlerer Zeitscheibe.",
+      "Ein ausgewogenes Beispiel mit drei Prozessen für den Einstieg in die Visualisierung.",
     seed: 17,
     tickSize: 1,
     processes: [
@@ -742,7 +748,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   staggered: {
     title: "Versetzt",
     description:
-      "Prozesse treffen nacheinander ein, um Preemption und Queue-Wechsel sichtbar zu machen.",
+      "Prozesse treffen nacheinander ein. Unter einem passenden präemptiven Algorithmus werden Ankünfte und mögliche Präemptionen sichtbar.",
     seed: 33,
     tickSize: 1,
     processes: [
@@ -940,7 +946,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   burstChaos: {
     title: "Rechenzeit-Chaos",
     description:
-      "Viele kurze Rechenzeiten und viele Kontextwechsel für den Stress-Test der Animationen.",
+      "Unterschiedliche kurze Rechenzeiten und dichte Ankünfte für einen Stress-Test der Visualisierung. Viele Kontextwechsel entstehen besonders bei kleinem Round-Robin-Quantum.",
     seed: 303,
     tickSize: 1,
     processes: [
@@ -1001,9 +1007,9 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     ],
   },
   sjfVsSrtf: {
-    title: "SJF vs SRTF",
+    title: "SRTF-Präemption",
     description:
-      "Ein langer Startprozess und mehrere kurze Spätankömmlinge machen den Unterschied zwischen nicht-präemptivem SJF und präemptivem SRTF sofort sichtbar.",
+      "Ein langer Startprozess und mehrere kurze Spätankömmlinge machen die Präemption nach kürzester Restlaufzeit sichtbar.",
     seed: 707,
     tickSize: 1,
     processes: [
@@ -1048,7 +1054,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   rrQuantumLab: {
     title: "RR Quantum-Labor",
     description:
-      "Vier ähnliche Prozesse mit gleicher Ankunft zeigen klar den Einfluss eines kleinen vs. großen Round-Robin-Quantums auf Reaktivität und Kontextwechsel.",
+      "Für Round Robin zeigen vier ähnliche Prozesse mit gleicher Ankunft den Einfluss eines kleinen gegenüber einem großen Quantum auf Reaktivität und Kontextwechsel.",
     seed: 808,
     tickSize: 1,
     processes: [
@@ -1091,9 +1097,9 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     ],
   },
   priorityStarvation: {
-    title: "Priority Starvation",
+    title: "Strict-Priority-Starvation",
     description:
-      "Ein langer Low-Priority-Prozess konkurriert mit laufend eintreffenden High-Priority-Kurzjobs und macht Starvation in Strict Priority deutlich.",
+      "Für Strict Priority wird ein langer Prozess mit niedriger Priorität durch eine lückenlose Folge eintreffender High-Priority-Kurzjobs bis zur Starvation-Schwelle verdrängt.",
     seed: 909,
     tickSize: 1,
     processes: [
@@ -1142,12 +1148,48 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
         color: "var(--data-15)",
         group: "High",
       },
+      {
+        id: "H5",
+        name: "H5",
+        arrivalTime: 9,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-1)",
+        group: "High",
+      },
+      {
+        id: "H6",
+        name: "H6",
+        arrivalTime: 11,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-2)",
+        group: "High",
+      },
+      {
+        id: "H7",
+        name: "H7",
+        arrivalTime: 13,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-3)",
+        group: "High",
+      },
+      {
+        id: "H8",
+        name: "H8",
+        arrivalTime: 15,
+        burstTime: 2,
+        priority: 1,
+        color: "var(--data-4)",
+        group: "High",
+      },
     ],
   },
   mlfqStaircase: {
     title: "MLFQ-Treppe",
     description:
-      "Lange CPU-bound Jobs plus kurze interaktive Jobs visualisieren Queue-Demotionen und das Treppenmuster in MLFQ.",
+      "Für MLFQ visualisieren lange CPU-bound Jobs plus kurze interaktive Jobs Queue-Demotionen und das Treppenmuster.",
     seed: 1001,
     tickSize: 1,
     processes: [
@@ -1212,9 +1254,9 @@ const algorithmModalSeed = ref<{
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
-    sjfMode?: "nonPreemptive" | "preemptive";
+    sjfMode?: "preemptive";
     mlfqMode?: "classic" | "simplified";
-    lcfsMode?: "preemptive" | "nonPreemptive";
+    lcfsMode?: "preemptive";
     lcfsTieBreak?: "stack" | "id";
   };
 } | null>(null);
@@ -1239,9 +1281,8 @@ const activeView = ref<"focus" | "multi">("focus");
 const tour = useTour({
   openGenerator: openGeneratorModal,
   loadStaggered: loadTourStaggered,
-  openAlgorithm: openTourAlgorithm,
-  applySjf: applyTourSjf,
-  addComparisonRun: addTourComparisonRun,
+  applyRoundRobin: applyTourRoundRobin,
+  openComparisonRun: openTourComparisonRun,
   startPlayback: () => {
     void handlePlaybackPlay();
   },
@@ -1309,7 +1350,7 @@ const generatorModalTitle = computed(() =>
 );
 
 const generatorSubmitLabel = computed(() =>
-  generatorMode.value === "edit" ? "Szenario speichern" : "Szenario übernehmen",
+  generatorMode.value === "edit" ? "Szenario speichern" : "Szenario anwenden",
 );
 
 function cloneDraft(source: ScenarioDraft): void {
@@ -2136,7 +2177,7 @@ const starvationAlert = computed(() => {
 });
 
 const stackEmptyTitle = computed(() =>
-  isStackSimulationFinished.value ? "Simulation beendet" : "Keine Daten",
+  isStackSimulationFinished.value ? "Visualisierung beendet" : "Keine Daten",
 );
 
 const stackEmptyDescription = computed(() =>
@@ -2245,9 +2286,9 @@ const metricCards = computed<MetricCard[]>(() => {
         "Anzahl der Prozesse, deren Wartezeit den kritischen Schwellenwert erreicht oder überschritten hat.",
     },
     {
-      label: "Anzahl Preemptionen",
+      label: "Anzahl Präemptionen",
       value: String(metrics?.preemptionCount ?? 0),
-      help: "preempt + quantumExpired",
+      help: "Präemption + Quantum abgelaufen",
       tooltip:
         "Anzahl der Unterbrechungen, bei denen ein laufender Prozess zugunsten eines anderen Prozesses oder wegen eines abgelaufenen Zeitquantums verdrängt wurde.",
     },
@@ -2269,11 +2310,15 @@ const metricCards = computed<MetricCard[]>(() => {
 });
 
 const comparisonCards = computed<ComparisonCard[]>(() => [
-  { label: "LCFS", value: "bereit", help: "Bereits in der Simulation aktiv" },
   {
-    label: "Shortest Job First",
+    label: "LCFS",
+    value: "bereit",
+    help: "Bereits in der Visualisierung aktiv",
+  },
+  {
+    label: "SRTF",
     value: "implementiert",
-    help: "Nicht-präemptiv, wählt den kürzesten Job aus der Ready Queue",
+    help: "Präemptiv, wählt die kürzeste verbleibende Laufzeit",
   },
   {
     label: "Strict Priority",
@@ -2428,7 +2473,7 @@ const focusSubtitle = computed(() => {
 
   if (showRawPreview.value) {
     return run
-      ? "Rohansicht vor dem Simulationsstart"
+      ? "Rohansicht vor dem Visualisierungsstart"
       : "Rohansicht des geladenen Szenarios";
   }
 
@@ -2528,23 +2573,7 @@ function loadTourStaggered(): void {
   cloneDraft(scenarioPresets.staggered);
 }
 
-function openTourAlgorithm(): void {
-  openAlgorithmModal("create");
-}
-
-function applyTourSjf(): void {
-  confirmAlgorithm({
-    algorithm: "sjf",
-    algorithmParams: {
-      timeQuantum: 2,
-      snapshotInterval: 1,
-      queueLevels: 3,
-      sjfMode: "preemptive",
-    },
-  });
-}
-
-function addTourComparisonRun(): void {
+function applyTourRoundRobin(): void {
   confirmAlgorithm({
     algorithm: "roundRobin",
     algorithmParams: {
@@ -2553,6 +2582,23 @@ function addTourComparisonRun(): void {
       queueLevels: 3,
     },
   });
+}
+
+function openTourComparisonRun(): void {
+  if (!activeScenario.value) {
+    return;
+  }
+
+  algorithmModalMode.value = "create";
+  algorithmModalSeed.value = {
+    algorithm: "roundRobin",
+    algorithmParams: {
+      timeQuantum: 2,
+      snapshotInterval: 1,
+      queueLevels: 3,
+    },
+  };
+  showAlgorithmModal.value = true;
 }
 
 function openHelpFromWelcome(): void {
@@ -2585,7 +2631,7 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           snapshotInterval:
             activeRun.value.algorithmParams.snapshotInterval ?? 1,
           queueLevels: activeRun.value.algorithmParams.queueLevels ?? 3,
-          sjfMode: activeRun.value.algorithmParams.sjfMode ?? "nonPreemptive",
+          sjfMode: "preemptive",
           mlfqMode: activeRun.value.algorithmParams.mlfqMode ?? "classic",
           lcfsMode: activeRun.value.algorithmParams.lcfsMode ?? "preemptive",
           lcfsTieBreak: activeRun.value.algorithmParams.lcfsTieBreak ?? "stack",
@@ -2597,7 +2643,7 @@ function openAlgorithmModal(mode: "create" | "edit"): void {
           timeQuantum: 2,
           snapshotInterval: 1,
           queueLevels: 3,
-          sjfMode: "nonPreemptive",
+          sjfMode: "preemptive",
           mlfqMode: "classic",
           lcfsMode: "preemptive",
           lcfsTieBreak: "stack",
@@ -2612,9 +2658,9 @@ function confirmAlgorithm(payload: {
     timeQuantum: number;
     snapshotInterval: number;
     queueLevels: number;
-    sjfMode?: "nonPreemptive" | "preemptive";
+    sjfMode?: "preemptive";
     mlfqMode?: "classic" | "simplified";
-    lcfsMode?: "preemptive" | "nonPreemptive";
+    lcfsMode?: "preemptive";
     lcfsTieBreak?: "stack" | "id";
   };
 }): void {
@@ -2818,7 +2864,7 @@ function formatAlgorithmParams(
     timeQuantum?: number;
     snapshotInterval?: number;
     queueLevels?: number;
-    sjfMode?: "nonPreemptive" | "preemptive";
+    sjfMode?: "preemptive";
     mlfqMode?: "classic" | "simplified";
     strictPriorityTieBreak?:
       | "fifo"
@@ -2826,7 +2872,7 @@ function formatAlgorithmParams(
       | "remainingTime"
       | "waitingTime"
       | "id";
-    lcfsMode?: "preemptive" | "nonPreemptive";
+    lcfsMode?: "preemptive";
     lcfsTieBreak?: "stack" | "id";
   },
 ): string {
@@ -2853,18 +2899,12 @@ function formatAlgorithmParams(
   }
 
   if (algorithm === "lcfs") {
-    const mode =
-      params.lcfsMode === "nonPreemptive" ? "non-preemptive" : "preemptive";
     const tieBreak = params.lcfsTieBreak === "id" ? "ID" : "Stack";
-    return `Variante: ${mode} · Tie-Break: ${tieBreak}`;
+    return `Präemptiv · Tie-Break: ${tieBreak}`;
   }
 
   if (algorithm === "sjf") {
-    const mode =
-      params.sjfMode === "preemptive"
-        ? "SRTF (präemptiv)"
-        : "SJF (nicht-präemptiv)";
-    return `Variante: ${mode} · kürzeste Restlaufzeit zuerst`;
+    return "SRTF (präemptiv) · kürzeste Restlaufzeit zuerst";
   }
 
   return "Keine zusaetzlichen Parameter";
@@ -2896,7 +2936,7 @@ function algorithmName(algorithm: AlgorithmType): string {
     case "roundRobin":
       return "Round Robin";
     case "sjf":
-      return "Shortest Job First";
+      return "SRTF (Shortest Remaining Time First)";
     case "lcfs":
       return "LCFS";
     case "strictPriority":

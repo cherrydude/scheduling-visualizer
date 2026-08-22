@@ -17,13 +17,17 @@
       </div>
       <div v-else>
         <div class="fallback-item">
-          LCFS — bereit — Bereits in der Simulation aktiv
+          Round Robin — implementiert — Präemptiv mit Zeitscheibe
         </div>
         <div class="fallback-item">
-          Shortest Job First — implementiert — Nicht-präemptiv mit kürzester Jobauswahl
+          LCFS — implementiert — Präemptiv mit Stack-Reihenfolge
         </div>
         <div class="fallback-item">
-          Strict Priority — implementiert — Präemptiv mit FIFO bei gleicher Priorität
+          SRTF — implementiert — Präemptiv mit kürzester Restlaufzeit
+        </div>
+        <div class="fallback-item">
+          Strict Priority — implementiert — Präemptiv mit FIFO bei gleicher
+          Priorität
         </div>
         <div class="fallback-item">
           MLFQ — implementiert — Queue-Stufen sichtbar im Queue-Panel

@@ -1,10 +1,15 @@
 <template>
   <div ref="root" class="gantt-gsap-root">
-    <div data-tour="playback-controls" class="controls" :class="{ 'controls--disabled': !controlsEnabled }">
+    <div
+      data-tour="playback-controls"
+      class="controls"
+      :class="{ 'controls--disabled': !controlsEnabled }"
+    >
       <button
         @click="handlePlay"
+        data-tour="play"
         aria-label="Play"
-        title="Simulation starten oder fortsetzen"
+        title="Visualisierung starten oder fortsetzen"
         :disabled="!controlsEnabled"
       >
         Start
@@ -12,7 +17,7 @@
       <button
         @click="handlePause"
         aria-label="Pause"
-        title="Simulation anhalten"
+        title="Visualisierung anhalten"
         :disabled="!controlsEnabled"
       >
         Pause
@@ -36,7 +41,7 @@
       <button
         @click="handleReset"
         aria-label="Reset"
-        title="Simulation zurücksetzen"
+        title="Visualisierung zurücksetzen"
         :disabled="!controlsEnabled"
       >
         Reset
@@ -46,7 +51,7 @@
           type="checkbox"
           v-model="loopPlayback"
           :disabled="!controlsEnabled"
-          title="Simulation im Endlosmodus laufen lassen"
+          title="Visualisierung im Endlosmodus laufen lassen"
         />
         Endlos
       </label>
@@ -201,9 +206,12 @@ const renderViewBox = computed(() => {
 });
 const controlsEnabled = computed(() => props.controlsEnabled !== false);
 const introAnimation = computed(() => props.introAnimation !== false);
-const prefersReducedMotion = typeof window !== 'undefined' &&
-  (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false);
-const shouldAnimate = computed(() => !prefersReducedMotion && introAnimation.value);
+const prefersReducedMotion =
+  typeof window !== "undefined" &&
+  (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false);
+const shouldAnimate = computed(
+  () => !prefersReducedMotion && introAnimation.value,
+);
 const debugPreemption = import.meta.env.DEV;
 
 function hasGsapTargets(target: unknown): boolean {
@@ -294,7 +302,9 @@ watch(
       rootEl.querySelectorAll<SVGElement>(".preempt-pulse"),
     );
     if (!shouldAnimate.value) {
-      logPreemptionDebug('skip animation due to prefers-reduced-motion or introAnimation=false');
+      logPreemptionDebug(
+        "skip animation due to prefers-reduced-motion or introAnimation=false",
+      );
       return;
     }
     logPreemptionDebug("flare targets", {
@@ -696,7 +706,9 @@ function createMorphPiece(
 function getLaneIndex(pid?: string | null): number {
   if (!pid) return 0;
   if (isMlfqLayout.value) {
-    const matching = segments.value.find((segment) => segment.processId === pid);
+    const matching = segments.value.find(
+      (segment) => segment.processId === pid,
+    );
     if (matching) {
       return Math.min(
         mlfqLevelCount.value - 1,
@@ -730,10 +742,11 @@ function getSegmentYFor(
 ): number {
   if (segment.idle) return 180;
   if (isMlfqLayout.value) {
-    return laneTop + Math.min(
-      mlfqLevelCount.value - 1,
-      Math.max(0, segment.queueLevel ?? 0),
-    ) * laneStride;
+    return (
+      laneTop +
+      Math.min(mlfqLevelCount.value - 1, Math.max(0, segment.queueLevel ?? 0)) *
+        laneStride
+    );
   }
   const order = getProcessOrder(segmentsList);
   const index = order.indexOf(segment.processId ?? "");
@@ -933,10 +946,14 @@ onMounted(() => {
       });
 
       if (introAnimation.value) {
-        tl.current.to(barTargets, {
-          opacity: 1,
-          duration: 0,
-        }, 0);
+        tl.current.to(
+          barTargets,
+          {
+            opacity: 1,
+            duration: 0,
+          },
+          0,
+        );
       }
     }
 

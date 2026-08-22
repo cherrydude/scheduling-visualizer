@@ -41,7 +41,7 @@ const DEFAULT_ALGORITHM_PARAMS: AlgorithmParams = {
   timeQuantum: 2,
   snapshotInterval: 1,
   queueLevels: 3,
-  sjfMode: "nonPreemptive",
+  sjfMode: "preemptive",
   mlfqMode: "classic",
   strictPriorityTieBreak: "fifo",
   lcfsMode: "preemptive",
@@ -83,13 +83,16 @@ function normalizeProcessInput(
       typeof process?.name === "string" && process.name.trim()
         ? process.name
         : fallbackId,
-    arrivalTime: Math.max(0, Math.floor(toFiniteNumber(process?.arrivalTime, 0))),
+    arrivalTime: Math.max(
+      0,
+      Math.floor(toFiniteNumber(process?.arrivalTime, 0)),
+    ),
     burstTime: Math.max(1, toPositiveInteger(process?.burstTime ?? 1, 1)),
     priority: Math.max(0, Math.floor(toFiniteNumber(process?.priority, 1))),
     color:
       typeof process?.color === "string" && process.color.trim()
         ? process.color
-        : 'var(--data-2)',
+        : "var(--data-2)",
     group:
       typeof process?.group === "string" && process.group.trim()
         ? process.group
@@ -139,8 +142,9 @@ function createAlgorithmParams(
     sjfMode: params?.sjfMode ?? DEFAULT_ALGORITHM_PARAMS.sjfMode,
     mlfqMode: params?.mlfqMode ?? DEFAULT_ALGORITHM_PARAMS.mlfqMode,
     strictPriorityTieBreak:
-      params?.strictPriorityTieBreak ?? DEFAULT_ALGORITHM_PARAMS.strictPriorityTieBreak,
-    lcfsMode: params?.lcfsMode ?? DEFAULT_ALGORITHM_PARAMS.lcfsMode,
+      params?.strictPriorityTieBreak ??
+      DEFAULT_ALGORITHM_PARAMS.strictPriorityTieBreak,
+    lcfsMode: "preemptive",
     lcfsTieBreak: params?.lcfsTieBreak ?? DEFAULT_ALGORITHM_PARAMS.lcfsTieBreak,
   };
 }
@@ -248,7 +252,7 @@ function normalizeScenario(record: Partial<ScenarioRecord>): ScenarioRecord {
     runs,
     activeRunIndex,
     appliedAlgorithm:
-      activeRunIndex >= 0 ? runs[activeRunIndex] ?? null : null,
+      activeRunIndex >= 0 ? (runs[activeRunIndex] ?? null) : null,
   };
 }
 
@@ -272,7 +276,9 @@ export function buildSimulationScenario(
   };
 }
 
-export function getActiveRun(scenario: ScenarioRecord): ScenarioRunRecord | null {
+export function getActiveRun(
+  scenario: ScenarioRecord,
+): ScenarioRunRecord | null {
   if (scenario.activeRunIndex < 0) {
     return null;
   }
@@ -506,12 +512,11 @@ export function useScenarioWorkspace() {
                   snapshotInterval:
                     attachment.algorithmParams.snapshotInterval ?? 1,
                   queueLevels: attachment.algorithmParams.queueLevels ?? 3,
-                  sjfMode:
-                    attachment.algorithmParams.sjfMode ?? "nonPreemptive",
+                  sjfMode: "preemptive",
                   mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
-                    strictPriorityTieBreak:
-                      attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
-                  lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",
+                  strictPriorityTieBreak:
+                    attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
+                  lcfsMode: "preemptive",
                   lcfsTieBreak:
                     attachment.algorithmParams.lcfsTieBreak ?? "stack",
                 },
@@ -525,11 +530,11 @@ export function useScenarioWorkspace() {
                 snapshotInterval:
                   attachment.algorithmParams.snapshotInterval ?? 1,
                 queueLevels: attachment.algorithmParams.queueLevels ?? 3,
-                sjfMode: attachment.algorithmParams.sjfMode ?? "nonPreemptive",
+                sjfMode: "preemptive",
                 mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
                 strictPriorityTieBreak:
                   attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
-                lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",
+                lcfsMode: "preemptive",
                 lcfsTieBreak:
                   attachment.algorithmParams.lcfsTieBreak ?? "stack",
               },
@@ -567,11 +572,11 @@ export function useScenarioWorkspace() {
           timeQuantum: attachment.algorithmParams.timeQuantum ?? 2,
           snapshotInterval: attachment.algorithmParams.snapshotInterval ?? 1,
           queueLevels: attachment.algorithmParams.queueLevels ?? 3,
-          sjfMode: attachment.algorithmParams.sjfMode ?? "nonPreemptive",
+          sjfMode: "preemptive",
           mlfqMode: attachment.algorithmParams.mlfqMode ?? "classic",
-            strictPriorityTieBreak:
-              attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
-          lcfsMode: attachment.algorithmParams.lcfsMode ?? "preemptive",
+          strictPriorityTieBreak:
+            attachment.algorithmParams.strictPriorityTieBreak ?? "fifo",
+          lcfsMode: "preemptive",
           lcfsTieBreak: attachment.algorithmParams.lcfsTieBreak ?? "stack",
         },
       };

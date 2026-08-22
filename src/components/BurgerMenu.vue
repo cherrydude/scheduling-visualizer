@@ -31,6 +31,7 @@
             <button
               class="secondary-button compact"
               type="button"
+              data-tour="open-generator"
               aria-label="Neues Szenario anlegen"
               title="Neues Szenario anlegen"
               @click="handleCreate"
@@ -98,15 +99,24 @@
             <strong>Information</strong>
           </div>
 
-          <button type="button" class="link-item" aria-label="Wissen und Hilfe öffnen" title="Hilfe und Wissen öffnen" @click="handleKnowledge">
+          <!--           <button
+            type="button"
+            class="link-item"
+            aria-label="Wissen und Hilfe öffnen"
+            title="Hilfe und Wissen öffnen"
+            @click="handleKnowledge"
+          >
             Wissen
-          </button>
-          <button type="button" class="link-item" aria-label="Einführung starten" @click="handleTour">
+          </button> -->
+          <button
+            type="button"
+            class="link-item"
+            aria-label="Einführung starten"
+            @click="handleTour"
+          >
             Einführung starten
           </button>
         </div>
-
-        
       </div>
     </teleport>
   </div>

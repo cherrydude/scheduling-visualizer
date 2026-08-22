@@ -22,7 +22,9 @@
     </defs>
 
     <title :id="titleId">Gantt chart</title>
-    <desc :id="descId">Timeline showing process execution segments and tick marks.</desc>
+    <desc :id="descId">
+      Timeline showing process execution segments and tick marks.
+    </desc>
 
     <g v-if="segments && segments.length">
       <g v-if="isMlfqLayout">
@@ -229,7 +231,7 @@
 
     <text v-else x="80" y="120" class="empty-gantt">
       Noch keine Visualisierung verfügbar. Erstelle ein Szenario und starte die
-      Simulation.
+      Visualisierung.
     </text>
 
     <g class="tick-layer" aria-hidden="true">
@@ -291,7 +293,8 @@ const titleId = `gantt-title-${uid}`;
 const descId = `gantt-desc-${uid}`;
 const summaryId = `gantt-summary-${uid}`;
 const summaryText = computed(() => {
-  if (!props.segments || props.segments.length === 0) return "Noch keine Segmente vorhanden.";
+  if (!props.segments || props.segments.length === 0)
+    return "Noch keine Segmente vorhanden.";
   const starts = props.segments.map((s) => s.start ?? 0);
   const ends = props.segments.map((s) => s.end ?? 0);
   const min = Math.min(...starts);
@@ -384,12 +387,14 @@ function preemptionEvent(segment: TimelineSegment): ScheduleEvent | null {
     return null;
   }
 
-  return props.events.find(
-    (event) =>
-      (event.type === "preempt" || event.type === "quantumExpired") &&
-      event.processId === segment.processId &&
-      event.time === segment.end,
-  ) ?? null;
+  return (
+    props.events.find(
+      (event) =>
+        (event.type === "preempt" || event.type === "quantumExpired") &&
+        event.processId === segment.processId &&
+        event.time === segment.end,
+    ) ?? null
+  );
 }
 
 function preemptionLabel(segment: TimelineSegment): string {
@@ -398,7 +403,8 @@ function preemptionLabel(segment: TimelineSegment): string {
     return "";
   }
 
-  const kind = event.type === "quantumExpired" ? "Quantum abgelaufen" : "Präemption";
+  const kind =
+    event.type === "quantumExpired" ? "Quantum abgelaufen" : "Präemption";
   return `${kind} von ${segment.processName} bei t ${event.time}: ${event.reason}`;
 }
 
