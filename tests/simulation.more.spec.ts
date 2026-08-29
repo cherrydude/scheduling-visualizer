@@ -212,7 +212,7 @@ describe("Simulation additional checks", () => {
     );
   });
 
-  it("creates visible starvation for a low-priority process", () => {
+  it("omits fairness and starvation metrics from the computed results", () => {
     const highPriorityJobs = Array.from({ length: 8 }, (_, index) => ({
       id: `H${index + 1}`,
       name: `H${index + 1}`,
@@ -243,6 +243,7 @@ describe("Simulation additional checks", () => {
     );
 
     expect(backgroundProcess?.waitingTime).toBeGreaterThanOrEqual(14);
-    expect(run.finalMetrics.starvedProcessCount).toBeGreaterThanOrEqual(1);
+    expect(run.finalMetrics).not.toHaveProperty("starvedProcessCount");
+    expect(run.finalMetrics).not.toHaveProperty("fairnessIndex");
   });
 });

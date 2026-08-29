@@ -5,13 +5,11 @@ export type ComparisonMetricKey =
   | "averageWaitingTime"
   | "averageResponseTime"
   | "throughput"
-  | "fairnessIndex"
   | "contextSwitches"
   | "preemptionCount"
   | "cpuUtilization"
   | "idleShare"
-  | "maxWaitingTime"
-  | "starvedProcessCount";
+  | "maxWaitingTime";
 
 const LOWER_IS_BETTER = new Set<ComparisonMetricKey>([
   "averageTurnaroundTime",
@@ -22,7 +20,6 @@ const LOWER_IS_BETTER = new Set<ComparisonMetricKey>([
   "cpuUtilization",
   "idleShare",
   "maxWaitingTime",
-  "starvedProcessCount",
 ]);
 
 export interface ComparisonRow {
@@ -48,13 +45,11 @@ export function extractValues(run: SimulationRun) {
     averageWaitingTime: safeNumber(m.averageWaitingTime),
     averageResponseTime: safeNumber(m.averageResponseTime),
     throughput,
-    fairnessIndex: safeNumber(m.fairnessIndex),
     contextSwitches: safeNumber(m.contextSwitches),
     preemptionCount: safeNumber(m.preemptionCount),
     cpuUtilization: safeNumber(m.cpuUtilization),
     idleShare: safeNumber(m.idleShare),
     maxWaitingTime: safeNumber(m.maxWaitingTime),
-    starvedProcessCount: safeNumber(m.starvedProcessCount),
   };
 }
 
@@ -117,7 +112,6 @@ export function buildComparisonRows(
     "averageWaitingTime",
     "averageResponseTime",
     "throughput",
-    "fairnessIndex",
     "contextSwitches",
     "preemptionCount",
     "cpuUtilization",

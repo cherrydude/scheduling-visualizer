@@ -85,12 +85,6 @@
               Hilft bei Fällen, in denen häufige Unterbrechungen unerwünscht
               sind.
             </p>
-
-            <h4>Fairness</h4>
-            <p>
-              Jain's Index: Gleichmaessigkeit der CPU-Verteilung (hoeher ist
-              besser).
-            </p>
           </aside>
         </div>
       </div>
@@ -116,7 +110,6 @@ const localWeights = reactive<Record<string, number>>({
   averageTurnaroundTime: 0.4,
   averageWaitingTime: 0.3,
   throughput: 0.2,
-  fairnessIndex: 0.1,
   contextSwitches: 0,
   preemptionCount: 0,
 });
@@ -141,7 +134,6 @@ function formatKey(key: string) {
   if (key === "throughput") return "Durchsatz";
   if (key === "contextSwitches") return "Kontextwechsel";
   if (key === "preemptionCount") return "Präemptionen";
-  if (key === "fairnessIndex") return "Fairness";
   return key;
 }
 </script>

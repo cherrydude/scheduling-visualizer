@@ -138,7 +138,6 @@ function createMetrics(
   contextSwitches: number,
   events: ScheduleEvent[],
 ): SimulationMetrics {
-  const starvationCriticalTicks = 14;
   const completedProcesses = processes.filter(
     (process) => process.finishedAt !== null,
   );
@@ -164,9 +163,6 @@ function createMetrics(
   const maxWaitingTime = completedProcesses.length
     ? Math.max(...completedProcesses.map((process) => process.waitingTime))
     : null;
-  const starvedProcessCount = completedProcesses.filter(
-    (process) => process.waitingTime >= starvationCriticalTicks,
-  ).length;
 
   const cpuUtilization = currentTime > 0 ? busyTicks / currentTime : 0;
   const idleShare = 1 - cpuUtilization;
@@ -174,29 +170,15 @@ function createMetrics(
     (event) => event.type === "preempt" || event.type === "quantumExpired",
   ).length;
 
-  const fairnessValues = completedProcesses
-    .map((process) => process.executedTime)
-    .filter((value) => Number.isFinite(value) && value > 0);
-  const fairnessIndex = fairnessValues.length
-    ? Math.pow(
-        fairnessValues.reduce((sum, value) => sum + value, 0),
-        2,
-      ) /
-      (fairnessValues.length *
-        fairnessValues.reduce((sum, value) => sum + value * value, 0))
-    : null;
-
   return {
     averageWaitingTime,
     averageTurnaroundTime,
     averageResponseTime,
     maxWaitingTime,
-    starvedProcessCount,
     cpuUtilization,
     idleShare,
     contextSwitches,
     preemptionCount,
-    fairnessIndex,
     completedCount: completedProcesses.length,
   };
 }
@@ -572,12 +554,10 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         averageTurnaroundTime: null,
         averageResponseTime: null,
         maxWaitingTime: null,
-        starvedProcessCount: 0,
         cpuUtilization: 0,
         idleShare: 1,
         contextSwitches: 0,
         preemptionCount: 0,
-        fairnessIndex: null,
         completedCount: 0,
       },
       processStates: createRuntime(simulationScenario.processes),

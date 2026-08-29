@@ -79,99 +79,93 @@
               />
             </label>
 
-            <label>
-              <span>Seed</span>
-              <input v-model.number="draft.seed" type="number" />
-            </label>
+            <div class="preset-groups">
+              <div class="preset-group">
+                <h4>Basis-Szenarien</h4>
+                <div class="button-row">
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    @click="loadPreset('classroom')"
+                  >
+                    Klassisch
+                  </button>
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    data-tour="preset-staggered"
+                    @click="loadPreset('staggered')"
+                  >
+                    Versetzt
+                  </button>
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    @click="loadPreset('longTimeline')"
+                  >
+                    Lang
+                  </button>
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    @click="loadPreset('manyProcesses')"
+                  >
+                    Viele Tasks
+                  </button>
+                </div>
+              </div>
 
-            <label>
-              <span>Tick-Grösse</span>
-              <input v-model.number="draft.tickSize" type="number" min="1" />
-            </label>
-
-            <div class="button-row">
-              <button
-                class="secondary-button"
-                type="button"
-                @click="loadPreset('classroom')"
-              >
-                Klassisch
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                data-tour="preset-staggered"
-                @click="loadPreset('staggered')"
-              >
-                Versetzt
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                @click="loadPreset('longTimeline')"
-              >
-                Lang
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                @click="loadPreset('manyProcesses')"
-              >
-                Viele
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                @click="loadPreset('burstChaos')"
-              >
-                Chaos
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                @click="loadPreset('sjfVsSrtf')"
-              >
-                SRTF
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                @click="loadPreset('rrQuantumLab')"
-              >
-                RR-Quantum
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                @click="loadPreset('priorityStarvation')"
-              >
-                Strict-Priority-Starvation
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                @click="loadPreset('mlfqStaircase')"
-              >
-                MLFQ-Treppe
-              </button>
-              <button
-                class="secondary-button"
-                type="button"
-                @click="randomizeDraft"
-              >
-                Zufall
-              </button>
+              <div class="preset-group">
+                <h4>Algorithmus-Vergleiche</h4>
+                <div class="button-row">
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    @click="loadPreset('burstChaos')"
+                  >
+                    Chaos
+                  </button>
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    @click="loadPreset('sjfVsSrtf')"
+                  >
+                    SRTF
+                  </button>
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    @click="loadPreset('rrQuantumLab')"
+                  >
+                    RR-Quantum
+                  </button>
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    @click="loadPreset('priorityStarvation')"
+                  >
+                    Strict Priority
+                  </button>
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    @click="loadPreset('mlfqStaircase')"
+                  >
+                    MLFQ-Treppe
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div class="process-editor">
               <div class="section-header compact">
-                <h3>Prozesse</h3>
+                <h3>Tasks</h3>
                 <button
                   class="secondary-button"
                   type="button"
                   @click="addProcess"
                 >
-                  + Prozess
+                  + Task
                 </button>
               </div>
 
@@ -243,7 +237,7 @@
               :processes="draft.processes"
               :tickSize="draft.tickSize"
               :title="draft.title || 'Szenario-Vorschau'"
-              subtitle="Miniatur aus den aktuellen Prozessdaten"
+              subtitle="Miniatur aus den aktuellen Taskdaten"
               :compact="true"
             />
           </aside>
@@ -270,6 +264,8 @@
             @about="navigate('/about')"
             @knowledge="navigate('/wissen')"
             @tour="startTour"
+            @export-scenario="handleExportScenario"
+            @import-scenario="handleImportScenario"
           />
         </div>
         <article
@@ -547,9 +543,6 @@
           </div>
 
           <div class="stack-area">
-            <p v-if="starvationAlert" class="starvation-alert">
-              {{ starvationAlert }}
-            </p>
             <StackList
               v-if="stackItems.length"
               :items="stackItems"
@@ -566,6 +559,16 @@
 
           <p class="note-text">{{ simulationNote }}</p>
         </section>
+
+        <aside class="modal-preview panel soft-panel" v-if="activeScenario">
+          <ScenarioMiniature
+            :processes="activeScenario.processes"
+            :tickSize="activeScenario.tickSize"
+            :title="'Ausgangslage'"
+            subtitle="Startzustand des Szenarios"
+            :compact="true"
+          />
+        </aside>
 
         <!--           <section class="panel detail-panel" data-tour="results">
         <div class="section-header">
@@ -712,7 +715,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   classroom: {
     title: "Klassenzimmer",
     description:
-      "Ein ausgewogenes Beispiel mit drei Prozessen für den Einstieg in die Visualisierung.",
+      "Ein ausgewogenes Beispiel mit drei Tasks für den Einstieg in die Visualisierung.",
     seed: 17,
     tickSize: 1,
     processes: [
@@ -748,7 +751,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   staggered: {
     title: "Versetzt",
     description:
-      "Prozesse treffen nacheinander ein. Unter einem passenden präemptiven Algorithmus werden Ankünfte und mögliche Präemptionen sichtbar.",
+      "Tasks treffen nacheinander ein. Unter einem passenden präemptiven Algorithmus werden Ankünfte und mögliche Präemptionen sichtbar.",
     seed: 33,
     tickSize: 1,
     processes: [
@@ -836,9 +839,9 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     ],
   },
   manyProcesses: {
-    title: "Viele Prozesse",
+    title: "Viele Tasks",
     description:
-      "Ein dichtes Szenario mit 11 Prozessen, um die Reihen- und Höhenlogik zu prüfen.",
+      "Ein dichtes Szenario mit 11 Tasks, um die Reihen- und Höhenlogik zu prüfen.",
     seed: 202,
     tickSize: 1,
     processes: [
@@ -1009,7 +1012,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   sjfVsSrtf: {
     title: "SRTF-Präemption",
     description:
-      "Ein langer Startprozess und mehrere kurze Spätankömmlinge machen die Präemption nach kürzester Restlaufzeit sichtbar.",
+      "Ein langer Starttask und mehrere kurze Spätankömmlinge machen die Präemption nach kürzester Restlaufzeit sichtbar.",
     seed: 707,
     tickSize: 1,
     processes: [
@@ -1054,7 +1057,7 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
   rrQuantumLab: {
     title: "RR Quantum-Labor",
     description:
-      "Für Round Robin zeigen vier ähnliche Prozesse mit gleicher Ankunft den Einfluss eines kleinen gegenüber einem großen Quantum auf Reaktivität und Kontextwechsel.",
+      "Für Round Robin zeigen vier ähnliche Tasks mit gleicher Ankunft den Einfluss eines kleinen gegenüber einem großen Quantum auf Reaktivität und Kontextwechsel.",
     seed: 808,
     tickSize: 1,
     processes: [
@@ -1097,9 +1100,9 @@ const scenarioPresets: Record<string, ScenarioDraft> = {
     ],
   },
   priorityStarvation: {
-    title: "Strict-Priority-Starvation",
+    title: "Strict Priority",
     description:
-      "Für Strict Priority wird ein langer Prozess mit niedriger Priorität durch eine lückenlose Folge eintreffender High-Priority-Kurzjobs bis zur Starvation-Schwelle verdrängt.",
+      "Für Strict Priority wird ein langer Task mit niedriger Priorität durch eine lückenlose Folge eintreffender High-Priority-Kurzjobs verzögert.",
     seed: 909,
     tickSize: 1,
     processes: [
@@ -1592,13 +1595,10 @@ type StackItem = {
   level?: number | null;
   quantumRemaining?: number | null;
   quantumTotal?: number | null;
-  starvationRisk?: "warn" | "critical";
   waitingTicks?: number;
 };
 const stackItems = ref<StackItem[]>([]);
 const loopLogStart = ref(0);
-const starvationWarnTicks = 8;
-const starvationCriticalTicks = 14;
 
 function isProcessDone(pid: string, snap: SimulationSnapshot | null) {
   if (!snap) {
@@ -1741,20 +1741,6 @@ function waitingTicksAtSnapshot(
   const sinceArrival = Math.max(0, snap.time - process.arrivalTime);
   const executed = executedTimeUntil(pid, snap.time);
   return Math.max(0, sinceArrival - executed);
-}
-
-function starvationRiskForWaiting(
-  waitingTicks: number,
-): "warn" | "critical" | null {
-  if (waitingTicks >= starvationCriticalTicks) {
-    return "critical";
-  }
-
-  if (waitingTicks >= starvationWarnTicks) {
-    return "warn";
-  }
-
-  return null;
 }
 
 function quantumTotalForLevel(level: number | null | undefined): number | null {
@@ -1907,25 +1893,16 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
               ? "finished"
               : "ready";
     const waitingTicks = waitingTicksAtSnapshot(pid, snap);
-    const starvationRisk =
-      status === "ready" || status === "preempted"
-        ? starvationRiskForWaiting(waitingTicks)
-        : null;
-    const riskSubtitle =
-      starvationRisk === null
-        ? subtitle
-        : `${subtitle} · wartet seit ${waitingTicks} Ticks`;
     return {
       id: pid,
       title: meta.name,
-      subtitle: riskSubtitle,
+      subtitle,
       color: meta.color,
       status,
       level: entry.level,
       quantumRemaining,
       quantumTotal,
       waitingTicks,
-      starvationRisk: starvationRisk ?? undefined,
     };
   });
 }
@@ -2096,25 +2073,25 @@ const stackExplanation = computed(() => {
       preemptEvent.algorithm === "mlfq" &&
       preemptEvent.type === "quantumExpired"
     ) {
-      return `${preemptEvent.processName} hat sein Quantum auf dieser Queue-Stufe verbraucht und wurde nach unten einsortiert; ${activeName ?? "ein anderer Prozess"} übernimmt jetzt die CPU.`;
+      return `${preemptEvent.processName} hat sein Quantum auf dieser Queue-Stufe verbraucht und wurde nach unten einsortiert; ${activeName ?? "ein anderer Task"} übernimmt jetzt die CPU.`;
     }
 
     if (preemptEvent.algorithm === "roundRobin") {
-      return `${preemptEvent.processName} wurde präemptiert, weil sein Zeitquantum aufgebraucht wurde; ${activeName ?? "ein anderer Prozess"} übernimmt nun die CPU.`;
+      return `${preemptEvent.processName} wurde präemptiert, weil sein Zeitquantum aufgebraucht wurde; ${activeName ?? "ein anderer Task"} übernimmt nun die CPU.`;
     }
 
     if (preemptEvent.algorithm === "lcfs") {
-      return `${preemptEvent.processName} wurde präemptiert, weil ein neuer Prozess eingetroffen ist; der zuletzt Angekommene (${activeName ?? "ein anderer Prozess"}) läuft jetzt.`;
+      return `${preemptEvent.processName} wurde präemptiert, weil ein neuer Task eingetroffen ist; der zuletzt Angekommene (${activeName ?? "ein anderer Task"}) läuft jetzt.`;
     }
 
-    return `${preemptEvent.processName} wurde präemptiert; jetzt läuft ${activeName ?? "ein anderer Prozess"}.`;
+    return `${preemptEvent.processName} wurde präemptiert; jetzt läuft ${activeName ?? "ein anderer Task"}.`;
   }
 
   if (activeName) {
-    return `${activeName} ist jetzt aktiv. Die übrigen Prozesse warten in der Queue.`;
+    return `${activeName} ist jetzt aktiv. Die übrigen Tasks warten in der Queue.`;
   }
 
-  return "Gerade ist kein Prozess aktiv.";
+  return "Gerade ist kein Task aktiv.";
 });
 
 const stackQuantumSummaryText = computed(() => {
@@ -2151,38 +2128,13 @@ const stackQuantumSummaryText = computed(() => {
   return `Restquantum je Level: ${entries.join(" · ")}`;
 });
 
-const starvationAlert = computed(() => {
-  const items = stackItems.value;
-  if (!items.length) {
-    return "";
-  }
-
-  const critical = items
-    .filter((item) => item.starvationRisk === "critical")
-    .sort((a, b) => (b.waitingTicks ?? 0) - (a.waitingTicks ?? 0));
-  if (critical.length) {
-    const top = critical[0];
-    return `Starvation-Warnung: ${top.title} wartet seit ${top.waitingTicks ?? 0} Ticks ohne CPU.`;
-  }
-
-  const warn = items
-    .filter((item) => item.starvationRisk === "warn")
-    .sort((a, b) => (b.waitingTicks ?? 0) - (a.waitingTicks ?? 0));
-  if (warn.length) {
-    const top = warn[0];
-    return `Starvation-Risiko: ${top.title} wartet bereits ${top.waitingTicks ?? 0} Ticks.`;
-  }
-
-  return "";
-});
-
 const stackEmptyTitle = computed(() =>
   isStackSimulationFinished.value ? "Visualisierung beendet" : "Keine Daten",
 );
 
 const stackEmptyDescription = computed(() =>
   isStackSimulationFinished.value
-    ? "Alle Prozesse wurden verarbeitet."
+    ? "Alle Tasks wurden verarbeitet."
     : "Aktiviere zuerst ein Szenario mit Algorithmus.",
 );
 
@@ -2256,55 +2208,41 @@ const metricCards = computed<MetricCard[]>(() => {
       value: formatMetric(metrics?.averageWaitingTime),
       help: "Mittelwert",
       tooltip:
-        "Durchschnittliche Zeit, die Prozesse in der Bereitschaftsschlange auf ihre Ausführung warten.",
+        "Durchschnittliche Zeit, die Tasks in der Bereitschaftsschlange auf ihre Ausführung warten.",
     },
     {
       label: "Durchlaufzeit",
       value: formatMetric(metrics?.averageTurnaroundTime),
       help: "Mittelwert",
       tooltip:
-        "Durchschnittliche Zeit vom Eintreffen eines Prozesses bis zu seiner vollständigen Fertigstellung.",
+        "Durchschnittliche Zeit vom Eintreffen eines Tasks bis zu seiner vollständigen Fertigstellung.",
     },
     {
       label: "Reaktionszeit",
       value: formatMetric(metrics?.averageResponseTime),
       help: "Mittelwert",
       tooltip:
-        "Durchschnittliche Zeit vom Eintreffen eines Prozesses bis zu seiner ersten Ausführung.",
+        "Durchschnittliche Zeit vom Eintreffen eines Tasks bis zu seiner ersten Ausführung.",
     },
     {
       label: "Max. Wartezeit",
       value: formatMetric(metrics?.maxWaitingTime),
       help: "höchster Einzelwert",
-      tooltip: "Längste Wartezeit eines einzelnen Prozesses im aktuellen Lauf.",
-    },
-    {
-      label: "Starvation-Fälle",
-      value: String(metrics?.starvedProcessCount ?? 0),
-      help: `Wartezeit >= ${starvationCriticalTicks} Ticks`,
-      tooltip:
-        "Anzahl der Prozesse, deren Wartezeit den kritischen Schwellenwert erreicht oder überschritten hat.",
+      tooltip: "Längste Wartezeit eines einzelnen Tasks im aktuellen Lauf.",
     },
     {
       label: "Anzahl Präemptionen",
       value: String(metrics?.preemptionCount ?? 0),
       help: "Präemption + Quantum abgelaufen",
       tooltip:
-        "Anzahl der Unterbrechungen, bei denen ein laufender Prozess zugunsten eines anderen Prozesses oder wegen eines abgelaufenen Zeitquantums verdrängt wurde.",
+        "Anzahl der Unterbrechungen, bei denen ein laufender Task zugunsten eines anderen Tasks oder wegen eines abgelaufenen Zeitquantums verdrängt wurde.",
     },
     {
       label: "Kontextwechsel",
       value: String(metrics?.contextSwitches ?? 0),
       help: "Gezählt im Lauf",
       tooltip:
-        "Anzahl der Wechsel zwischen Prozessen, die vom Prozessor ausgeführt werden.",
-    },
-    {
-      label: "Fairness",
-      value: formatMetric(metrics?.fairnessIndex),
-      help: "Jain Index",
-      tooltip:
-        "Jain-Fairness-Index der CPU-Verteilung. Ein Wert nahe 1 bedeutet eine gleichmäßige Verteilung.",
+        "Anzahl der Wechsel zwischen Tasks, die vom Prozessor ausgeführt werden.",
     },
   ];
 });
@@ -3084,6 +3022,33 @@ function handleGlobalShortcuts(event: KeyboardEvent): void {
   }
 }
 
+function handleExportScenario(id: string): void {
+  const { exportScenarioAsJson } = workspace;
+  const success = exportScenarioAsJson(id);
+  if (!success) {
+    alert("Export fehlgeschlagen");
+  }
+}
+
+function handleImportScenario(result: {
+  success: boolean;
+  message: string;
+}): void {
+  if (!result.success) {
+    alert(`Import fehlgeschlagen: ${result.message}`);
+    return;
+  }
+
+  const { importScenarioFromJson } = workspace;
+  const importResult = importScenarioFromJson(result.message);
+
+  if (!importResult.success) {
+    alert(importResult.message);
+  } else {
+    alert(importResult.message);
+  }
+}
+
 onMounted(() => {
   openWelcomeIfNeeded();
   syncRoute();
@@ -3152,17 +3117,6 @@ scenario-banner p {
 
 .stack-area {
   min-height: 120px;
-}
-
-.starvation-alert {
-  margin: 0 0 0.65rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 10px;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
-  font-size: 0.88rem;
-  line-height: 1.4;
 }
 
 .note-text {

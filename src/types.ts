@@ -101,12 +101,10 @@ export interface SimulationMetrics {
   averageTurnaroundTime: number | null;
   averageResponseTime: number | null;
   maxWaitingTime: number | null;
-  starvedProcessCount: number;
   cpuUtilization: number;
   idleShare: number;
   contextSwitches: number;
   preemptionCount: number;
-  fairnessIndex: number | null;
   completedCount: number;
 }
 

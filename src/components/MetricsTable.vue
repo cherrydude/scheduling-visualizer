@@ -15,7 +15,6 @@
           <th>Turnaround</th>
           <th>Waiting</th>
           <th>Throughput</th>
-          <th>Fairness</th>
         </tr>
       </thead>
       <tbody>
@@ -27,7 +26,6 @@
           <td>{{ format(row.metrics.averageTurnaroundTime) }}</td>
           <td>{{ format(row.metrics.averageWaitingTime) }}</td>
           <td>{{ formatThroughput(row) }}</td>
-          <td>{{ format(row.metrics.fairnessIndex) }}</td>
         </tr>
       </tbody>
     </table>

@@ -410,6 +410,27 @@ topbar-brand strong {
   flex-wrap: wrap;
 }
 
+.preset-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.preset-group h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preset-group .button-row {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
 .primary-button,
 .secondary-button,
 .danger-button {

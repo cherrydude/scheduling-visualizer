@@ -141,11 +141,9 @@ const allColumns: ColumnDefinition[] = [
   { key: "averageWaitingTime", label: "Wartezeit" },
   { key: "averageTurnaroundTime", label: "Durchlaufzeit" },
   { key: "throughput", label: "Durchsatz" },
-  { key: "fairnessIndex", label: "Fairness" },
   { key: "contextSwitches", label: "Kontextwechsel" },
   { key: "preemptionCount", label: "Präemptionen" },
   { key: "maxWaitingTime", label: "Max. Wartezeit" },
-  { key: "starvedProcessCount", label: "Starvation" },
 ];
 
 const defaultCustomWeights = {
@@ -153,11 +151,9 @@ const defaultCustomWeights = {
   averageTurnaroundTime: 0.4,
   averageWaitingTime: 0.3,
   throughput: 0.2,
-  fairnessIndex: 0.1,
   contextSwitches: 0,
   preemptionCount: 0,
   maxWaitingTime: 0,
-  starvedProcessCount: 0,
 };
 
 const caseOptions: ComparisonCase[] = [
@@ -166,22 +162,19 @@ const caseOptions: ComparisonCase[] = [
     label: "Interaktiv / UI",
     subtitle: "Desktop, Web, Mobile",
     description:
-      "Antwortzeit und Fairness sind wichtiger als maximaler Durchsatz.",
+      "Antwortzeit und geringe Wartezeiten sind wichtiger als maximaler Durchsatz.",
     weights: {
       averageResponseTime: 0.4,
       averageWaitingTime: 0.2,
-      fairnessIndex: 0.15,
       contextSwitches: 0.1,
       preemptionCount: 0.05,
       maxWaitingTime: 0.05,
-      starvedProcessCount: 0.05,
     },
     columns: [
       "averageResponseTime",
       "averageWaitingTime",
       "maxWaitingTime",
-      "fairnessIndex",
-      "starvedProcessCount",
+      "contextSwitches",
     ],
   },
   {
@@ -196,13 +189,11 @@ const caseOptions: ComparisonCase[] = [
       contextSwitches: 0.15,
       preemptionCount: 0.1,
       averageWaitingTime: 0.05,
-      starvedProcessCount: 0.1,
       maxWaitingTime: 0,
     },
     columns: [
       "throughput",
       "averageTurnaroundTime",
-      "starvedProcessCount",
       "contextSwitches",
       "preemptionCount",
     ],
@@ -218,15 +209,12 @@ const caseOptions: ComparisonCase[] = [
       averageResponseTime: 0.25,
       maxWaitingTime: 0.15,
       throughput: 0.1,
-      fairnessIndex: 0.1,
-      starvedProcessCount: 0.1,
       contextSwitches: 0.05,
     },
     columns: [
       "averageWaitingTime",
       "maxWaitingTime",
       "averageResponseTime",
-      "starvedProcessCount",
       "throughput",
     ],
   },
@@ -241,16 +229,13 @@ const caseOptions: ComparisonCase[] = [
       maxWaitingTime: 0.15,
       preemptionCount: 0.15,
       averageWaitingTime: 0.15,
-      starvedProcessCount: 0.1,
       contextSwitches: 0.05,
-      fairnessIndex: 0.05,
     },
     columns: [
       "averageResponseTime",
       "maxWaitingTime",
       "preemptionCount",
       "averageWaitingTime",
-      "starvedProcessCount",
     ],
   },
   {
@@ -264,11 +249,9 @@ const caseOptions: ComparisonCase[] = [
       "averageWaitingTime",
       "averageTurnaroundTime",
       "throughput",
-      "fairnessIndex",
       "contextSwitches",
       "preemptionCount",
       "maxWaitingTime",
-      "starvedProcessCount",
     ],
   },
 ];
@@ -321,11 +304,9 @@ const selectedCustomColumns = ref<ComparisonMetricKey[]>([
   "averageWaitingTime",
   "averageTurnaroundTime",
   "throughput",
-  "fairnessIndex",
   "contextSwitches",
   "preemptionCount",
   "maxWaitingTime",
-  "starvedProcessCount",
 ]);
 
 const visibleColumns = computed(() => {
@@ -358,7 +339,6 @@ function formatColumnValue(
   if (
     key === "contextSwitches" ||
     key === "preemptionCount" ||
-    key === "starvedProcessCount" ||
     key === "maxWaitingTime"
   ) {
     return String(Math.round(value));

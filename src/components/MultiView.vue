@@ -25,7 +25,7 @@
               {{ badge }}
             </span>
             <span class="param-badge param-badge--preemption">
-              Präemptionen {{ rs.finalMetrics.preemptionCount }}
+              Anzahl Präemptionen: {{ rs.finalMetrics.preemptionCount }}
             </span>
           </div>
         </div>
@@ -219,12 +219,11 @@ function getParamBadges(algorithm: string, params?: AlgorithmParams): string[] {
 
   switch (algorithm) {
     case "roundRobin":
-      return params.timeQuantum ? [`Q ${params.timeQuantum}`] : [];
+      return params.timeQuantum ? [`Quantumgröße: ${params.timeQuantum}`] : [];
     case "sjf":
       return ["SRTF (präemptiv)"];
     case "lcfs":
       return [
-        "präemptiv",
         ...(params.lcfsTieBreak
           ? [`Tie: ${formatTieBreak(params.lcfsTieBreak)}`]
           : []),
@@ -238,7 +237,7 @@ function getParamBadges(algorithm: string, params?: AlgorithmParams): string[] {
     case "mlfq":
       return [
         ...(params.queueLevels ? [`Stufen ${params.queueLevels}`] : []),
-        ...(params.timeQuantum ? [`Q ${params.timeQuantum}`] : []),
+        ...(params.timeQuantum ? [`Quantumgröße: ${params.timeQuantum}`] : []),
         ...(params.mlfqMode ? [`Mode: ${params.mlfqMode}`] : []),
       ];
     default:

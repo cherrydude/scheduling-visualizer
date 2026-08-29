@@ -41,7 +41,7 @@
     <nav class="knowledge-nav" aria-label="Auf dieser Seite">
       <a href="#start">Schnellstart</a>
       <a href="#oberflaeche">Oberfläche</a>
-      <a href="#prozessdaten">Prozessdaten</a>
+      <a href="#prozessdaten">Taskdaten</a>
       <a href="#screenshots">Screenshots</a>
       <a href="#fokusansicht">Fokusansicht</a>
       <a href="#stack">Stack-Visualisierung</a>
@@ -62,8 +62,8 @@
           <h3>Szenario anlegen</h3>
           <p>
             Öffne das Burgermenü und wähle <strong>+ Szenario</strong>. Lege für
-            jeden Prozess ID, Ankunftszeit, Rechenzeit und Priorität fest oder
-            lade eins der Beispiel-Szenarien.
+            jeden Task ID, Ankunftszeit, Rechenzeit und Priorität fest oder lade
+            eins der Beispiel-Szenarien.
           </p>
         </article>
         <article class="knowledge-step">
@@ -122,7 +122,7 @@
             <h3>Timeline und Steuerung</h3>
             <p>
               Die Timeline beantwortet „Wer läuft wann?“. Die Steuerung bewegt
-              den aktuellen Zeitpunkt, ohne die Prozessdaten zu verändern.
+              den aktuellen Zeitpunkt, ohne die Taskdaten zu verändern.
             </p>
           </div>
         </article>
@@ -145,10 +145,10 @@
     >
       <div class="section-heading-block">
         <span class="knowledge-kicker">03 · Eingabe</span>
-        <h2>Prozessdaten richtig lesen</h2>
+        <h2>Taskdaten richtig lesen</h2>
         <p>
-          Die Prozessliste beschreibt die Ausgangslage. Sie ist noch kein
-          Ablaufplan: Der Algorithmus entscheidet erst daraus, wann ein Prozess
+          Die Taskliste beschreibt die Ausgangslage. Sie ist noch kein
+          Ablaufplan: Der Algorithmus entscheidet erst daraus, wann ein Task
           tatsächlich CPU-Zeit erhält.
         </p>
       </div>
@@ -156,13 +156,13 @@
         <div>
           <strong>ID / Name</strong>
           <span
-            >Identifiziert den Prozess in Timeline, Queue und Ereignissen.</span
+            >Identifiziert den Task in Timeline, Queue und Ereignissen.</span
           >
         </div>
         <div>
           <strong>Ankunft</strong>
           <span
-            >Ab diesem Zeitpunkt darf der Prozess in die Ready Queue
+            >Ab diesem Zeitpunkt darf der Task in die Ready Queue
             gelangen.</span
           >
         </div>
@@ -223,7 +223,7 @@
           />
           <figcaption>
             <strong>MLFQ:</strong> Die Ebenen L1 bis L3 zeigen, in welcher Queue
-            ein Prozess eingeordnet ist. Nach einem Quantum kann er nach unten
+            ein Task eingeordnet ist. Nach einem Quantum kann er nach unten
             verschoben werden.
           </figcaption>
         </figure>
@@ -255,8 +255,8 @@
           <h3>Timeline lesen</h3>
           <p>
             Jeder farbige Balken zeigt ein CPU-Ausführungssegment. Die Position
-            beschreibt den Zeitraum, die Farbe und Beschriftung den Prozess.
-            Eine Lücke steht für Leerlauf der CPU.
+            beschreibt den Zeitraum, die Farbe und Beschriftung den Task. Eine
+            Lücke steht für Leerlauf der CPU.
           </p>
         </article>
         <article class="explanation-card">
@@ -276,9 +276,9 @@
         <article class="explanation-card">
           <h3>Bei MLFQ</h3>
           <p>
-            Die horizontalen Ebenen entsprechen den Queue-Levels. Ein Prozess,
-            der sein Quantum verbraucht, kann in eine niedrigere Ebene wechseln.
-            So werden Demotionen im Ablauf sichtbar.
+            Die horizontalen Ebenen entsprechen den Queue-Levels. Ein Task, der
+            sein Quantum verbraucht, kann in eine niedrigere Ebene wechseln. So
+            werden Demotionen im Ablauf sichtbar.
           </p>
         </article>
       </div>
@@ -290,31 +290,31 @@
         <h2>Die Stack-Visualisierung</h2>
         <p>
           Die Stack-Visualisierung zeigt den Zustand der Ready Queue zum
-          aktuellen Zeitpunkt. Sie ergänzt die Timeline um die Prozesse, die
-          gerade nicht laufen.
+          aktuellen Zeitpunkt. Sie ergänzt die Timeline um die Tasks, die gerade
+          nicht laufen.
         </p>
       </div>
       <div class="reading-list">
         <div>
           <strong>Aktiv</strong
-          ><span>Der Prozess, der aktuell CPU-Zeit erhält.</span>
+          ><span>Der Task, der aktuell CPU-Zeit erhält.</span>
         </div>
         <div>
           <strong>Bereit</strong
-          ><span>Prozesse, die angekommen sind und auf die CPU warten.</span>
+          ><span>Tasks, die angekommen sind und auf die CPU warten.</span>
         </div>
         <div>
           <strong>Verdrängt</strong
           ><span
-            >Ein Prozess, der unterbrochen wurde und später fortgesetzt werden
+            >Ein Task, der unterbrochen wurde und später fortgesetzt werden
             kann.</span
           >
         </div>
         <div>
           <strong>Wartezeit</strong
           ><span
-            >Je länger ein Prozess wartet, desto genauer solltest du Fairness
-            und Starvation prüfen.</span
+            >Je länger ein Task wartet, desto wichtiger wird der Vergleich der
+            tatsächlichen Laufzeiten.</span
           >
         </div>
       </div>
@@ -336,21 +336,21 @@
       <div class="callout-grid">
         <article>
           <strong>Arrival</strong>
-          <p>Ein Prozess kommt an und wird bereit für die CPU.</p>
+          <p>Ein Task kommt an und wird bereit für die CPU.</p>
         </article>
         <article>
           <strong>Dispatch / Start</strong>
-          <p>Der Scheduler wählt einen bereiten Prozess zur Ausführung aus.</p>
+          <p>Der Scheduler wählt einen bereiten Task zur Ausführung aus.</p>
         </article>
         <article>
           <strong>Finish</strong>
           <p>
-            Die verbleibende Rechenzeit ist null; der Prozess ist abgeschlossen.
+            Die verbleibende Rechenzeit ist null; der Task ist abgeschlossen.
           </p>
         </article>
         <article>
           <strong>Präemption</strong>
-          <p>Der laufende Prozess wird unterbrochen und später fortgesetzt.</p>
+          <p>Der laufende Task wird unterbrochen und später fortgesetzt.</p>
         </article>
         <article>
           <strong>Quantum expired</strong>
@@ -358,7 +358,7 @@
         </article>
         <article>
           <strong>Context switch</strong>
-          <p>Die CPU wechselt von einem Prozess zu einem anderen.</p>
+          <p>Die CPU wechselt von einem Task zu einem anderen.</p>
         </article>
       </div>
     </section>
@@ -369,23 +369,21 @@
         <h2>Kennzahlen richtig einordnen</h2>
         <p>
           Eine einzelne Kennzahl erklärt keinen Algorithmus vollständig.
-          Vergleiche immer mindestens eine Zeitkennzahl mit Fairness oder
-          Präemptionen.
+          Vergleiche immer mindestens eine Zeitkennzahl mit Präemptionen und
+          Kontextwechseln.
         </p>
       </div>
       <div class="metric-guide">
         <div class="metric-row">
           <strong>Wartezeit</strong
           ><span
-            >Zeit, die Prozesse in der Ready Queue verbringen. Niedrig ist meist
+            >Zeit, die Tasks in der Ready Queue verbringen. Niedrig ist meist
             besser.</span
           >
         </div>
         <div class="metric-row">
           <strong>Durchlaufzeit</strong
-          ><span
-            >Zeit von der Ankunft bis zur Fertigstellung eines Prozesses.</span
-          >
+          ><span>Zeit von der Ankunft bis zur Fertigstellung eines Tasks.</span>
         </div>
         <div class="metric-row">
           <strong>Antwortzeit</strong
@@ -397,17 +395,11 @@
         <div class="metric-row">
           <strong>Durchsatz</strong
           ><span
-            >Anzahl fertiggestellter Prozesse im Verhältnis zur
+            >Anzahl fertiggestellter Tasks im Verhältnis zur
             Visualisierungszeit.</span
           >
         </div>
-        <div class="metric-row">
-          <strong>Fairness</strong
-          ><span
-            >Wie gleichmäßig CPU-Zeit verteilt wird. Ein niedriger Wert weist
-            auf Ungleichheit hin.</span
-          >
-        </div>
+
         <div class="metric-row">
           <strong>Präemptionen</strong
           ><span
@@ -434,15 +426,14 @@
         <article>
           <strong>Präemption</strong>
           <p>
-            Ein anderer Prozess wird bevorzugt, zum Beispiel weil er kürzer ist
+            Ein anderer Task wird bevorzugt, zum Beispiel weil er kürzer ist
             oder eine höhere Priorität besitzt.
           </p>
         </article>
         <article>
           <strong>Quantum abgelaufen</strong>
           <p>
-            Die Zeitscheibe eines Round-Robin- oder MLFQ-Prozesses ist
-            verbraucht.
+            Die Zeitscheibe eines Round-Robin- oder MLFQ-Tasks ist verbraucht.
           </p>
         </article>
         <article>
@@ -491,7 +482,7 @@
       <div class="knowledge-note">
         <strong>Wichtig:</strong> Ein hoher Score ist nur innerhalb des
         gewählten Anwendungsfalls sinnvoll. Für interaktive Systeme können
-        Antwortzeit und Fairness wichtiger sein als maximaler Durchsatz.
+        Antwortzeit und Wartezeit wichtiger sein als maximaler Durchsatz.
       </div>
     </section>
 

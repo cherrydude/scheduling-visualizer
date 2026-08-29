@@ -13,11 +13,9 @@ export function useComparison() {
       averageTurnaroundTime: 0.4,
       averageWaitingTime: 0.3,
       throughput: 0.2,
-      fairnessIndex: 0.1,
       contextSwitches: 0,
       preemptionCount: 0,
       maxWaitingTime: 0,
-      starvedProcessCount: 0,
     },
   });
 

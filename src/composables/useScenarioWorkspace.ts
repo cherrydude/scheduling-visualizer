@@ -666,6 +666,101 @@ export function useScenarioWorkspace() {
     syncPersistence();
   }
 
+  function exportScenarioAsJson(id: string): boolean {
+    const scenario = scenarios.value.find((s) => s.id === id);
+    if (!scenario) {
+      return false;
+    }
+
+    try {
+      const jsonString = JSON.stringify(scenario, null, 2);
+      const timestamp = new Date().toISOString().split("T")[0];
+      const filename = `${scenario.title.replace(/[^a-z0-9-]/gi, "_")}_${timestamp}.json`;
+
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  interface ImportResult {
+    success: boolean;
+    message: string;
+    scenarioId?: string;
+  }
+
+  function importScenarioFromJson(jsonString: string): ImportResult {
+    try {
+      const parsed = JSON.parse(jsonString);
+
+      // Validierung: Mindestanforderungen prüfen
+      if (
+        !parsed.title ||
+        !Array.isArray(parsed.processes) ||
+        !Array.isArray(parsed.runs)
+      ) {
+        return {
+          success: false,
+          message: "Ungültiges Szenario Format",
+        };
+      }
+
+      // Neue UUID für den Import, um Duplikate zu vermeiden
+      const newScenario: ScenarioRecord = {
+        id: createId("scenario"),
+        title: `${parsed.title} (importiert)`,
+        description: parsed.description || "",
+        seed: parsed.seed || 17,
+        tickSize: parsed.tickSize || 1,
+        processes: cloneProcesses(parsed.processes),
+        runs: (parsed.runs || []).map((run: ScenarioRunRecord) => ({
+          id: createId("run"),
+          algorithm: run.algorithm,
+          algorithmParams: {
+            timeQuantum: run.algorithmParams?.timeQuantum ?? 2,
+            snapshotInterval: run.algorithmParams?.snapshotInterval ?? 1,
+            queueLevels: run.algorithmParams?.queueLevels ?? 3,
+            sjfMode: "preemptive",
+            mlfqMode: run.algorithmParams?.mlfqMode ?? "classic",
+            strictPriorityTieBreak:
+              run.algorithmParams?.strictPriorityTieBreak ?? "fifo",
+            lcfsMode: "preemptive",
+            lcfsTieBreak: run.algorithmParams?.lcfsTieBreak ?? "stack",
+          },
+        })),
+        activeRunIndex: parsed.activeRunIndex || 0,
+        appliedAlgorithm: null,
+      };
+
+      scenarios.value = [newScenario, ...scenarios.value];
+      activeScenarioId.value = newScenario.id;
+      syncPersistence();
+
+      return {
+        success: true,
+        message: `Szenario "${newScenario.title}" erfolgreich importiert`,
+        scenarioId: newScenario.id,
+      };
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Unbekannter Fehler";
+      return {
+        success: false,
+        message: `Import fehlgeschlagen: ${errorMsg}`,
+      };
+    }
+  }
+
   watch(
     scenarios,
     () => {
@@ -697,5 +792,7 @@ export function useScenarioWorkspace() {
     setActiveRun,
     deleteActiveRun,
     clearAlgorithm,
+    exportScenarioAsJson,
+    importScenarioFromJson,
   };
 }

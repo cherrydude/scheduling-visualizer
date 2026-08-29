@@ -30,13 +30,6 @@
               L{{ item.level + 1 }}
             </span>
             <span class="state-badge">{{ statusLabel(item) }}</span>
-            <span
-              v-if="item.starvationRisk"
-              class="risk-badge"
-              :class="item.starvationRisk"
-            >
-              {{ item.starvationRisk === "critical" ? "starvation" : "risk" }}
-            </span>
           </div>
           <div class="sub">{{ item.subtitle }}</div>
         </div>
@@ -65,7 +58,6 @@ type Item = {
   color?: string;
   status?: ItemStatus;
   level?: number | null;
-  starvationRisk?: "warn" | "critical";
   waitingTicks?: number;
 };
 
@@ -153,7 +145,7 @@ const itemStyle = (item: Item) => {
   const isActive = props.activeId && item.id === props.activeId;
   if (!isActive) return {};
   return {
-    ["--active-color"]: item.color ?? 'var(--surface-light)',
+    ["--active-color"]: item.color ?? "var(--surface-light)",
     ["--active-rgb"]: hexToRgb(item.color),
   } as Record<string, string>;
 };
@@ -167,8 +159,6 @@ function itemClasses(item: Item, index: number) {
     finished: status === "finished",
     ready: status === "ready",
     preempted: status === "preempted",
-    starvationWarn: item.starvationRisk === "warn",
-    starvationCritical: item.starvationRisk === "critical",
   };
 }
 </script>
@@ -322,14 +312,6 @@ function itemClasses(item: Item, index: number) {
   color: var(--warning);
   background: rgba(251, 191, 36, 0.14);
   border-color: rgba(251, 191, 36, 0.38);
-}
-
-.item.starvationWarn {
-  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.24);
-}
-
-.item.starvationCritical {
-  box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.3);
 }
 
 .item.finished {

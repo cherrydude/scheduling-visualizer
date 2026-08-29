@@ -23,7 +23,7 @@ npm run dev
 3. Szenario erstellen:
    - Klick auf "+ Szenario" im Burger‑Menü oder nutze das Willkommens‑Modal.
 
-- Lege mindestens 2 Prozesse an (ID, Ankunft, Rechenzeit, Priorität, Farbe).
+- Lege mindestens 2 Tasks an (ID, Ankunft, Rechenzeit, Priorität, Farbe).
 
 4. Algorithmus anwenden:
 
@@ -49,10 +49,10 @@ Kurzbefehle (Standard):
 
 ### Gantt / Timeline (Hauptbereich)
 
-- Balken = CPU‑Ausführungssegmente pro Prozess.
-- Farbe = Prozess‑ID; Segmenthöhe/Level zeigt MLFQ‑Queue‑Level an.
+- Balken = CPU‑Ausführungssegmente pro Task.
+- Farbe = Task‑ID; Segmenthöhe/Level zeigt MLFQ‑Queue‑Level an.
 - Idle‑Segmente zeigen CPU‑Leerlauf.
-- Interaktion: Klick auf Segment zeigt Details (Process ID, Zeitraum, Event‑Hinweis).
+- Interaktion: Klick auf Segment zeigt Details (Task ID, Zeitraum, Event‑Hinweis).
 
 ### Controls (unter/über der Timeline)
 
@@ -61,13 +61,13 @@ Kurzbefehle (Standard):
 
 ### Ready‑Queue / Stack (Side column)
 
-- Zeigt wartende Prozesse an.
+- Zeigt wartende Tasks an.
 - LCFS = Stack (Last‑in‑first‑out), MLFQ = mehrere Levels (oberste Level = höhere Priorität).
 
 ### Event‑Log (Side column)
 
 - Listet alle Zustandswechsel: arrival, dispatch, start, preempt, quantumExpired, finish, contextSwitch.
-- Jeder Eintrag enthält Zeitstempel, Prozess und „reason" (z. B. "New arrival preempts P1").
+- Jeder Eintrag enthält Zeitstempel, Task und „reason" (z. B. "New arrival preempts P1").
 
 ### Metrics / Kennzahlen
 
@@ -90,17 +90,17 @@ Kurzbefehle (Standard):
 - sjfMode: bleibt aus Kompatibilitätsgründen im Datenmodell erhalten; `sjf` wird immer als SRTF präemptiv ausgeführt.
 - tieBreak‑Strategien: strictPriorityTieBreak, lcfsTieBreak — beeinflussen Auswahl bei Gleichstand.
 
-Empfehlung: Für Lehrdemos 3–5 Prozesse mit variablem arrival (0..n) und Rechenzeit 1..15; quantum 1–3; snapshotInterval 1–2.
+Empfehlung: Für Lehrdemos 3–5 Tasks mit variablem arrival (0..n) und Rechenzeit 1..15; quantum 1–3; snapshotInterval 1–2.
 
 ---
 
 ## 5. Shortest Remaining Time First (SRTF) — Erklärung und Didaktik
 
-SRTF wählt den Prozess mit der geringsten verbleibenden Ausführungszeit. Trifft ein kürzerer Prozess ein, wird der laufende Prozess präemptiert. Bei gleicher Restzeit entscheidet die frühere Ankunft, danach die Prozess-ID.
+SRTF wählt den Task mit der geringsten verbleibenden Ausführungszeit. Trifft ein kürzerer Task ein, wird der laufende Task präemptiert. Bei gleicher Restzeit entscheidet die frühere Ankunft, danach die Task-ID.
 
 Didaktische Hinweise:
 
-- SRTF minimiert durchschnittliche Wartezeit in vielen Szenarien, provoziert aber Starvation für lange Prozesse, wenn ständig kürzere Jobs ankommen.
+- SRTF minimiert durchschnittliche Wartezeit in vielen Szenarien, provoziert aber Starvation für lange Tasks, wenn ständig kürzere Jobs ankommen.
 - Verwende SRTF im Unterricht, um Trade‑offs zwischen Throughput, averageWaitingTime und Fairness zu demonstrieren. Vergleiche SRTF mit RR und MLFQ.
 
 Empirische Aktivität:
@@ -113,14 +113,14 @@ Empirische Aktivität:
 
 ### Was ist Starvation?
 
-Starvation tritt auf, wenn ein Prozess über sehr lange Zeit keinen CPU‑Zugriff erhält, typischerweise weil andere Prozesse kontinuierlich bevorzugt werden (z. B. SRTF oder Strict Priority ohne Aging).
+Starvation tritt auf, wenn ein Task über sehr lange Zeit keinen CPU‑Zugriff erhält, typischerweise weil andere Tasks kontinuierlich bevorzugt werden (z. B. SRTF oder Strict Priority ohne Aging).
 
 ### Erkennung in der App
 
-- Hohe/steigende `waitingTime` oder `turnaroundTime` eines Prozesses im Vergleich zu anderen.
+- Hohe/steigende `waitingTime` oder `turnaroundTime` eines Tasks im Vergleich zu anderen.
 - `responseTime` bleibt sehr groß oder `startedAt` ist null für lange Zeit.
 - Fairnessindex (Jain) nahe 0 → ungleiche Verteilung.
-- Beobachte Event‑Log: wenn derselbe Prozess immer wieder preempted oder ständig hinten reingestellt wird.
+- Beobachte Event‑Log: wenn derselbe Task immer wieder preempted oder ständig hinten reingestellt wird.
 
 ### Didaktische Diskussion
 
@@ -129,14 +129,14 @@ Starvation tritt auf, wenn ein Prozess über sehr lange Zeit keinen CPU‑Zugrif
 
 ### Gegenmaßnahmen (Design‑/Experimentieroptionen)
 
-- Aging: Erhöhe Priorität von wartenden Prozessen nach Zeit (nicht aktuell implementiert; Vorschlag als Erweiterung).
-- Periodische Priority Boost: Gelegentliche Erhöhung aller Prozesse in niedrigen Levels (MLFQ Erweiterung).
+- Aging: Erhöhe Priorität von wartenden Tasks nach Zeit (nicht aktuell implementiert; Vorschlag als Erweiterung).
+- Periodische Priority Boost: Gelegentliche Erhöhung aller Tasks in niedrigen Levels (MLFQ Erweiterung).
 - Kombiniere SRTF‑Einsätze mit Timeout oder maxWait thresholds.
 - In Simulation: überwache waitingTime und löse optional Alarm/Annotation aus, wenn waitingTime > threshold (z. B. 5× durchschnittliche Rechenzeit).
 
 ### Beispielaufgabe zur Starvation
 
-- Aufgabe: Erzeuge 1 langen Prozess (Rechenzeit=50) und 20 kurze Prozesse (Rechenzeit=1..3, zufällig ankommend). Vergleiche: SRTF, RR (q=1), MLFQ. Diskutiere, welcher Algorithmus Starvation zeigt und warum.
+- Aufgabe: Erzeuge 1 langen Task (Rechenzeit=50) und 20 kurze Tasks (Rechenzeit=1..3, zufällig ankommend). Vergleiche: SRTF, RR (q=1), MLFQ. Diskutiere, welcher Algorithmus Starvation zeigt und warum.
 
 ---
 
@@ -145,7 +145,7 @@ Starvation tritt auf, wenn ein Prozess über sehr lange Zeit keinen CPU‑Zugrif
 - Wer läuft gerade? → aktuelles Segment / currentProcessId im Snapshot.
 - Warum preempted? → Event‑Log (reason gibt an: arrival / higher priority / quantum expired / shorter job arrived bei SRTF).
 - Wo ist die Last? → CPU‑Auslastung vs Idle‑Share.
-- Starvation prüfen: sehr hohe Turnaround/Waiting Time für einzelne Prozesse.
+- Starvation prüfen: sehr hohe Turnaround/Waiting Time für einzelne Tasks.
 
 Beispiel: RR, quantum=1 zeigt viele contextSwitches (erwartet). SRTF kann sehr niedrige averageWaitingTime, aber hohe Starvation für lange Jobs verursachen.
 
@@ -161,19 +161,19 @@ Mini‑Checkliste (bei Analyse):
 
 ### A) Schnellvergleich von Algorithmen
 
-1. Erstelle ein Szenario (4 Prozesse, verschiedene Arrival/Rechenzeit).
+1. Erstelle ein Szenario (4 Tasks, verschiedene Arrival/Rechenzeit).
 2. Run A: Round Robin (quantum=2) — speichere Run.
 3. Run B: SRTF — speichere Run.
 4. Multi‑View vergleichen: Timeline, Event‑Log, Kennzahlen.
 
 ### B) Demonstration von Starvation (SRTF)
 
-- Szenario: 1 langer Prozess (Rechenzeit 50), viele kurze Prozesse (Rechenzeit 1–3) mit gestaffelten Ankünften.
-- Beobachtung: Der lange Prozess erhält ggf. sehr spät CPU → hohes turnaround/ waiting → diskutieren (Affekt von SJF).
+- Szenario: 1 langer Task (Rechenzeit 50), viele kurze Tasks (Rechenzeit 1–3) mit gestaffelten Ankünften.
+- Beobachtung: Der lange Task erhält ggf. sehr spät CPU → hohes turnaround/ waiting → diskutieren (Affekt von SJF).
 
 ### C) MLFQ vs SRTF
 
-- Zeige, wie MLFQ kürzere Jobs bevorzugt, aber durch Demotion/Aging faireren Zugang gewährleistet.
+- Zeige, wie MLFQ kürzere Tasks bevorzugt, aber durch Demotion/Aging faireren Zugang gewährleistet.
 
 ---
 
@@ -194,7 +194,7 @@ Mini‑Checkliste (bei Analyse):
 - `quantumForLevel(base, level) = base * (level + 1)` (lineare Skalierung).
 - `mlfqMode` "classic": verbleibendes Quantum wird beibehalten (`mlfqRemainingQuantum`). "simplified": neues Level beginnt mit vollem Level‑Quantum.
 - Strict Priority tieBreak: unterstützt 'fifo', 'arrivalTime', 'remainingTime', 'waitingTime', 'id'.
-- LCFS: Enqueue/Unshift / Pop‑Logik bildet Stack‑Verhalten ab; in preemptive Mode wird neu ankommender Prozess bevorzugt.
+- LCFS: Enqueue/Unshift / Pop‑Logik bildet Stack‑Verhalten ab; in preemptive Mode wird neu ankommender Task bevorzugt.
 
 Dokumentiere diese Designentscheidungen: warum lineare Quantum‑Skalierung gewählt wurde, warum queueLevels begrenzt sind, und wie SRTF arrivals gegen `remainingTime` prüft und bei strikt kürzerer Restlaufzeit präemptiert.
 
@@ -256,10 +256,10 @@ Ziel: Nutzer\*innen in 2–3 Minuten durch die Kernfunktionen führen und ein Be
 ### Steps (deutsch):
 
 1. Begrüßung – Kurzer Überblick. CTA: Tour starten / Später.
-2. Szenario‑Generator – Öffne Generator, zeige Prozessfeld, + Prozess hinzufügen.
+2. Szenario‑Generator – Öffne Generator, zeige Taskfeld, + Task hinzufügen.
 3. Algorithmus anwenden – Öffne Algorithmus‑Modal, wähle SRTF und Round Robin zum Vergleich.
 4. Timeline & Wiedergabe – Zeige Play/Pause, Schrittsteuerung, Eventlog; hebe Preempt/quantumExpired Events hervor.
-5. Starvation‑Check – Zeige wo im UI wartende Prozesse mit hoher waitingTime sichtbar sind, erkläre Fairnessindex und Vorschläge zur Gegensteuerung (Aging, Priority Boost).
+5. Starvation‑Check – Zeige wo im UI wartende Tasks mit hoher waitingTime sichtbar sind, erkläre Fairnessindex und Vorschläge zur Gegensteuerung (Aging, Priority Boost).
 6. Abschluss – Tour beenden, Key saved to localStorage (scheduling-visualizer.tourSeen = 'true').
 
 ### Accessibility & Verhalten
@@ -291,7 +291,7 @@ Q: Simulation endet vorzeitig?
 
 Q: Response Time = null?
 
-- A: Response Time wird beim ersten Start (startedAt) gesetzt. Falls null, hat Prozess nie CPU bekommen.
+- A: Response Time wird beim ersten Start (startedAt) gesetzt. Falls null, hat Task nie CPU bekommen.
 
 Q: Unterschiedliche Ergebnisse bei gleichen Eingaben?
 
@@ -299,7 +299,7 @@ Q: Unterschiedliche Ergebnisse bei gleichen Eingaben?
 
 Q: Wie erkenne ich Starvation?
 
-- A: Ein Prozess mit stetig wachsender waitingTime, ohne jemals CPU zu erhalten; sehr hoher turnaround im Vergleich zu anderen; Fairnessindex niedrig.
+- A: Ein Task mit stetig wachsender waitingTime, ohne jemals CPU zu erhalten; sehr hoher turnaround im Vergleich zu anderen; Fairnessindex niedrig.
 
 Q: Szenarien teilen?
 

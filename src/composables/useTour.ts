@@ -197,7 +197,7 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "metrics",
       title: "9. Kennzahlen einordnen",
-      text: "Die Kennzahlen fassen den Run zusammen. Wartezeit und Durchlaufzeit zeigen Verzögerungen, Fairness und Starvation helfen bei der Beurteilung der Verteilung.",
+      text: "Die Kennzahlen fassen den Run zusammen. Wartezeit und Durchlaufzeit zeigen Verzögerungen, während Präemptionen und Kontextwechsel das Scheduling-Verhalten sichtbar machen.",
       attachTo: { element: '[data-tour="metrics-panel"]', on: "top" },
     });
 
@@ -221,7 +221,7 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "results",
       title: "11. Stack-Visualisierung verstehen",
-      text: "Die Stack-Visualisierung zeigt aktive, bereite und preämptierte Prozesse. Lange Wartezeiten können auf mögliche Starvation hinweisen.",
+      text: "Die Stack-Visualisierung zeigt aktive, bereite und preämptierte Prozesse. Lange Wartezeiten helfen dabei, das Verhalten unter Last zu verstehen.",
       attachTo: { element: '[data-tour="stack-simulation"]', on: "top" },
       buttons: [
         { text: "Zurück", action: back, classes: "shepherd-button-secondary" },

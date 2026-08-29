@@ -36,7 +36,7 @@
               data-tour="algorithm-select"
             >
               <option value="roundRobin">Round Robin</option>
-              <option value="sjf">SRTF (Shortest Remaining Time First)</option>
+              <!-- <option value="sjf">SRTF (Shortest Remaining Time First)</option> -->
               <option value="lcfs">LCFS</option>
               <option value="strictPriority">Strict Priority</option>
               <option value="mlfq">MLFQ</option>
@@ -84,10 +84,6 @@
                 Kleine Prioritätszahlen werden zuerst behandelt. Gleichstand
                 wird über die ausgewählte Tie-Break-Regel aufgelöst.
               </p>
-              <p class="warning-note">
-                Achtung: Bei dauerhaft höher priorisierten Ankünften kann
-                Starvation für niedrige Prioritäten auftreten.
-              </p>
             </template>
             <template v-else-if="algorithm === 'mlfq'">
               <label class="algorithm-field">
@@ -110,14 +106,6 @@
                 />
               </label>
 
-              <label class="algorithm-field">
-                <span>Modus</span>
-                <select v-model="mlfqMode" class="algorithm-control">
-                  <option value="classic">Classic (Lehrbuch)</option>
-                  <option value="simplified">Simplified</option>
-                </select>
-              </label>
-
               <p class="subtitle">
                 Prozesse starten in der obersten Ebene. Bei Quantum-Ende werden
                 sie in die nächstniedrigere Ebene verschoben.
@@ -127,10 +115,6 @@
               <p class="subtitle">
                 SRTF verdrängt einen laufenden Prozess, wenn ein neuer Prozess
                 mit kürzerer Restlaufzeit eintrifft.
-              </p>
-              <p class="warning-note">
-                Achtung: Lange Jobs können durch viele kurze Ankünfte stark
-                verzögert werden (Starvation-Risiko).
               </p>
             </template>
             <p v-else class="subtitle">
@@ -286,7 +270,7 @@ const algorithmInfo = computed(() => {
         "Kurze Jobs reagieren schneller, dafür steigen Kontextwechsel durch mögliche Verdrängungen.",
         "Bei gleicher Restzeit entscheidet zuerst die frühere Ankunft, danach die Prozess-ID.",
       ],
-      note: "Die Verdrängung erfolgt nur bei strikt kürzerer Restlaufzeit. Achtung: Viele kurze Ankünfte können lange Jobs stark verzögern (Starvation-Risiko).",
+      note: "Die Verdrängung erfolgt nur bei strikt kürzerer Restlaufzeit. Viele kurze Ankünfte können lange Jobs stark verzögern.",
     };
   }
 
@@ -294,12 +278,12 @@ const algorithmInfo = computed(() => {
     return {
       title: "Strict Priority",
       description:
-        "Prozesse mit hoeherer Prioritaet werden strikt vor niedrigeren priorisiert. Das verbessert kritische Jobs, kann aber Starvation verursachen.",
+        "Prozesse mit hoeherer Prioritaet werden strikt vor niedrigeren priorisiert. Das verbessert kritische Jobs, kann aber niedrigere Prioritäten stark verzögern.",
       parameterImpact: [
         "Kleinere Prioritätszahlen werden zuerst behandelt.",
         "Der Tie-Break steuert, was bei gleicher Priorität als Nächstes läuft.",
       ],
-      note: "Strict Priority ist präemptiv implementiert und reagiert auf höher priorisierte Ankünfte. Achtung: Bei dauerhaft hoher Last kann Starvation niedriger Prioritäten auftreten.",
+      note: "Strict Priority ist präemptiv implementiert und reagiert auf höher priorisierte Ankünfte. Bei dauerhafter hoher Last können niedrigere Prioritäten stark verzögert werden.",
     };
   }
 
