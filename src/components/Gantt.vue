@@ -227,6 +227,18 @@
         class="time-pointer"
         aria-hidden="true"
       />
+      <g v-if="pointerX !== null" class="time-pointer-label" aria-hidden="true">
+        <rect
+          :x="Math.min(pointerX + 5, svgWidth - 44)"
+          y="0"
+          width="38"
+          height="16"
+          rx="6"
+        />
+        <text :x="Math.min(pointerX + 24, svgWidth - 25)" y="12">
+          t={{ currentTime() }}
+        </text>
+      </g>
     </g>
 
     <text v-else x="80" y="120" class="empty-gantt">
@@ -698,8 +710,8 @@ function hexToRgb(hex?: string) {
 }
 
 .completed-overlay {
-  fill: rgba(100, 116, 139, 0.24);
-  stroke: rgba(148, 163, 184, 0.08);
+  fill: rgba(100, 116, 139, 0.12);
+  stroke: rgba(148, 163, 184, 0.06);
   pointer-events: none;
 }
 
@@ -752,6 +764,18 @@ function hexToRgb(hex?: string) {
   stroke-linecap: round;
   filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.28));
   pointer-events: none;
+}
+
+.time-pointer-label rect {
+  fill: var(--danger);
+  opacity: 0.92;
+}
+
+.time-pointer-label text {
+  fill: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
 }
 
 @media (prefers-reduced-motion: reduce) {

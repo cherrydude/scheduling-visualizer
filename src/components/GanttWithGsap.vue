@@ -9,16 +9,20 @@
         @click="handlePlay"
         data-tour="play"
         aria-label="Play"
-        title="Visualisierung starten oder fortsetzen"
-        :disabled="!controlsEnabled"
+        :title="
+          simulationFinished
+            ? 'Simulation erneut starten'
+            : 'Visualisierung starten oder fortsetzen'
+        "
+        :disabled="!controlsEnabled || isPlaying"
       >
-        Start
+        {{ simulationFinished ? "Erneut starten" : "Start" }}
       </button>
       <button
         @click="handlePause"
         aria-label="Pause"
         title="Visualisierung anhalten"
-        :disabled="!controlsEnabled"
+        :disabled="!controlsEnabled || !isPlaying"
       >
         Pause
       </button>
@@ -26,7 +30,7 @@
         @click="handleStep(-1)"
         aria-label="Step Back"
         title="Einen Takt zurück"
-        :disabled="!controlsEnabled"
+        :disabled="!controlsEnabled || !canStepBack"
       >
         ←
       </button>
@@ -34,7 +38,7 @@
         @click="handleStep(1)"
         aria-label="Step Forward"
         title="Einen Takt vor"
-        :disabled="!controlsEnabled"
+        :disabled="!controlsEnabled || !canStepForward"
       >
         →
       </button>
@@ -42,7 +46,7 @@
         @click="handleReset"
         aria-label="Reset"
         title="Visualisierung zurücksetzen"
-        :disabled="!controlsEnabled"
+        :disabled="!controlsEnabled || !simulationStarted"
       >
         Reset
       </button>
@@ -64,7 +68,10 @@
         :disabled="!controlsEnabled"
         title="Zeitpunkt manuell wählen"
       />
-      <span class="time-label">{{ sliderTime }}</span>
+      <div class="playback-status" aria-live="polite">
+        <strong>Zeit {{ sliderTime }} / {{ timelineLength }}</strong>
+        <span>{{ playbackStatus }}</span>
+      </div>
     </div>
 
     <Gantt
@@ -128,6 +135,13 @@ const props = defineProps<{
   preemptedProcessId?: string | null;
   preemptTime?: number | null;
   stretchWidth?: boolean;
+  timelineLength?: number;
+  playbackStatus?: string;
+  isPlaying?: boolean;
+  canStepBack?: boolean;
+  canStepForward?: boolean;
+  simulationStarted?: boolean;
+  simulationFinished?: boolean;
 }>();
 
 const emit = defineEmits([
@@ -205,6 +219,17 @@ const renderViewBox = computed(() => {
   return `0 0 ${width} ${renderChartHeight.value}`;
 });
 const controlsEnabled = computed(() => props.controlsEnabled !== false);
+const timelineLength = computed(
+  () => props.timelineLength ?? timelineMax.value,
+);
+const playbackStatus = computed(
+  () => props.playbackStatus ?? "Bereit zum Start",
+);
+const isPlaying = computed(() => props.isPlaying === true);
+const canStepBack = computed(() => props.canStepBack === true);
+const canStepForward = computed(() => props.canStepForward === true);
+const simulationStarted = computed(() => props.simulationStarted === true);
+const simulationFinished = computed(() => props.simulationFinished === true);
 const introAnimation = computed(() => props.introAnimation !== false);
 const prefersReducedMotion =
   typeof window !== "undefined" &&
@@ -1010,6 +1035,7 @@ onBeforeUnmount(() => {
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .controls--disabled {
@@ -1023,9 +1049,19 @@ onBeforeUnmount(() => {
 .controls--disabled label {
   cursor: not-allowed;
 }
-.time-label {
-  min-width: 36px;
-  text-align: center;
+.playback-status {
+  display: grid;
+  min-width: 150px;
+  margin-left: 0.25rem;
+  gap: 0.1rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.playback-status strong {
+  color: var(--text);
+  font-size: 0.78rem;
 }
 button {
   background: var(--surface);
@@ -1036,6 +1072,7 @@ button {
 }
 input[type="range"] {
   flex: 1;
+  min-width: 120px;
 }
 
 .loop-control {

@@ -18,6 +18,7 @@
         class="case-card"
         :class="{ 'case-card--active': appCase.id === selectedCaseId }"
         :aria-pressed="appCase.id === selectedCaseId"
+        :title="weightTooltip(appCase)"
         @click="selectedCaseId = appCase.id"
       >
         <strong>{{ appCase.label }}</strong>
@@ -349,6 +350,21 @@ function formatColumnValue(
 
 function formatScore(score: number): string {
   return score.toFixed(3);
+}
+
+function weightTooltip(appCase: ComparisonCase): string {
+  const weights = allColumns
+    .map((column) => {
+      const weight = appCase.weights[column.key] ?? 0;
+      return weight > 0
+        ? `${column.label}: ${Math.round(weight * 100)} %`
+        : null;
+    })
+    .filter((entry): entry is string => Boolean(entry));
+
+  return weights.length
+    ? `Gewichtung: ${weights.join(", ")}`
+    : "Keine Kennzahl gewichtet";
 }
 
 function statusLabel(id: string): string {

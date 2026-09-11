@@ -23,6 +23,37 @@ export function useTour(actions: TourActions) {
     });
   }
 
+  function alignTourArrowTo(
+    stepClass: string,
+    targetSelector: string,
+    containerSelector: string,
+  ): void {
+    void waitForLayout().then(() => {
+      const step = document.querySelector<HTMLElement>(
+        `.shepherd-element.${stepClass}`,
+      );
+      const arrow = step?.querySelector<HTMLElement>("[data-popper-arrow]");
+      const target = document.querySelector<HTMLElement>(targetSelector);
+      const container = document.querySelector<HTMLElement>(containerSelector);
+
+      if (!step || !arrow || !target || !container) return;
+
+      const initialStepRect = step.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      step.style.marginTop = `${containerRect.top - initialStepRect.top}px`;
+
+      const stepRect = step.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      arrow.style.transform = "none";
+      arrow.style.top = `${
+        targetRect.top +
+        targetRect.height / 2 -
+        stepRect.top -
+        arrow.offsetHeight / 2
+      }px`;
+    });
+  }
+
   function createTour(): InstanceType<typeof Shepherd.Tour> {
     const next = () => tour?.next();
     const back = () => tour?.back();
@@ -47,14 +78,22 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "welcome",
       title: "Kurz-Tour: Erste Schritte",
-      text: "Diese Tour zeigt dir die wichtigsten Schritte: Szenario anlegen, Visualisierung starten und Runs vergleichen.",
+      text: `
+        <p>Diese Tour zeigt dir die wichtigsten Schritte:</p>
+        <ul>
+          <li>wie du ein Szenario anlegst</li>
+          <li>verschiedene Scheduling-Algorithmus auf entsprechende Szenarien anwendest</li>
+          <li>die Visualisierung startest und das Ergebnis eines Runs einordnest</li>
+          <li>mehrere Runs vergleichen kannst</li>
+        </ul>
+`,
       buttons: [{ text: "Tour starten", action: next }],
     });
 
     instance.addStep({
       id: "generator-entry",
       title: "1. Szenario anlegen",
-      text: "Klicke zuerst auf das Burger-Menü, um die Szenarioverwaltung zu öffnen.",
+      text: "Zum Start ist es notwendig, ein neues Szenario anzulegen. Einmal erstellte Szenarien können später bearbeitet und gelöscht werden. Klicke nun zuerst auf das Burger-Menü, um die Szenarioverwaltung zu öffnen.",
       attachTo: { element: '[data-tour="burger-button"]', on: "bottom" },
       canClickTarget: true,
       beforeShowPromise: waitForLayout,
@@ -74,9 +113,10 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "generator-entry-plus",
-      title: "2. Szenario-Generator öffnen",
-      text: "Klicke im geöffneten Burger-Menü auf das Plus, um ein neues Szenario anzulegen.",
-      attachTo: { element: '[data-tour="open-generator"]', on: "bottom" },
+      title: "2. Eigenes Szenario erstellen",
+      text: "Klicke auf „Eigenes Szenario erstellen“, um mit einer leeren Task-Liste zu beginnen.",
+      attachTo: { element: '[data-tour="burger-menu-panel"]', on: "right" },
+      classes: "generator-entry-plus",
       canClickTarget: true,
       beforeShowPromise: waitForLayout,
       when: {
@@ -86,27 +126,11 @@ export function useTour(actions: TourActions) {
             ?.addEventListener("click", () => window.setTimeout(next, 0), {
               once: true,
             });
-        },
-      },
-      buttons: [
-        { text: "Zurück", action: back, classes: "shepherd-button-secondary" },
-      ],
-    });
-
-    instance.addStep({
-      id: "generator",
-      title: "3. Szenario und Prozesse laden",
-      text: "Klicke jetzt auf „Versetzt“, um ein vorbereitetes Szenario zu laden.",
-      attachTo: { element: '[data-tour="preset-staggered"]', on: "left" },
-      canClickTarget: true,
-      beforeShowPromise: waitForLayout,
-      when: {
-        show() {
-          document
-            .querySelector<HTMLElement>('[data-tour="preset-staggered"]')
-            ?.addEventListener("click", () => window.setTimeout(next, 0), {
-              once: true,
-            });
+          alignTourArrowTo(
+            "generator-entry-plus",
+            '[data-tour="open-generator"]',
+            '[data-tour="burger-menu-panel"]',
+          );
         },
       },
       buttons: [
@@ -116,8 +140,8 @@ export function useTour(actions: TourActions) {
 
     instance.addStep({
       id: "generator-details",
-      title: "4. Szenario anwenden",
-      text: "Prüfe kurz die angezeigten Szenario- und Prozessdaten. Bestätige danach unten mit „Szenario anwenden“, um diese Daten in die Visualisierung zu übernehmen.",
+      title: "3. Szenario anwenden",
+      text: "Prüfe kurz die angezeigten Szenario- und Taskdaten. Bestätige danach unten mit „Szenario anwenden“, um diese als eigenständiges Szenario in die Visualisierung zu übernehmen.",
       attachTo: { element: '[data-tour="generator-modal"]', on: "left" },
       canClickTarget: true,
       beforeShowPromise: waitForLayout,
@@ -138,7 +162,7 @@ export function useTour(actions: TourActions) {
     instance.addStep({
       id: "algorithm",
       title: "5. Algorithmus anwenden",
-      text: "Klicke nun auf „+ Algorithmus anwenden“, um das Modal für den anzuwendenden Algorithmus zu öffnen.",
+      text: "Klicke nun auf „+ Algorithmus anwenden“, um das Modal für den anzuwendenden Algorithmus zu öffnen und so einen Run durchzuführen.",
       attachTo: { element: '[data-tour="open-algorithm"]', on: "top" },
       canClickTarget: true,
       beforeShowPromise: waitForLayout,

@@ -24,7 +24,11 @@
           <div class="title-row">
             <div class="title">{{ item.title }}</div>
             <span
-              v-if="item.level !== undefined && item.level !== null"
+              v-if="
+                props.showLevels &&
+                item.level !== undefined &&
+                item.level !== null
+              "
               class="level-badge"
             >
               L{{ item.level + 1 }}
@@ -37,7 +41,21 @@
       </li>
     </ul>
 
-    <p v-if="props.contextText" class="stack-context">
+    <div
+      v-if="props.contextHistory?.length"
+      class="stack-context-history"
+      aria-live="polite"
+    >
+      <p
+        v-for="(message, index) in props.contextHistory"
+        :key="`${index}-${message}`"
+        class="stack-context"
+        :class="`stack-context--age-${index}`"
+      >
+        {{ message }}
+      </p>
+    </div>
+    <p v-else-if="props.contextText" class="stack-context">
       {{ props.contextText }}
     </p>
 
@@ -65,8 +83,10 @@ const props = defineProps<{
   items: Item[] | any;
   maxVisible?: number;
   activeId?: string | null;
+  showLevels?: boolean;
   contextText?: string;
   quantumSummaryText?: string;
+  contextHistory?: string[];
 }>();
 
 const visibleItems = computed(() => {
@@ -333,6 +353,29 @@ function itemClasses(item: Item, index: number) {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.stack-context-history {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.stack-context-history .stack-context {
+  border-top: 0;
+  padding-top: 0;
+  transition: opacity 180ms ease;
+}
+
+.stack-context-history .stack-context--age-0 {
+  opacity: 1;
+}
+
+.stack-context-history .stack-context--age-1 {
+  opacity: 0.62;
+}
+
+.stack-context-history .stack-context--age-2 {
+  opacity: 0.32;
 }
 
 .stack-quantum-summary {

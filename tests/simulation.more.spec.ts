@@ -3,7 +3,7 @@ import { simulateScenario } from "@/simulation";
 import type { Scenario } from "@/types";
 
 describe("Simulation additional checks", () => {
-  it("MLFQ demotes process when quantum expires (classic mode)", () => {
+  it("MLFQ demotes process when quantum expires", () => {
     const scenario: Scenario = {
       algorithm: "mlfq",
       algorithmParams: {

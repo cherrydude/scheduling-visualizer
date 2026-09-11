@@ -16,123 +16,130 @@
     </button>
 
     <teleport to="body">
-      <div
-        v-if="open"
-        ref="panelRef"
-        id="burger-menu-panel"
-        class="burger-panel panel"
-        role="menu"
-        aria-label="Szenario-Menü"
-        :style="panelStyle"
-      >
-        <div class="burger-section">
-          <div class="section-heading">
-            <strong>Szenarien</strong>
-            <button
-              class="secondary-button compact"
-              type="button"
-              data-tour="open-generator"
-              aria-label="Neues Szenario anlegen"
-              title="Neues Szenario anlegen"
-              @click="handleCreate"
-            >
-              +
-            </button>
+      <template v-if="open">
+        <div
+          class="burger-backdrop"
+          aria-hidden="true"
+          @click="closeMenu"
+        ></div>
+
+        <div
+          ref="panelRef"
+          id="burger-menu-panel"
+          class="burger-panel panel"
+          data-tour="burger-menu-panel"
+          role="menu"
+          aria-label="Szenario-Menü"
+          :style="panelStyle"
+        >
+          <div class="burger-section">
+            <div class="section-heading">
+              <strong>Szenarien</strong>
+              <button
+                class="secondary-button compact"
+                type="button"
+                data-tour="open-generator"
+                aria-label="Neues Szenario anlegen"
+                title="Neues Szenario anlegen"
+                @click="handleCreate"
+              >
+                +
+              </button>
+            </div>
+
+            <div v-if="scenarios.length" class="scenario-list">
+              <button
+                v-for="scenario in scenarios"
+                :key="scenario.id"
+                type="button"
+                class="scenario-item"
+                role="menuitem"
+                :class="{ active: scenario.id === activeScenarioId }"
+                :aria-label="`Szenario laden: ${scenario.title}`"
+                title="Dieses Szenario laden"
+                @click="handleSelect(scenario.id)"
+              >
+                <span class="scenario-title">{{ scenario.title }}</span>
+                <span class="scenario-meta">{{
+                  scenario.runs.length
+                    ? `${scenario.runs.length} Run(s)`
+                    : "0 Run(s)"
+                }}</span>
+              </button>
+            </div>
+
+            <div v-if="activeScenarioId" class="scenario-actions">
+              <button
+                type="button"
+                class="link-item"
+                aria-label="Szenario duplizieren"
+                title="Szenario duplizieren"
+                @click="handleDuplicate(activeScenarioId)"
+              >
+                Duplizieren
+              </button>
+              <button
+                type="button"
+                class="link-item"
+                aria-label="Szenario umbenennen"
+                title="Szenario umbenennen"
+                @click="handleRename(activeScenarioId)"
+              >
+                Umbenennen
+              </button>
+              <button
+                type="button"
+                class="link-item danger"
+                aria-label="Szenario löschen"
+                title="Szenario löschen"
+                @click="handleDelete(activeScenarioId)"
+              >
+                Löschen
+              </button>
+            </div>
+
+            <p v-else class="menu-note">Noch kein Szenario angelegt.</p>
           </div>
 
-          <div v-if="scenarios.length" class="scenario-list">
-            <button
-              v-for="scenario in scenarios"
-              :key="scenario.id"
-              type="button"
-              class="scenario-item"
-              role="menuitem"
-              :class="{ active: scenario.id === activeScenarioId }"
-              :aria-label="`Szenario laden: ${scenario.title}`"
-              title="Dieses Szenario laden"
-              @click="handleSelect(scenario.id)"
-            >
-              <span class="scenario-title">{{ scenario.title }}</span>
-              <span class="scenario-meta">{{
-                scenario.runs.length
-                  ? `${scenario.runs.length} Run(s)`
-                  : "0 Run(s)"
-              }}</span>
-            </button>
-          </div>
+          <div class="burger-section">
+            <div class="section-heading">
+              <strong>Datenmanagement</strong>
+            </div>
 
-          <div v-if="activeScenarioId" class="scenario-actions">
+            <button
+              v-if="activeScenarioId"
+              type="button"
+              class="link-item"
+              aria-label="Szenario exportieren"
+              title="Szenario als JSON exportieren"
+              @click="handleExport"
+            >
+              Szenario exportieren
+            </button>
             <button
               type="button"
               class="link-item"
-              aria-label="Szenario duplizieren"
-              title="Szenario duplizieren"
-              @click="handleDuplicate(activeScenarioId)"
+              aria-label="Szenarien importieren"
+              title="Szenario aus JSON-Datei importieren"
+              @click="triggerFileInput"
             >
-              Duplizieren
+              Szenarien importieren
             </button>
-            <button
-              type="button"
-              class="link-item"
-              aria-label="Szenario umbenennen"
-              title="Szenario umbenennen"
-              @click="handleRename(activeScenarioId)"
-            >
-              Umbenennen
-            </button>
-            <button
-              type="button"
-              class="link-item danger"
-              aria-label="Szenario löschen"
-              title="Szenario löschen"
-              @click="handleDelete(activeScenarioId)"
-            >
-              Löschen
-            </button>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".json"
+              style="display: none"
+              @change="handleFileChange"
+            />
           </div>
 
-          <p v-else class="menu-note">Noch kein Szenario angelegt.</p>
-        </div>
+          <div class="burger-section">
+            <div class="section-heading">
+              <strong>Information</strong>
+            </div>
 
-        <div class="burger-section">
-          <div class="section-heading">
-            <strong>Datenmanagement</strong>
-          </div>
-
-          <button
-            v-if="activeScenarioId"
-            type="button"
-            class="link-item"
-            aria-label="Szenario exportieren"
-            title="Szenario als JSON exportieren"
-            @click="handleExport"
-          >
-            Szenario exportieren
-          </button>
-          <button
-            type="button"
-            class="link-item"
-            aria-label="Szenarien importieren"
-            title="Szenario aus JSON-Datei importieren"
-            @click="triggerFileInput"
-          >
-            Szenarien importieren
-          </button>
-          <input
-            ref="fileInputRef"
-            type="file"
-            accept=".json"
-            style="display: none"
-            @change="handleFileChange"
-          />
-        </div>
-
-        <div class="burger-section">
-          <div class="section-heading">
-            <strong>Information</strong>
-          </div>
-
-          <!--           <button
+            <!--           <button
             type="button"
             class="link-item"
             aria-label="Wissen und Hilfe öffnen"
@@ -141,16 +148,17 @@
           >
             Wissen
           </button> -->
-          <button
-            type="button"
-            class="link-item"
-            aria-label="Einführung starten"
-            @click="handleTour"
-          >
-            Einführung starten
-          </button>
+            <button
+              type="button"
+              class="link-item"
+              aria-label="Einführung starten"
+              @click="handleTour"
+            >
+              Einführung starten
+            </button>
+          </div>
         </div>
-      </div>
+      </template>
     </teleport>
   </div>
 </template>
@@ -338,6 +346,15 @@ onBeforeUnmount(() => {
   height: 2px;
   border-radius: 999px;
   background: var(--text);
+}
+
+.burger-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2999;
+  background: rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 .burger-panel {

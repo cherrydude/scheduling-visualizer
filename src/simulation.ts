@@ -141,12 +141,18 @@ function createMetrics(
   const completedProcesses = processes.filter(
     (process) => process.finishedAt !== null,
   );
+  const arrivedProcesses = processes.filter(
+    (process) => process.arrivalTime <= currentTime,
+  );
+  const waitingTimes = arrivedProcesses.map((process) =>
+    process.finishedAt !== null
+      ? process.waitingTime
+      : Math.max(0, currentTime - process.arrivalTime - process.executedTime),
+  );
 
-  const averageWaitingTime = completedProcesses.length
-    ? completedProcesses.reduce(
-        (sum, process) => sum + process.waitingTime,
-        0,
-      ) / completedProcesses.length
+  const averageWaitingTime = arrivedProcesses.length
+    ? waitingTimes.reduce((sum, waitingTime) => sum + waitingTime, 0) /
+      arrivedProcesses.length
     : null;
   const averageTurnaroundTime = completedProcesses.length
     ? completedProcesses.reduce(
@@ -154,14 +160,14 @@ function createMetrics(
         0,
       ) / completedProcesses.length
     : null;
-  const responseTimes = completedProcesses
+  const responseTimes = arrivedProcesses
     .map((p) => p.responseTime)
     .filter((rt): rt is number => rt !== null && Number.isFinite(rt));
   const averageResponseTime = responseTimes.length
     ? responseTimes.reduce((sum, rt) => sum + rt, 0) / responseTimes.length
     : null;
-  const maxWaitingTime = completedProcesses.length
-    ? Math.max(...completedProcesses.map((process) => process.waitingTime))
+  const maxWaitingTime = arrivedProcesses.length
+    ? Math.max(...waitingTimes)
     : null;
 
   const cpuUtilization = currentTime > 0 ? busyTicks / currentTime : 0;

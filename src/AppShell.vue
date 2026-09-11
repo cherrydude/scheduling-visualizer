@@ -36,11 +36,10 @@
     <section
       v-if="showGeneratorModal"
       class="modal-overlay"
-      @click.self="closeGeneratorModal"
-      @keydown.esc.prevent="closeGeneratorModal"
+      @click.self.prevent
     >
       <div
-        class="modal panel"
+        class="modal panel generator-modal"
         ref="generatorModalRef"
         data-tour="generator-modal"
         tabindex="-1"
@@ -50,19 +49,12 @@
       >
         <div class="section-header">
           <h2>{{ generatorModalTitle }}</h2>
-          <button
-            class="secondary-button"
-            type="button"
-            @click="closeGeneratorModal"
-          >
-            Schliessen
-          </button>
         </div>
 
         <div class="modal-layout">
           <form class="form-grid" @submit.prevent="saveScenario">
             <label>
-              <span>Titel</span>
+              <span>Szenario-Name</span>
               <input
                 v-model="draft.title"
                 type="text"
@@ -70,114 +62,169 @@
               />
             </label>
 
-            <label>
-              <span>Beschreibung</span>
-              <input
-                v-model="draft.description"
-                type="text"
-                placeholder="Kurzbeschreibung"
-              />
-            </label>
+            <div class="preset-frame">
+              <div class="preset-groups">
+                <div class="preset-group">
+                  <h4>Basis-Szenarien</h4>
+                  <div class="button-row">
+                    <!--
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active': activePresetKey === 'classroom',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'classroom'"
+                      @click="loadPreset('classroom')"
+                    >
+                      Klassisch
+                    </button>
+                    -->
+                    <!--
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active': activePresetKey === 'staggered',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'staggered'"
+                      @click="loadPreset('staggered')"
+                    >
+                      Versetzt
+                    </button>
+                    -->
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active': activePresetKey === 'longTimeline',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'longTimeline'"
+                      @click="loadPreset('longTimeline')"
+                    >
+                      Lang
+                    </button>
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active': activePresetKey === 'manyProcesses',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'manyProcesses'"
+                      @click="loadPreset('manyProcesses')"
+                    >
+                      Viele Tasks
+                    </button>
+                  </div>
+                </div>
 
-            <div class="preset-groups">
-              <div class="preset-group">
-                <h4>Basis-Szenarien</h4>
-                <div class="button-row">
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    @click="loadPreset('classroom')"
-                  >
-                    Klassisch
-                  </button>
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    data-tour="preset-staggered"
-                    @click="loadPreset('staggered')"
-                  >
-                    Versetzt
-                  </button>
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    @click="loadPreset('longTimeline')"
-                  >
-                    Lang
-                  </button>
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    @click="loadPreset('manyProcesses')"
-                  >
-                    Viele Tasks
-                  </button>
+                <div class="preset-group">
+                  <h4>Algorithmus-Vergleiche</h4>
+                  <div class="button-row">
+                    <!--
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active': activePresetKey === 'burstChaos',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'burstChaos'"
+                      @click="loadPreset('burstChaos')"
+                    >
+                      Chaos
+                    </button>
+                    -->
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active': activePresetKey === 'sjfVsSrtf',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'sjfVsSrtf'"
+                      @click="loadPreset('sjfVsSrtf')"
+                    >
+                      SRTF
+                    </button>
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active': activePresetKey === 'rrQuantumLab',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'rrQuantumLab'"
+                      @click="loadPreset('rrQuantumLab')"
+                    >
+                      RR-Quantum
+                    </button>
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active':
+                          activePresetKey === 'priorityStarvation',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'priorityStarvation'"
+                      @click="loadPreset('priorityStarvation')"
+                    >
+                      Strict Priority
+                    </button>
+                    <button
+                      class="secondary-button"
+                      :class="{
+                        'preset-active': activePresetKey === 'mlfqStaircase',
+                      }"
+                      type="button"
+                      :aria-pressed="activePresetKey === 'mlfqStaircase'"
+                      @click="loadPreset('mlfqStaircase')"
+                    >
+                      MLFQ-Treppe
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div class="preset-group">
-                <h4>Algorithmus-Vergleiche</h4>
-                <div class="button-row">
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    @click="loadPreset('burstChaos')"
-                  >
-                    Chaos
-                  </button>
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    @click="loadPreset('sjfVsSrtf')"
-                  >
-                    SRTF
-                  </button>
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    @click="loadPreset('rrQuantumLab')"
-                  >
-                    RR-Quantum
-                  </button>
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    @click="loadPreset('priorityStarvation')"
-                  >
-                    Strict Priority
-                  </button>
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    @click="loadPreset('mlfqStaircase')"
-                  >
-                    MLFQ-Treppe
-                  </button>
-                </div>
-              </div>
+              <button
+                class="custom-scenario-button"
+                type="button"
+                data-tour="open-generator"
+                @click="startCustomScenario"
+              >
+                Eigenes Szenario erstellen
+              </button>
             </div>
 
             <div class="process-editor">
               <div class="section-header compact">
-                <h3>Tasks</h3>
+                <div class="process-heading">
+                  <h3>Szenario-Editor</h3>
+                  <span class="task-count"
+                    >{{ draft.processes.length }} Tasks</span
+                  >
+                </div>
                 <button
                   class="secondary-button"
                   type="button"
                   @click="addProcess"
                 >
-                  + Task
+                  Task hinzufügen
                 </button>
               </div>
 
               <div class="process-table">
                 <div class="process-row process-head">
-                  <span>ID</span>
-                  <span>Name</span>
-                  <span>Ankunft</span>
-                  <span>Rechenzeit</span>
-                  <span>Prio</span>
-                  <span>Farbe</span>
-                  <span></span>
+                  <span title="Anzeigename des Tasks">Name</span>
+                  <span title="Zeitpunkt, zu dem der Task verfügbar wird"
+                    >Ankunft</span
+                  >
+                  <span title="Benötigte CPU-Zeit des Tasks">Rechenzeit</span>
+                  <span title="Priorität des Tasks">Prio</span>
+                  <span title="Farbe in der Visualisierung">Farbe</span>
+                  <span aria-hidden="true"></span>
+                </div>
+
+                <div v-if="!draft.processes.length" class="process-empty">
+                  <strong>Noch keine Tasks vorhanden</strong>
+                  <span>Füge deinen ersten Task hinzu.</span>
                 </div>
 
                 <div
@@ -185,46 +232,127 @@
                   v-for="(process, index) in draft.processes"
                   :key="`${process.id}-${index}`"
                 >
-                  <input v-model="process.id" type="text" placeholder="P1" />
-                  <input
-                    v-model="process.name"
-                    type="text"
-                    placeholder="Name"
-                  />
-                  <input
-                    v-model.number="process.arrivalTime"
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                  />
-                  <input
-                    v-model.number="process.burstTime"
-                    type="number"
-                    min="1"
-                    placeholder="5"
-                  />
-                  <input
-                    v-model.number="process.priority"
-                    type="number"
-                    min="0"
-                    placeholder="1"
-                  />
-                  <input v-model="process.color" type="color" />
+                  <label class="process-field">
+                    <span>Name</span>
+                    <input
+                      :class="{ 'field-invalid': !process.name.trim() }"
+                      v-model="process.name"
+                      type="text"
+                      placeholder="Name"
+                    />
+                    <small v-if="!process.name.trim()" class="field-error">
+                      Name erforderlich
+                    </small>
+                  </label>
+                  <label class="process-field">
+                    <span>Ankunftszeit</span>
+                    <input
+                      :class="{
+                        'field-invalid':
+                          !Number.isFinite(process.arrivalTime) ||
+                          process.arrivalTime < 0,
+                      }"
+                      v-model.number="process.arrivalTime"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                    />
+                    <small
+                      v-if="
+                        !Number.isFinite(process.arrivalTime) ||
+                        process.arrivalTime < 0
+                      "
+                      class="field-error"
+                    >
+                      Mindestens 0
+                    </small>
+                  </label>
+                  <label class="process-field">
+                    <span>Rechenzeit</span>
+                    <input
+                      :class="{
+                        'field-invalid':
+                          !Number.isFinite(process.burstTime) ||
+                          process.burstTime < 1,
+                      }"
+                      v-model.number="process.burstTime"
+                      type="number"
+                      min="1"
+                      placeholder="5"
+                    />
+                    <small
+                      v-if="
+                        !Number.isFinite(process.burstTime) ||
+                        process.burstTime < 1
+                      "
+                      class="field-error"
+                    >
+                      Mindestens 1
+                    </small>
+                  </label>
+                  <label class="process-field">
+                    <span>Priorität</span>
+                    <input
+                      :class="{
+                        'field-invalid':
+                          !Number.isFinite(process.priority) ||
+                          process.priority < 0,
+                      }"
+                      v-model.number="process.priority"
+                      type="number"
+                      min="0"
+                      placeholder="1"
+                    />
+                    <small
+                      v-if="
+                        !Number.isFinite(process.priority) ||
+                        process.priority < 0
+                      "
+                      class="field-error"
+                    >
+                      Darf nicht negativ sein
+                    </small>
+                  </label>
+                  <label class="process-field process-color-field">
+                    <span>Farbe</span>
+                    <input v-model="process.color" type="color" />
+                  </label>
                   <button
                     class="danger-button"
                     type="button"
+                    aria-label="Task löschen"
+                    title="Task löschen"
                     @click="removeProcess(index)"
                   >
                     ×
                   </button>
                 </div>
               </div>
+
+              <p v-if="draft.processes.length === 1" class="process-note">
+                Für Scheduling-Vergleiche sind mindestens zwei Tasks sinnvoll.
+              </p>
             </div>
 
-            <div class="button-row submit-row">
+            <p v-if="validationErrors.length" class="form-error" role="alert">
+              <strong>Bitte Eingaben prüfen:</strong>
+              <span v-for="error in validationErrors" :key="error">{{
+                error
+              }}</span>
+            </p>
+
+            <div class="button-row submit-row generator-actions">
+              <button
+                class="cancel-button"
+                type="button"
+                @click="cancelGeneratorEdit"
+              >
+                Abbrechen
+              </button>
               <button
                 class="primary-button"
                 type="submit"
+                :disabled="hasDraftValidationErrors || !draft.processes.length"
                 data-tour="complete-generator"
               >
                 {{ generatorSubmitLabel }}
@@ -232,14 +360,85 @@
             </div>
           </form>
 
-          <aside class="modal-preview panel soft-panel">
-            <ScenarioMiniature
-              :processes="draft.processes"
-              :tickSize="draft.tickSize"
-              :title="draft.title || 'Szenario-Vorschau'"
-              subtitle="Miniatur aus den aktuellen Taskdaten"
-              :compact="true"
-            />
+          <aside class="generator-side">
+            <div class="preview-group">
+              <div class="modal-preview soft-panel">
+                <template v-if="draft.processes.length">
+                  <ScenarioMiniature
+                    :processes="draft.processes"
+                    :tickSize="draft.tickSize"
+                    :title="draft.title || 'Szenario-Vorschau'"
+                    subtitle="Miniatur aus den aktuellen Taskdaten"
+                    :compact="true"
+                  />
+                </template>
+                <div v-else class="preview-empty">
+                  <strong>Szenario-Vorschau</strong>
+                  <span>Noch keine Tasks angelegt.</span>
+                </div>
+              </div>
+
+              <p
+                v-if="activePresetDescription"
+                class="preset-description preview-description"
+              >
+                {{ activePresetDescription }}
+              </p>
+
+              <div
+                class="preview-summary"
+                aria-label="Szenario-Zusammenfassung"
+              >
+                <div>
+                  <span>Tasks</span>
+                  <strong>{{ draftSummary.taskCount }}</strong>
+                </div>
+                <div>
+                  <span>Längste Rechenzeit</span>
+                  <strong>{{ draftSummary.longestBurst }}</strong>
+                </div>
+                <div>
+                  <span>Späteste Ankunft</span>
+                  <strong>{{ draftSummary.latestArrival }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <details class="parameter-help" :open="false">
+              <summary>Begriffe und Task-Parameter erklärt</summary>
+              <dl>
+                <div>
+                  <dt>Name</dt>
+                  <dd>
+                    Anzeigename des Tasks, der in der Visualisierung erscheint.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Ankunft</dt>
+                  <dd>
+                    Zeitpunkt, ab dem der Task für den Scheduler verfügbar ist.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Rechenzeit</dt>
+                  <dd>
+                    CPU-Zeit, die der Task insgesamt benötigt, bis dieser
+                    abgeschlossen ist.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Prio</dt>
+                  <dd>
+                    Prioritätswert. Bei Prioritätsalgorithmen bedeutet ein
+                    kleinerer Wert eine höhere Priorität.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Farbe</dt>
+                  <dd>Farbe, mit der der Task im Zeitplan dargestellt wird.</dd>
+                </div>
+              </dl>
+            </details>
           </aside>
         </div>
       </div>
@@ -443,6 +642,13 @@
               :viewBox="focusViewBox"
               :activeId="focusActiveId"
               :currentTime="focusCurrentTime"
+              :timelineLength="focusTimelineLength"
+              :playbackStatus="focusPlaybackStatus"
+              :isPlaying="isPlaying"
+              :canStepBack="currentStepIndex > 0"
+              :canStepForward="canStepForward"
+              :simulationStarted="hasSimulationStarted"
+              :simulationFinished="isStackSimulationFinished"
               :stretchWidth="true"
               v-model:loop="loopPlayback"
               :tickSize="activeScenario.tickSize"
@@ -525,7 +731,7 @@
             >
               <span class="status-label">{{ metric.label }}</span>
               <strong>{{ metric.value }}</strong>
-              <small>{{ metric.help }}</small>
+              <small>{{ metric.phase }} · {{ metric.help }}</small>
             </article>
           </div>
         </section>
@@ -544,10 +750,11 @@
 
           <div class="stack-area">
             <StackList
-              v-if="stackItems.length"
-              :items="stackItems"
+              v-if="displayedStackItems.length"
+              :items="displayedStackItems"
               :activeId="currentActiveProcessId"
-              :contextText="stackExplanation"
+              :showLevels="activeRun?.algorithm === 'mlfq'"
+              :contextHistory="stackContextHistory"
               :quantumSummaryText="stackQuantumSummaryText"
               aria-label="Process queue"
             />
@@ -560,7 +767,11 @@
           <p class="note-text">{{ simulationNote }}</p>
         </section>
 
-        <aside class="modal-preview panel soft-panel" v-if="activeScenario">
+        <aside
+          v-if="activeScenario"
+          class="modal-preview panel soft-panel scenario-reference"
+          :class="{ 'scenario-reference--compact': activeRun }"
+        >
           <ScenarioMiniature
             :processes="activeScenario.processes"
             :tickSize="activeScenario.tickSize"
@@ -685,6 +896,7 @@ interface MetricCard {
   help: string;
   tooltip?: string;
   showEditIcon?: boolean;
+  phase?: string;
 }
 
 interface ComparisonCard {
@@ -1250,6 +1462,8 @@ const showGeneratorModal = ref(false);
 const showAlgorithmModal = ref(false);
 const showMetricsPanel = ref(true);
 const generatorMode = ref<"create" | "edit">("create");
+const activePresetKey = ref<keyof typeof scenarioPresets | null>(null);
+const validationErrors = ref<string[]>([]);
 const algorithmModalMode = ref<"create" | "edit">("create");
 const algorithmModalSeed = ref<{
   algorithm: AlgorithmType;
@@ -1264,7 +1478,7 @@ const algorithmModalSeed = ref<{
   };
 } | null>(null);
 const generatorModalRef = ref<HTMLElement | null>(null);
-useFocusTrap(generatorModalRef, closeGeneratorModal);
+useFocusTrap(generatorModalRef, cancelGeneratorEdit);
 const ganttWrapRef = ref<HTMLElement | null>(null);
 const dashboardGridRef = ref<HTMLElement | null>(null);
 const focusColumnRef = ref<HTMLElement | null>(null);
@@ -1347,6 +1561,7 @@ watchEffect((onCleanup) => {
 });
 
 const draft = reactive<ScenarioDraft>(createBlankScenarioDraft());
+const generatorOriginalDraft = ref<ScenarioDraft | null>(null);
 
 const generatorModalTitle = computed(() =>
   generatorMode.value === "edit" ? "Szenario bearbeiten" : "Szenario-Generator",
@@ -1354,6 +1569,37 @@ const generatorModalTitle = computed(() =>
 
 const generatorSubmitLabel = computed(() =>
   generatorMode.value === "edit" ? "Szenario speichern" : "Szenario anwenden",
+);
+
+const activePresetDescription = computed(() => {
+  const key = activePresetKey.value;
+  return key ? scenarioPresets[key].description : "";
+});
+
+const draftSummary = computed(() => {
+  const processes = draft.processes;
+  return {
+    taskCount: processes.length,
+    longestBurst: processes.length
+      ? String(Math.max(...processes.map((process) => process.burstTime)))
+      : "--",
+    latestArrival: processes.length
+      ? String(Math.max(...processes.map((process) => process.arrivalTime)))
+      : "--",
+  };
+});
+
+const hasDraftValidationErrors = computed(() =>
+  draft.processes.some(
+    (process) =>
+      !process.name.trim() ||
+      !Number.isFinite(process.arrivalTime) ||
+      process.arrivalTime < 0 ||
+      !Number.isFinite(process.burstTime) ||
+      process.burstTime < 1 ||
+      !Number.isFinite(process.priority) ||
+      process.priority < 0,
+  ),
 );
 
 function cloneDraft(source: ScenarioDraft): void {
@@ -1364,13 +1610,30 @@ function cloneDraft(source: ScenarioDraft): void {
   draft.processes = source.processes.map((process) => ({ ...process }));
 }
 
+function serializeDraft(source: ScenarioDraft): string {
+  return JSON.stringify({
+    title: source.title,
+    description: source.description,
+    seed: source.seed,
+    tickSize: source.tickSize,
+    processes: source.processes,
+  });
+}
+
+function hasGeneratorChanges(): boolean {
+  return (
+    generatorOriginalDraft.value !== null &&
+    serializeDraft(draft) !== serializeDraft(generatorOriginalDraft.value)
+  );
+}
+
 function openScenarioEditModal(): void {
   if (!activeScenario.value) {
     return;
   }
 
   generatorMode.value = "edit";
-  cloneDraft({
+  const scenarioDraft = {
     title: activeScenario.value.title,
     description: activeScenario.value.description,
     seed: activeScenario.value.seed,
@@ -1378,7 +1641,12 @@ function openScenarioEditModal(): void {
     processes: activeScenario.value.processes.map((process) => ({
       ...process,
     })),
-  });
+  };
+  cloneDraft(scenarioDraft);
+  generatorOriginalDraft.value = {
+    ...scenarioDraft,
+    processes: scenarioDraft.processes.map((process) => ({ ...process })),
+  };
   showGeneratorModal.value = true;
 }
 
@@ -1599,6 +1867,48 @@ type StackItem = {
 };
 const stackItems = ref<StackItem[]>([]);
 const loopLogStart = ref(0);
+
+const initialActiveProcessId = computed<string | null>(() => {
+  if (!activeRun.value) {
+    return null;
+  }
+
+  return (
+    runState.value?.snapshots.find((snapshot) => snapshot.currentProcessId)
+      ?.currentProcessId ?? null
+  );
+});
+
+const initialStackItems = computed<StackItem[]>(() => {
+  if (!activeRun.value) {
+    return [];
+  }
+
+  return (activeScenario.value?.processes ?? [])
+    .slice()
+    .sort(
+      (left, right) =>
+        left.arrivalTime - right.arrivalTime || left.id.localeCompare(right.id),
+    )
+    .map((process) => ({
+      id: process.id,
+      title: process.name,
+      subtitle: `Ankunft t ${process.arrivalTime} · Rechenzeit ${process.burstTime}`,
+      color: process.color,
+      level: activeRun.value.algorithm === "mlfq" ? 0 : null,
+      status:
+        process.id === initialActiveProcessId.value
+          ? "active"
+          : process.arrivalTime <= 0
+            ? "arrived"
+            : "ready",
+      waitingTicks: 0,
+    }));
+});
+
+const displayedStackItems = computed(() =>
+  stackItems.value.length ? stackItems.value : initialStackItems.value,
+);
 
 function isProcessDone(pid: string, snap: SimulationSnapshot | null) {
   if (!snap) {
@@ -1854,6 +2164,12 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
   stackItems.value = entries.map((entry) => {
     const pid = entry.id;
     const meta = findProcessMeta(pid);
+    const displayLevel =
+      activeRun.value?.algorithm === "mlfq" &&
+      entry.level === null &&
+      pid === (activeId ?? snapshotActiveId)
+        ? 0
+        : entry.level;
     const isFinishedNow = finishedIds.has(pid);
     const nextSeg =
       visibleSegments.value.find(
@@ -1861,10 +2177,10 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
           segment.processId === pid && segment.end > (snap?.time ?? 0),
       ) ?? visibleSegments.value.find((segment) => segment.processId === pid);
     const levelLabel =
-      entry.level === null || entry.level === undefined
+      displayLevel === null || displayLevel === undefined
         ? ""
-        : `L${entry.level + 1} · `;
-    const quantumTotal = quantumTotalForLevel(entry.level);
+        : `L${displayLevel + 1} · `;
+    const quantumTotal = quantumTotalForLevel(displayLevel);
     const quantumRemaining =
       activeRun.value?.algorithm === "mlfq"
         ? pid === snapshotActiveId
@@ -1899,7 +2215,7 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
       subtitle,
       color: meta.color,
       status,
-      level: entry.level,
+      level: displayLevel,
       quantumRemaining,
       quantumTotal,
       waitingTicks,
@@ -2062,7 +2378,7 @@ const currentEventLabel = computed(() =>
 );
 
 const stackExplanation = computed(() => {
-  const activeId = currentActiveProcessId.value;
+  const activeId = currentActiveProcessId.value ?? initialActiveProcessId.value;
   const activeName =
     currentSnapshot.value?.currentProcessName ??
     (activeId ? findProcessMeta(activeId).name : null);
@@ -2092,6 +2408,46 @@ const stackExplanation = computed(() => {
   }
 
   return "Gerade ist kein Task aktiv.";
+});
+
+const stackContextHistory = computed(() => {
+  if (!hasSimulationStarted.value) {
+    return [];
+  }
+
+  const currentTime = currentSnapshot.value?.time;
+  if (currentTime === null || currentTime === undefined) {
+    return [];
+  }
+
+  const activeName =
+    currentSnapshot.value?.currentProcessName ??
+    (currentActiveProcessId.value
+      ? findProcessMeta(currentActiveProcessId.value).name
+      : null);
+  const events = (runState.value?.events ?? []).filter(
+    (event) =>
+      event.time <= currentTime &&
+      (event.type === "start" ||
+        event.type === "preempt" ||
+        event.type === "quantumExpired" ||
+        event.type === "finish"),
+  );
+
+  return events
+    .slice(-3)
+    .reverse()
+    .map((event) => {
+      if (event.type === "finish") {
+        return `${event.processName ?? "Task"} abgeschlossen bei t ${event.time}.`;
+      }
+
+      if (event.type === "preempt" || event.type === "quantumExpired") {
+        return `${event.processName ?? "Task"} präemptiert bei t ${event.time}; ${activeName ?? "der nächste Task"} übernimmt.`;
+      }
+
+      return `${event.processName ?? "Task"} läuft jetzt bei t ${event.time}.`;
+    });
 });
 
 const stackQuantumSummaryText = computed(() => {
@@ -2129,13 +2485,23 @@ const stackQuantumSummaryText = computed(() => {
 });
 
 const stackEmptyTitle = computed(() =>
-  isStackSimulationFinished.value ? "Visualisierung beendet" : "Keine Daten",
+  !activeRun.value
+    ? "Kein Algorithmus aktiv"
+    : !hasSimulationStarted.value
+      ? "Simulation noch nicht gestartet"
+      : isStackSimulationFinished.value
+        ? "Visualisierung beendet"
+        : "Keine wartenden Tasks",
 );
 
 const stackEmptyDescription = computed(() =>
-  isStackSimulationFinished.value
-    ? "Alle Tasks wurden verarbeitet."
-    : "Aktiviere zuerst ein Szenario mit Algorithmus.",
+  !activeRun.value
+    ? "Wende zuerst einen Algorithmus auf das Szenario an."
+    : !hasSimulationStarted.value
+      ? "Die Tasks werden beim Start nach ihrer Ankunft eingeordnet."
+      : isStackSimulationFinished.value
+        ? "Alle Tasks wurden verarbeitet."
+        : "Aktuell warten keine Tasks in der Queue.",
 );
 
 const isStackSimulationFinished = computed(() => {
@@ -2199,41 +2565,70 @@ function handleStatusCardClick(label: string): void {
 }
 
 const metricCards = computed<MetricCard[]>(() => {
-  const metrics =
-    currentSnapshot.value?.metrics ?? runState.value?.finalMetrics;
+  const metrics = hasSimulationStarted.value
+    ? (currentSnapshot.value?.metrics ?? runState.value?.finalMetrics)
+    : undefined;
+  const completedCount = metrics?.completedCount ?? 0;
+  const arrivedCount =
+    currentSnapshot.value?.time === undefined
+      ? 0
+      : (activeScenario.value?.processes.filter(
+          (process) =>
+            process.arrivalTime <= (currentSnapshot.value?.time ?? 0),
+        ).length ?? 0);
+  const completionHelp = completedCount
+    ? "Mittelwert"
+    : arrivedCount
+      ? "Mittelwert der angekommenen Tasks"
+      : "Noch kein Task angekommen";
+  const maxWaitingHelp = completedCount
+    ? "höchster Einzelwert"
+    : arrivedCount
+      ? "höchster Wert der angekommenen Tasks"
+      : "Noch kein Task angekommen";
+  const phase = !hasSimulationStarted.value
+    ? "Noch nicht gestartet"
+    : isStackSimulationFinished.value
+      ? "Finaler Wert"
+      : "Zwischenstand";
 
   return [
     {
       label: "Wartezeit",
       value: formatMetric(metrics?.averageWaitingTime),
-      help: "Mittelwert",
+      help: completionHelp,
+      phase,
       tooltip:
         "Durchschnittliche Zeit, die Tasks in der Bereitschaftsschlange auf ihre Ausführung warten.",
     },
     {
       label: "Durchlaufzeit",
       value: formatMetric(metrics?.averageTurnaroundTime),
-      help: "Mittelwert",
+      help: completionHelp,
+      phase,
       tooltip:
         "Durchschnittliche Zeit vom Eintreffen eines Tasks bis zu seiner vollständigen Fertigstellung.",
     },
     {
       label: "Reaktionszeit",
       value: formatMetric(metrics?.averageResponseTime),
-      help: "Mittelwert",
+      help: completionHelp,
+      phase,
       tooltip:
         "Durchschnittliche Zeit vom Eintreffen eines Tasks bis zu seiner ersten Ausführung.",
     },
     {
       label: "Max. Wartezeit",
       value: formatMetric(metrics?.maxWaitingTime),
-      help: "höchster Einzelwert",
+      help: maxWaitingHelp,
+      phase,
       tooltip: "Längste Wartezeit eines einzelnen Tasks im aktuellen Lauf.",
     },
     {
       label: "Anzahl Präemptionen",
       value: String(metrics?.preemptionCount ?? 0),
-      help: "Präemption + Quantum abgelaufen",
+      help: "Gezählt im Lauf",
+      phase,
       tooltip:
         "Anzahl der Unterbrechungen, bei denen ein laufender Task zugunsten eines anderen Tasks oder wegen eines abgelaufenen Zeitquantums verdrängt wurde.",
     },
@@ -2241,6 +2636,7 @@ const metricCards = computed<MetricCard[]>(() => {
       label: "Kontextwechsel",
       value: String(metrics?.contextSwitches ?? 0),
       help: "Gezählt im Lauf",
+      phase,
       tooltip:
         "Anzahl der Wechsel zwischen Tasks, die vom Prozessor ausgeführt werden.",
     },
@@ -2359,6 +2755,35 @@ watch(sharedCellWidth, (v) => {
 const focusCurrentTime = computed(() =>
   layoutPhase.value === "running" ? (currentSnapshot.value?.time ?? 0) : 0,
 );
+
+const focusPlaybackStatus = computed(() => {
+  if (!activeRun.value) {
+    return "Kein Algorithmus aktiv";
+  }
+
+  if (!hasSimulationStarted.value) {
+    return "Bereit zum Start";
+  }
+
+  if (isStackSimulationFinished.value) {
+    return "Simulation beendet";
+  }
+
+  const activeStackItem = displayedStackItems.value.find(
+    (item) => item.status === "active",
+  );
+  const activeId =
+    activeStackItem?.id ??
+    currentActiveProcessId.value ??
+    initialActiveProcessId.value;
+  const activeName =
+    activeStackItem?.title ??
+    (activeId ? findProcessMeta(activeId).name : "Leerlauf");
+  const waitingCount = displayedStackItems.value.filter(
+    (item) => item.id !== activeId && item.status !== "finished",
+  ).length;
+  return `${activeName} läuft · ${waitingCount} wartend`;
+});
 
 const focusActiveId = computed(() =>
   layoutPhase.value === "activation" || layoutPhase.value === "settle"
@@ -2508,7 +2933,7 @@ function createWelcomeScenario(): void {
 }
 
 function loadTourStaggered(): void {
-  cloneDraft(scenarioPresets.staggered);
+  loadPreset("staggered");
 }
 
 function applyTourRoundRobin(): void {
@@ -2547,12 +2972,34 @@ function openHelpFromWelcome(): void {
 function openGeneratorModal(): void {
   generatorMode.value = "create";
   cloneDraft(createBlankScenarioDraft());
+  generatorOriginalDraft.value = null;
+  activePresetKey.value = null;
+  validationErrors.value = [];
   showGeneratorModal.value = true;
   navigate("/");
 }
 
+function startCustomScenario(): void {
+  cloneDraft(createBlankScenarioDraft());
+  generatorOriginalDraft.value = null;
+  activePresetKey.value = null;
+  validationErrors.value = [];
+}
+
 function closeGeneratorModal(): void {
   showGeneratorModal.value = false;
+}
+
+function cancelGeneratorEdit(): void {
+  if (
+    generatorMode.value === "edit" &&
+    hasGeneratorChanges() &&
+    !window.confirm("Änderungen verwerfen und Szenario schließen?")
+  ) {
+    return;
+  }
+
+  closeGeneratorModal();
 }
 
 function openAlgorithmModal(mode: "create" | "edit"): void {
@@ -2635,6 +3082,10 @@ function deleteCurrentRun(): void {
 }
 
 async function handlePlaybackPlay(): Promise<void> {
+  if (isStackSimulationFinished.value) {
+    resetPlayback();
+  }
+
   if (!hasSimulationStarted.value) {
     hasSimulationStarted.value = true;
     beginLaunchSequence(() => {
@@ -2909,6 +3360,8 @@ function animateDashboardStep(): void {
 
 function loadPreset(key: keyof typeof scenarioPresets): void {
   cloneDraft(scenarioPresets[key]);
+  activePresetKey.value = key;
+  validationErrors.value = [];
 }
 
 function randomizeDraft(): void {
@@ -2923,7 +3376,12 @@ function randomizeDraft(): void {
 }
 
 function addProcess(): void {
-  const index = draft.processes.length + 1;
+  const usedIds = new Set(draft.processes.map((process) => process.id));
+  let index = draft.processes.length + 1;
+  while (usedIds.has(`P${index}`)) {
+    index += 1;
+  }
+
   draft.processes.push({
     id: `P${index}`,
     name: `P${index}`,
@@ -2939,6 +3397,40 @@ function removeProcess(index: number): void {
 }
 
 function saveScenario(): void {
+  const errors: string[] = [];
+
+  if (!draft.processes.length) {
+    errors.push("Mindestens ein Task muss vorhanden sein.");
+  }
+  if (draft.processes.some((process) => !process.name.trim())) {
+    errors.push("Jeder Task benötigt einen Namen.");
+  }
+  if (
+    draft.processes.some(
+      (process) =>
+        !Number.isFinite(process.arrivalTime) || process.arrivalTime < 0,
+    )
+  ) {
+    errors.push("Die Ankunftszeit muss mindestens 0 sein.");
+  }
+  if (
+    draft.processes.some(
+      (process) => !Number.isFinite(process.burstTime) || process.burstTime < 1,
+    )
+  ) {
+    errors.push("Die Rechenzeit muss mindestens 1 sein.");
+  }
+  if (
+    draft.processes.some(
+      (process) => !Number.isFinite(process.priority) || process.priority < 0,
+    )
+  ) {
+    errors.push("Die Priorität darf nicht negativ sein.");
+  }
+
+  validationErrors.value = errors;
+  if (errors.length) return;
+
   const scenarioPayload = {
     title: draft.title || "Benutzer-Szenario",
     description:
@@ -3104,6 +3596,131 @@ onBeforeUnmount(() => {
 .modal-preview {
   align-self: start;
   padding: 0.95rem;
+}
+
+.preset-frame,
+.preview-group {
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  background: var(--panel-bg);
+}
+
+.preset-frame {
+  padding: 0.9rem;
+}
+
+.preset-frame .preset-groups {
+  gap: 1rem;
+}
+
+.custom-scenario-button {
+  width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+  text-align: left;
+}
+
+.custom-scenario-button:hover {
+  background: rgba(19, 95, 199, 0.08);
+}
+
+.preview-group {
+  overflow: hidden;
+}
+
+.preview-group .modal-preview {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.preview-empty {
+  display: grid;
+  min-height: 96px;
+  align-content: center;
+  justify-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.preview-empty strong {
+  color: var(--text);
+}
+
+.preview-empty span {
+  max-width: 24ch;
+  font-size: 0.85rem;
+}
+
+.preview-summary {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.8rem 0.9rem 0.9rem;
+  border-top: 1px solid var(--panel-border);
+  background: transparent;
+}
+
+.preview-description {
+  margin: 0;
+  padding: 0.7rem 0.9rem 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.preview-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.preview-summary span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.preview-summary strong {
+  color: var(--text);
+}
+
+.process-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.task-count {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.generator-side {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+}
+
+.scenario-reference--compact {
+  padding: 0.65rem;
+}
+
+.scenario-reference--compact :deep(.scenario-miniature) {
+  gap: 0.35rem;
+  padding: 0.55rem;
+}
+
+.scenario-reference--compact :deep(.scenario-miniature-svg) {
+  min-height: 130px;
+  max-height: 170px;
 }
 
 .gantt-wrap--raw {
