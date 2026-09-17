@@ -21,12 +21,21 @@ describe("accessibility (static checks)", () => {
     expect(src).toContain('ref="modalRoot"');
   });
 
-  it("Gantt.vue contains aria-labelledby, title and desc", () => {
+  it("GanttWithGsap renders the accessible Gantt view", () => {
+    const wrapperPath = resolve(
+      __dirname,
+      "../src/components/GanttWithGsap.vue",
+    );
     const path = resolve(__dirname, "../src/components/Gantt.vue");
+    const wrapperSrc = readFileSync(wrapperPath, "utf8");
     const src = readFileSync(path, "utf8");
+
+    expect(wrapperSrc).toContain('import Gantt from "./Gantt.vue"');
+    expect(wrapperSrc).toContain("<Gantt");
     expect(src).toContain("aria-labelledby");
     expect(src).toContain("<title");
     expect(src).toContain("<desc");
+    expect(src).toContain('aria-label="segmentAriaLabel(segment)"');
   });
 
   it("AppShell generator modal exposes dialog semantics and trap activation", () => {
