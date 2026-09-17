@@ -10,7 +10,7 @@
     }"
     preserveAspectRatio="none"
     class="gantt-svg"
-    role="img"
+    role="group"
     :aria-labelledby="`${titleId} ${descId}`"
     :aria-describedby="summaryId"
   >
@@ -99,6 +99,7 @@
               style="cursor: pointer"
               tabindex="0"
               role="button"
+              :aria-label="segmentAriaLabel(segment)"
               @focus="handleEnter(segment, $event)"
               @blur="handleLeave"
               @pointerenter.prevent="handleEnter(segment, $event)"
@@ -119,8 +120,8 @@
               :opacity="Math.max(segmentOpacity(segment) - 0.16, 0.42)"
               :stroke="segment.idle ? 'var(--muted)' : 'rgba(255,255,255,0.2)'"
               style="cursor: pointer"
-              tabindex="0"
-              role="button"
+              tabindex="-1"
+              aria-hidden="true"
               @focus="handleEnter(segment, $event)"
               @blur="handleLeave"
               @pointerenter.prevent="handleEnter(segment, $event)"
@@ -145,6 +146,7 @@
             style="cursor: pointer"
             tabindex="0"
             role="button"
+            :aria-label="segmentAriaLabel(segment)"
             @focus="handleEnter(segment, $event)"
             @blur="handleLeave"
             @pointerenter.prevent="handleEnter(segment, $event)"
@@ -418,6 +420,11 @@ function preemptionLabel(segment: TimelineSegment): string {
   const kind =
     event.type === "quantumExpired" ? "Quantum abgelaufen" : "Präemption";
   return `${kind} von ${segment.processName} bei t ${event.time}: ${event.reason}`;
+}
+
+function segmentAriaLabel(segment: TimelineSegment): string {
+  const kind = segment.idle ? "Leerlauf" : `Prozess ${segment.processName}`;
+  return `${kind}, von Zeit ${segment.start} bis ${segment.end}`;
 }
 
 function handleEnter(segment: TimelineSegment, ev: Event) {

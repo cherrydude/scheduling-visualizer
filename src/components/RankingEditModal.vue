@@ -6,15 +6,17 @@
       @click.self="$emit('close')"
     >
       <div
+        ref="modalRoot"
         class="modal panel algorithm-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Anwendungsfall anpassen"
+        aria-labelledby="ranking-edit-title"
+        aria-describedby="ranking-edit-description"
       >
         <div class="section-header">
           <div>
-            <h2>Anwendungsfall anpassen</h2>
-            <p class="subtitle subtitle-meta">
+            <h2 id="ranking-edit-title">Anwendungsfall anpassen</h2>
+            <p id="ranking-edit-description" class="subtitle subtitle-meta">
               Lege fest, welche Kennzahlen fuer diesen Fall wichtiger sind.
             </p>
           </div>
@@ -93,7 +95,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { reactive, ref, watch } from "vue";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -104,6 +107,10 @@ const emit = defineEmits<{
   (e: "close"): void;
   (e: "confirm", payload: Record<string, number>): void;
 }>();
+
+const modalRoot = ref<HTMLElement | null>(null);
+
+useFocusTrap(modalRoot, () => emit("close"));
 
 const localWeights = reactive<Record<string, number>>({
   averageResponseTime: 0,

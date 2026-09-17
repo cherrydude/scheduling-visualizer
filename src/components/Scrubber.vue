@@ -1,14 +1,17 @@
 <template>
   <div class="scrubber">
+    <label for="scrubber-range">Zeitpunkt</label>
     <input
+      id="scrubber-range"
       class="scrubber-range"
       type="range"
       :min="0"
       :max="Math.max(total, 0)"
       :value="currentTime"
+      :aria-valuetext="`Zeit ${currentTime} von ${total}`"
       @input="onInput"
     />
-    <div class="scrubber-info">
+    <div id="scrubber-info" class="scrubber-info" aria-live="polite">
       <span>{{ currentTime }}</span>
       <span> | </span>
       <span>{{ total }}</span>

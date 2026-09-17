@@ -31,6 +31,7 @@
           role="menu"
           aria-label="Szenario-Menü"
           :style="panelStyle"
+          @keydown.esc.prevent="closeMenu"
         >
           <div class="burger-section">
             <div class="section-heading">
@@ -38,6 +39,7 @@
               <button
                 class="secondary-button compact"
                 type="button"
+                role="menuitem"
                 data-tour="open-generator"
                 aria-label="Neues Szenario anlegen"
                 title="Neues Szenario anlegen"
@@ -72,6 +74,7 @@
               <button
                 type="button"
                 class="link-item"
+                role="menuitem"
                 aria-label="Szenario duplizieren"
                 title="Szenario duplizieren"
                 @click="handleDuplicate(activeScenarioId)"
@@ -81,6 +84,7 @@
               <button
                 type="button"
                 class="link-item"
+                role="menuitem"
                 aria-label="Szenario umbenennen"
                 title="Szenario umbenennen"
                 @click="handleRename(activeScenarioId)"
@@ -90,6 +94,7 @@
               <button
                 type="button"
                 class="link-item danger"
+                role="menuitem"
                 aria-label="Szenario löschen"
                 title="Szenario löschen"
                 @click="handleDelete(activeScenarioId)"
@@ -110,6 +115,7 @@
               v-if="activeScenarioId"
               type="button"
               class="link-item"
+              role="menuitem"
               aria-label="Szenario exportieren"
               title="Szenario als JSON exportieren"
               @click="handleExport"
@@ -119,6 +125,7 @@
             <button
               type="button"
               class="link-item"
+              role="menuitem"
               aria-label="Szenarien importieren"
               title="Szenario aus JSON-Datei importieren"
               @click="triggerFileInput"
@@ -151,6 +158,7 @@
             <button
               type="button"
               class="link-item"
+              role="menuitem"
               aria-label="Einführung starten"
               @click="handleTour"
             >
@@ -164,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { ScenarioRecord } from "@/composables/useScenarioWorkspace";
 
 const props = defineProps<{
@@ -208,6 +216,13 @@ function toggleMenu() {
 
 function closeMenu() {
   open.value = false;
+  void nextTick(() => {
+    if (!open.value) {
+      menuRef.value
+        ?.querySelector<HTMLButtonElement>(".burger-button")
+        ?.focus();
+    }
+  });
 }
 
 function handleCreate() {
@@ -313,6 +328,16 @@ function closeOnDocumentClick(ev: MouseEvent) {
 
 onMounted(() => {
   document.addEventListener("click", closeOnDocumentClick);
+});
+
+watch(open, (isOpen) => {
+  if (!isOpen) return;
+
+  void nextTick(() => {
+    panelRef.value
+      ?.querySelector<HTMLButtonElement>('[role="menuitem"]')
+      ?.focus();
+  });
 });
 
 onBeforeUnmount(() => {

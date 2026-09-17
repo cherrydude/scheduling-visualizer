@@ -59,16 +59,21 @@
         />
         Endlos
       </label>
+      <label class="playback-slider-label" for="playback-time-slider">
+        Zeitpunkt
+      </label>
       <input
+        id="playback-time-slider"
         type="range"
         step="1"
         :min="0"
         :max="timelineMax"
         v-model.number="sliderTime"
         :disabled="!controlsEnabled"
+        aria-describedby="playback-time-status"
         title="Zeitpunkt manuell wählen"
       />
-      <div class="playback-status" aria-live="polite">
+      <div id="playback-time-status" class="playback-status" aria-live="polite">
         <strong>Zeit {{ sliderTime }} / {{ timelineLength }}</strong>
         <span>{{ playbackStatus }}</span>
       </div>
@@ -231,11 +236,13 @@ const canStepForward = computed(() => props.canStepForward === true);
 const simulationStarted = computed(() => props.simulationStarted === true);
 const simulationFinished = computed(() => props.simulationFinished === true);
 const introAnimation = computed(() => props.introAnimation !== false);
-const prefersReducedMotion =
-  typeof window !== "undefined" &&
-  (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false);
+const prefersReducedMotion = ref(false);
+let motionQuery: MediaQueryList | null = null;
+const handleMotionPreferenceChange = (event: MediaQueryListEvent) => {
+  prefersReducedMotion.value = event.matches;
+};
 const shouldAnimate = computed(
-  () => !prefersReducedMotion && introAnimation.value,
+  () => !prefersReducedMotion.value && introAnimation.value,
 );
 const debugPreemption = import.meta.env.DEV;
 
@@ -934,7 +941,9 @@ function handleReset() {
 function onSegmentEnter(segment: TimelineSegment, ev: PointerEvent) {
   // small hover animation
   const el = (ev.currentTarget as HTMLElement) || null;
-  if (el) gsap.to(el, { scale: 1.02, duration: 0.18, yoyo: true, repeat: 1 });
+  if (el && shouldAnimate.value) {
+    gsap.to(el, { scale: 1.02, duration: 0.18, yoyo: true, repeat: 1 });
+  }
 }
 
 function onSegmentLeave() {}
@@ -950,6 +959,10 @@ function handleStep(delta: number) {
 }
 
 onMounted(() => {
+  motionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
+  prefersReducedMotion.value = motionQuery?.matches ?? false;
+  motionQuery?.addEventListener("change", handleMotionPreferenceChange);
+
   // build timeline: entry animation + numeric time tween
   ctx = gsap.context(() => {
     const rootEl = root.value;
@@ -1009,6 +1022,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  motionQuery?.removeEventListener("change", handleMotionPreferenceChange);
+  motionQuery = null;
   if (tl.current) {
     try {
       tl.current.kill();

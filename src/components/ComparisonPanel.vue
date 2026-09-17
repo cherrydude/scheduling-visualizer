@@ -14,26 +14,22 @@
       <button
         v-for="appCase in caseOptions"
         :key="appCase.id"
+        :id="`comparison-tab-${appCase.id}`"
         type="button"
         class="case-card"
+        role="tab"
         :class="{ 'case-card--active': appCase.id === selectedCaseId }"
-        :aria-pressed="appCase.id === selectedCaseId"
+        :aria-selected="appCase.id === selectedCaseId"
+        :aria-controls="`comparison-panel-${appCase.id}`"
+        :tabindex="appCase.id === selectedCaseId ? 0 : -1"
+        :ref="(element) => setTabRef(appCase.id, element)"
         :title="weightTooltip(appCase)"
-        @click="selectedCaseId = appCase.id"
+        @click="selectCase(appCase.id)"
+        @keydown="handleTabKeydown($event, appCase.id)"
       >
         <strong>{{ appCase.label }}</strong>
         <small>{{ appCase.subtitle }}</small>
-        <span v-if="appCase.id !== 'custom'">{{ appCase.description }}</span>
-        <span v-else class="custom-case-copy">
-          Passe die bekannten Kennzahlen an deinen eigenen Kontext an.
-          <button
-            class="inline-link-button custom-case-link"
-            type="button"
-            @click.stop="openCustomModal"
-          >
-            Hier anpassen ✎
-          </button>
-        </span>
+        <span>{{ appCase.description }}</span>
       </button>
     </div>
 
@@ -44,7 +40,16 @@
       @confirm="applyCustomWeights"
     />
 
-    <div class="comparison-table">
+    <div
+      v-for="appCase in caseOptions"
+      v-show="appCase.id === selectedCaseId"
+      :id="`comparison-panel-${appCase.id}`"
+      :key="`panel-${appCase.id}`"
+      class="comparison-table"
+      role="tabpanel"
+      :aria-labelledby="`comparison-tab-${appCase.id}`"
+      tabindex="0"
+    >
       <div class="visually-hidden" role="status" aria-live="polite">
         {{ bestRowId ? `Bester Lauf: Run ${bestRowId}.` : "" }}
         {{ worstRowId ? `Schwächster Lauf: Run ${worstRowId}.` : "" }}
@@ -263,6 +268,13 @@ const activeScenario = computed(
 
 const selectedCaseId = ref<ComparisonCaseId>(loadSelectedCaseId());
 const showCustomModal = ref(false);
+const tabRefs = ref<Record<ComparisonCaseId, HTMLButtonElement | null>>({
+  interactive: null,
+  batch: null,
+  webServer: null,
+  softRealtime: null,
+  custom: null,
+});
 
 watch(
   selectedCaseId,
@@ -393,6 +405,39 @@ function statusClass(id: string): string {
 
 function openCustomModal() {
   showCustomModal.value = true;
+}
+
+function selectCase(id: ComparisonCaseId) {
+  selectedCaseId.value = id;
+  if (id === "custom") {
+    openCustomModal();
+  }
+}
+
+function setTabRef(id: ComparisonCaseId, element: Element | null) {
+  tabRefs.value[id] = element as HTMLButtonElement | null;
+}
+
+function handleTabKeydown(event: KeyboardEvent, id: ComparisonCaseId) {
+  const currentIndex = caseOptions.findIndex((appCase) => appCase.id === id);
+  let nextIndex = currentIndex;
+
+  if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    nextIndex = (currentIndex + 1) % caseOptions.length;
+  } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+    nextIndex = (currentIndex - 1 + caseOptions.length) % caseOptions.length;
+  } else if (event.key === "Home") {
+    nextIndex = 0;
+  } else if (event.key === "End") {
+    nextIndex = caseOptions.length - 1;
+  } else {
+    return;
+  }
+
+  event.preventDefault();
+  const nextId = caseOptions[nextIndex].id;
+  selectCase(nextId);
+  tabRefs.value[nextId]?.focus();
 }
 
 function closeCustomModal() {

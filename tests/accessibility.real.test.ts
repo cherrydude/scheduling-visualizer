@@ -61,6 +61,31 @@ describe("accessibility (static checks)", () => {
     expect(src).toContain('role="status"');
     expect(src).toContain('aria-live="polite"');
     expect(src).toContain("statusLabel(row.id)");
+    expect(src).toContain('role="tablist"');
+    expect(src).toContain('role="tab"');
+    expect(src).toContain("aria-selected");
+    expect(src).toContain('role="tabpanel"');
+  });
+
+  it("RankingEditModal uses the shared focus trap", () => {
+    const path = resolve(__dirname, "../src/components/RankingEditModal.vue");
+    const src = readFileSync(path, "utf8");
+
+    expect(src).toContain('ref="modalRoot"');
+    expect(src).toContain("useFocusTrap(modalRoot");
+    expect(src).toContain('aria-labelledby="ranking-edit-title"');
+  });
+
+  it("interactive time controls expose labels and values", () => {
+    const ganttPath = resolve(__dirname, "../src/components/GanttWithGsap.vue");
+    const scrubberPath = resolve(__dirname, "../src/components/Scrubber.vue");
+    const ganttSrc = readFileSync(ganttPath, "utf8");
+    const scrubberSrc = readFileSync(scrubberPath, "utf8");
+
+    expect(ganttSrc).toContain('for="playback-time-slider"');
+    expect(ganttSrc).toContain('aria-describedby="playback-time-status"');
+    expect(scrubberSrc).toContain('for="scrubber-range"');
+    expect(scrubberSrc).toContain("aria-valuetext");
   });
 
   it("dialogs support Escape-to-close and focused modal trapping", () => {
