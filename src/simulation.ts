@@ -278,6 +278,7 @@ function dispatchProcess(
     | "remainingTime"
     | "waitingTime"
     | "id" = "fifo",
+  previousProcessId: string | null = null,
 ): {
   nextCurrent: ProcessRuntime | null;
   nextQuantum: number;
@@ -346,7 +347,10 @@ function dispatchProcess(
     nextCurrent,
     nextQuantum,
     segmentStart: time,
-    contextSwitches: 1,
+    contextSwitches:
+      previousProcessId !== null && previousProcessId !== nextCurrent.id
+        ? 1
+        : 0,
     currentSegmentNeedsReset: true,
   };
 }
@@ -486,7 +490,12 @@ function selectStrictPriorityProcess(
     const candidateScore = strictPriorityScore(candidate, time, tieBreak);
     const bestScore = strictPriorityScore(best, time, tieBreak);
 
-    if (candidateScore < bestScore) {
+    const candidateWins =
+      tieBreak === "waitingTime"
+        ? candidateScore > bestScore
+        : candidateScore < bestScore;
+
+    if (candidateWins) {
       bestIndex = index;
       continue;
     }
@@ -630,6 +639,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   let completedCount = 0;
   let idleSegmentStart: number | null = null;
   let lastEvent: ScheduleEvent | null = null;
+  let lastRunningProcessId: string | null = null;
   let lastSnapshotTime = -1;
 
   const isLcfs = simulationScenario.algorithm === "lcfs";
@@ -798,6 +808,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   while (completedCount < processes.length && time <= maxTicks) {
     if (!currentProcess && readyQueue.length === 0) {
       idleSegmentStart ??= time;
+      lastRunningProcessId = null;
       time += 1;
       enqueueArrivals(time);
       maybeSnapshot(false);
@@ -816,6 +827,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         mlfqQueueLevels,
         mlfqMode,
         strictPriorityTieBreak,
+        lastRunningProcessId,
       );
       currentProcess = dispatch.nextCurrent;
       remainingQuantum = dispatch.nextQuantum;
@@ -825,11 +837,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         : currentSegmentStart;
       contextSwitches += dispatch.contextSwitches;
 
-      if (
-        dispatch.contextSwitches > 0 &&
-        lastEvent?.processId &&
-        lastEvent.processId !== currentProcess?.id
-      ) {
+      if (dispatch.contextSwitches > 0 && currentProcess) {
         const contextSwitchEvent: ScheduleEvent = {
           time,
           type: "contextSwitch",
@@ -843,6 +851,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       }
 
       if (currentProcess) {
+        lastRunningProcessId = currentProcess.id;
         currentSegmentLevel = currentProcess.queueLevel ?? null;
         currentSegmentStart = time;
         const startEvent: ScheduleEvent = {
@@ -930,6 +939,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
         mlfqQueueLevels,
         mlfqMode,
         strictPriorityTieBreak,
+        lastRunningProcessId,
       );
       currentProcess = dispatch.nextCurrent;
       remainingQuantum = dispatch.nextQuantum;
@@ -940,6 +950,19 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
 
       if (currentProcess) {
         pushIdleSegment(time);
+        if (dispatch.contextSwitches > 0) {
+          const contextSwitchEvent: ScheduleEvent = {
+            time,
+            type: "contextSwitch",
+            processId: currentProcess.id,
+            processName: currentProcess.name,
+            algorithm: simulationScenario.algorithm,
+            reason: `Context switch to ${currentProcess.name}.`,
+          };
+          events.push(contextSwitchEvent);
+          lastEvent = contextSwitchEvent;
+        }
+        lastRunningProcessId = currentProcess.id;
         const startEvent: ScheduleEvent = {
           time,
           type: "start",

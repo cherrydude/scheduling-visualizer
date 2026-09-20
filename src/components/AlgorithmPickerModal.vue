@@ -59,7 +59,7 @@
               <span>Tie-Break</span>
               <select v-model="lcfsTieBreak" class="algorithm-control">
                 <option value="stack">Stack-Reihenfolge</option>
-                <option value="id">Prozess-ID</option>
+                <option value="id">Task-ID</option>
               </select>
             </label>
           </template>
@@ -76,7 +76,7 @@
                   <option value="arrivalTime">Früheste Ankunft</option>
                   <option value="remainingTime">Kürzeste Restzeit</option>
                   <option value="waitingTime">Längste Wartezeit</option>
-                  <option value="id">Prozess-ID</option>
+                  <option value="id">Task-ID</option>
                 </select>
               </label>
 
