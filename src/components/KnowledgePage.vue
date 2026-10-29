@@ -217,14 +217,13 @@
         </figure>
         <figure class="ui-screenshot">
           <img
-            :src="mlfqScreenshot"
-            alt="Schema einer MLFQ-Timeline mit drei Queue-Leveln"
+            :src="detailScreenshot"
+            alt="Detailansicht einer Gantt-Timeline"
             loading="lazy"
           />
           <figcaption>
-            <strong>MLFQ:</strong> Die Ebenen L1 bis L3 zeigen, in welcher Queue
-            ein Task eingeordnet ist. Nach einem Quantum kann er nach unten
-            verschoben werden.
+            <strong>Detailansicht:</strong> Die Gantt-Timeline macht einzelne
+            Ausführungssegmente und Zeitpunkte sichtbar.
           </figcaption>
         </figure>
       </div>
@@ -497,9 +496,9 @@
 </template>
 
 <script setup lang="ts">
-import focusScreenshot from "../../documents/fokusansicht für mehrere algos.jpg";
-import comparisonScreenshot from "../../documents/multi-view.png";
-import mlfqScreenshot from "../../documents/mlfq.png";
+import focusScreenshot from "../assets/knowledge/focus-overview.png";
+import comparisonScreenshot from "../assets/knowledge/comparison-overview.png";
+import detailScreenshot from "../assets/knowledge/gantt-detail.png";
 
 defineEmits<{
   (event: "start-demo"): void;

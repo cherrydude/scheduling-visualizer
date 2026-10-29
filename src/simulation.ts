@@ -943,6 +943,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
       );
       currentProcess = dispatch.nextCurrent;
       remainingQuantum = dispatch.nextQuantum;
+      currentSegmentLevel = currentProcess?.queueLevel ?? null;
       if (dispatch.currentSegmentNeedsReset) {
         currentSegmentStart = time;
       }

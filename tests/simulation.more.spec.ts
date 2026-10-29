@@ -39,6 +39,40 @@ describe("Simulation additional checks", () => {
     expect(demoted).toBe(true);
   });
 
+  it("starts a late-arriving MLFQ process in L1", () => {
+    const run = simulateScenario({
+      algorithm: "mlfq",
+      algorithmParams: {
+        timeQuantum: 1,
+        queueLevels: 3,
+        snapshotInterval: 1,
+        mlfqMode: "classic",
+      },
+      processes: [
+        {
+          id: "P1",
+          name: "P1",
+          arrivalTime: 0,
+          burstTime: 4,
+          priority: 1,
+          color: "",
+        },
+        {
+          id: "P12",
+          name: "P12",
+          arrivalTime: 2,
+          burstTime: 1,
+          priority: 1,
+          color: "",
+        },
+      ],
+    });
+
+    expect(run.segments.find((segment) => segment.processId === "P12")).toEqual(
+      expect.objectContaining({ queueLevel: 0 }),
+    );
+  });
+
   it("StrictPriority tieBreak 'remainingTime' selects shorter remaining job first", () => {
     const scenario: Scenario = {
       algorithm: "strictPriority",
