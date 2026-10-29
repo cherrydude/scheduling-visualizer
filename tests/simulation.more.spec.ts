@@ -60,7 +60,7 @@ describe("Simulation additional checks", () => {
         {
           id: "P12",
           name: "P12",
-          arrivalTime: 2,
+          arrivalTime: 12,
           burstTime: 1,
           priority: 1,
           color: "",
@@ -68,9 +68,11 @@ describe("Simulation additional checks", () => {
       ],
     });
 
-    expect(run.segments.find((segment) => segment.processId === "P12")).toEqual(
-      expect.objectContaining({ queueLevel: 0 }),
-    );
+    expect(
+      run.segments.find(
+        (segment: { processId: string }) => segment.processId === "P12",
+      ),
+    ).toEqual(expect.objectContaining({ queueLevel: 0 }));
   });
 
   it("StrictPriority tieBreak 'remainingTime' selects shorter remaining job first", () => {

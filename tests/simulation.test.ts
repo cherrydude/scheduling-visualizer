@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { simulateScenario } from "@/simulation";
+import { simulateScenario } from "../src/simulation";
 
 describe("simulateScenario", () => {
   it("normalizes malformed input and keeps segment bounds valid", () => {
@@ -29,9 +29,14 @@ describe("simulateScenario", () => {
 
     expect(result.supported).toBe(true);
     expect(result.totalTime).toBeGreaterThanOrEqual(0);
-    expect(result.segments.every((segment) => segment.start >= 0)).toBe(true);
     expect(
-      result.segments.every((segment) => segment.end >= segment.start),
+      result.segments.every((segment: { start: number }) => segment.start >= 0),
+    ).toBe(true);
+    expect(
+      result.segments.every(
+        (segment: { end: number; start: number }) =>
+          segment.end >= segment.start,
+      ),
     ).toBe(true);
     expect(Number.isFinite(result.finalMetrics.cpuUtilization)).toBe(true);
     expect(Number.isFinite(result.finalMetrics.idleShare)).toBe(true);
@@ -74,7 +79,9 @@ describe("simulateScenario", () => {
       ],
     });
 
-    const starts = result.segments.map((segment) => segment.start);
+    const starts = result.segments.map(
+      (segment: { start: any }) => segment.start,
+    );
     expect(starts).toEqual([...starts].sort((left, right) => left - right));
     expect(result.finalMetrics.completedCount).toBe(2);
     expect(result.finalMetrics.preemptionCount).toBe(1);

@@ -754,7 +754,6 @@
               :items="displayedStackItems"
               :activeId="currentActiveProcessId"
               :showLevels="activeRun?.algorithm === 'mlfq'"
-              :contextHistory="stackContextHistory"
               :quantumSummaryText="stackQuantumSummaryText"
               aria-label="Process queue"
             />
@@ -2177,7 +2176,9 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
           segment.processId === pid && segment.end > (snap?.time ?? 0),
       ) ?? visibleSegments.value.find((segment) => segment.processId === pid);
     const levelLabel =
-      displayLevel === null || displayLevel === undefined
+      activeRun.value?.algorithm !== "mlfq" ||
+      displayLevel === null ||
+      displayLevel === undefined
         ? ""
         : `L${displayLevel + 1} · `;
     const quantumTotal = quantumTotalForLevel(displayLevel);
@@ -2192,12 +2193,12 @@ function writeStackFromSnapshot(snap: SimulationSnapshot | null) {
         ? ` · Q ${Math.max(0, quantumTotal - quantumRemaining)}/${quantumTotal}`
         : "";
     const subtitle = isFinishedNow
-      ? `${levelLabel}abgeschlossen bei t ${snap?.time ?? 0}`
+      ? `${levelLabel}abgeschlossen bei Tick ${snap?.time ?? 0}`
       : nextSeg
-        ? `${levelLabel}t ${nextSeg.start}–${nextSeg.end}${quantumText}`
+        ? `${levelLabel}Tick ${nextSeg.start}-${nextSeg.end}${quantumText}`
         : entry.level === null || entry.level === undefined
-          ? "t done"
-          : `${levelLabel}t done${quantumText}`;
+          ? "Tick abgeschlossen"
+          : `${levelLabel}Tick abgeschlossen${quantumText}`;
     const status =
       pid === activeId
         ? "active"
