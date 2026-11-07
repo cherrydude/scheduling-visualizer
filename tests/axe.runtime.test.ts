@@ -2,6 +2,7 @@ import { test, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 
+// axe-core prüft typische WCAG-Verstöße im tatsächlich gerenderten DOM.
 test("GanttWithGsap path exposes static Gantt markers and motion gating", () => {
   const root = join(__dirname, "..");
   const ganttPath = join(root, "src", "components", "Gantt.vue");

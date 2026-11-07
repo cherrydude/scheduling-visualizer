@@ -1,5 +1,6 @@
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 
+/** Sichert Tastaturfokus und Hintergrundinhalte für Modal-Dialoge. */
 export function useFocusTrap(
   containerRef: { value: HTMLElement | null },
   onEscape?: () => void,
@@ -7,6 +8,7 @@ export function useFocusTrap(
   const previouslyFocused = ref<HTMLElement | null>(null);
   let active = false;
 
+  /** Liefert nur tatsächlich per Tastatur erreichbare Elemente im Dialog. */
   function getFocusable(): HTMLElement[] {
     const el = containerRef.value;
     if (!el) return [];
@@ -15,17 +17,19 @@ export function useFocusTrap(
       el.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
       ),
-    ).filter((node) => !node.hasAttribute('disabled'));
+    ).filter((node) => !node.hasAttribute("disabled"));
   }
 
   function handleKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape' && onEscape) {
+    // Escape wird bewusst vor der Tab-Logik behandelt, damit Dialoge schnell
+    // geschlossen werden können, ohne den Fokuszyklus zu verändern.
+    if (event.key === "Escape" && onEscape) {
       event.preventDefault();
       onEscape();
       return;
     }
 
-    if (event.key !== 'Tab' || !containerRef.value) {
+    if (event.key !== "Tab" || !containerRef.value) {
       return;
     }
 
@@ -58,17 +62,17 @@ export function useFocusTrap(
     const focusable = getFocusable();
     (focusable[0] as HTMLElement | undefined)?.focus();
 
-    const main = document.querySelector('main') as HTMLElement | null;
+    const main = document.querySelector("main") as HTMLElement | null;
     if (main) {
       try {
-        main.setAttribute('aria-hidden', 'true');
+        main.setAttribute("aria-hidden", "true");
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        if ('inert' in main) main.inert = true;
+        if ("inert" in main) main.inert = true;
       } catch {}
     }
 
-    document.addEventListener('keydown', handleKeydown);
+    document.addEventListener("keydown", handleKeydown);
     active = true;
   }
 
@@ -79,15 +83,15 @@ export function useFocusTrap(
   function deactivate(): void {
     if (!active) return;
 
-    document.removeEventListener('keydown', handleKeydown);
+    document.removeEventListener("keydown", handleKeydown);
 
-    const main = document.querySelector('main') as HTMLElement | null;
+    const main = document.querySelector("main") as HTMLElement | null;
     if (main) {
       try {
-        main.removeAttribute('aria-hidden');
+        main.removeAttribute("aria-hidden");
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        if ('inert' in main) main.inert = false;
+        if ("inert" in main) main.inert = false;
       } catch {}
     }
 
@@ -107,7 +111,7 @@ export function useFocusTrap(
         deactivate();
       }
     },
-    { flush: 'post' },
+    { flush: "post" },
   );
 
   onMounted(() => {

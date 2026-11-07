@@ -1,3 +1,4 @@
+/** Alle im Simulator verfügbaren Scheduling-Strategien. */
 export type AlgorithmType =
   | "roundRobin"
   | "lcfs"
@@ -5,6 +6,7 @@ export type AlgorithmType =
   | "mlfq"
   | "sjf";
 
+/** Unveränderliche Eingabedaten eines Prozesses innerhalb eines Szenarios. */
 export interface ProcessInput {
   id: string;
   name: string;
@@ -15,6 +17,7 @@ export interface ProcessInput {
   group?: string;
 }
 
+/** Optionale Parameter, die das Verhalten eines Algorithmus konkretisieren. */
 export interface AlgorithmParams {
   timeQuantum?: number;
   /** Anzahl Ticks zwischen automatischen Snapshots (1 = jeder Tick) */
@@ -52,6 +55,7 @@ export type ProcessStatus =
   | "preempted"
   | "finished";
 
+/** Laufzeitstatus eines Prozesses inklusive während der Simulation berechneter Werte. */
 export interface ProcessRuntime extends ProcessInput {
   remainingTime: number;
   status: ProcessStatus;
@@ -65,6 +69,7 @@ export interface ProcessRuntime extends ProcessInput {
   mlfqRemainingQuantum?: number;
 }
 
+/** Ereignisse bilden den fachlichen Ablauf der Zustandsmaschine ab. */
 export type EventType =
   | "arrival"
   | "dispatch"
@@ -75,6 +80,7 @@ export type EventType =
   | "quantumExpired"
   | "contextSwitch";
 
+/** Ein protokollierter Zustands- oder Scheduling-Übergang. */
 export interface ScheduleEvent {
   time: number;
   type: EventType;
@@ -86,6 +92,7 @@ export interface ScheduleEvent {
   reason: string;
 }
 
+/** Ein zusammenhängender Abschnitt im Gantt-Diagramm. */
 export interface TimelineSegment {
   processId: string | null;
   processName: string;
@@ -96,6 +103,7 @@ export interface TimelineSegment {
   queueLevel?: number;
 }
 
+/** Kennzahlen eines Zwischenstands oder eines abgeschlossenen Simulationslaufs. */
 export interface SimulationMetrics {
   averageWaitingTime: number | null;
   averageTurnaroundTime: number | null;
@@ -108,6 +116,7 @@ export interface SimulationMetrics {
   completedCount: number;
 }
 
+/** Serialisierbarer UI-Zwischenstand für Scrubber, Playback und Detailansichten. */
 export interface SimulationSnapshot {
   time: number;
   currentProcessId: string | null;
@@ -123,6 +132,7 @@ export interface SimulationSnapshot {
   metrics: SimulationMetrics;
 }
 
+/** Vollständiges Ergebnis eines Simulationslaufs. */
 export interface SimulationRun {
   snapshots: SimulationSnapshot[];
   events: ScheduleEvent[];

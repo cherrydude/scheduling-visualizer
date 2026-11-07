@@ -1,5 +1,6 @@
 import type { SimulationMetrics, SimulationRun } from "@/types";
 
+/** Kennzahlen, die in der Vergleichsansicht gewichtet werden können. */
 export type ComparisonMetricKey =
   | "averageTurnaroundTime"
   | "averageWaitingTime"
@@ -32,10 +33,12 @@ export interface ComparisonRow {
   rawValues: Record<string, number | null>;
 }
 
+/** Wandelt fehlende Metriken in NaN um, damit sie bei der Normalisierung ignoriert werden. */
 function safeNumber(value: number | null | undefined) {
   return Number.isFinite(value as number) ? (value as number) : NaN;
 }
 
+/** Extrahiert vergleichbare Rohwerte aus einem Simulationslauf. */
 export function extractValues(run: SimulationRun) {
   const m = run.finalMetrics;
   const throughput = run.totalTime > 0 ? m.completedCount / run.totalTime : 0;
@@ -53,6 +56,11 @@ export function extractValues(run: SimulationRun) {
   };
 }
 
+/**
+ * Skaliert jede Kennzahl über alle Läufe auf den Bereich 0 bis 1.
+ * Gleiche Minima und Maxima werden künstlich auseinandergezogen, um eine
+ * Division durch null bei konstanten Messwerten zu vermeiden.
+ */
 export function normalizeAcrossRuns(
   rows: { id: string; values: Record<string, number> }[],
   keys: string[],
@@ -87,6 +95,8 @@ export function computeScoreForRow(
   normalized: Record<string, number>,
   weights: Record<string, number>,
 ) {
+  // Niedrigere Werte werden invertiert, damit für alle Kennzahlen ein höherer
+  // Beitrag zum Score besser bedeutet.
   let score = 0;
 
   for (const [key, weight] of Object.entries(weights)) {
@@ -103,6 +113,7 @@ export function computeScoreForRow(
   return Math.round(score * 1000) / 1000;
 }
 
+/** Baut vollständige Vergleichszeilen und sortiert sie nach dem gewichteten Score. */
 export function buildComparisonRows(
   runs: { id: string; label: string; run: SimulationRun }[],
   weights: Record<string, number>,

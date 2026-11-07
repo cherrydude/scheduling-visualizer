@@ -14,6 +14,7 @@ type GanttZoomOptions = {
   minViewportWidth?: number;
 };
 
+/** Beobachtet die Viewport-Größe eines Gantt-Containers und leitet daraus die Zellbreite ab. */
 export function useGanttZoom(
   targetRef: Ref<HTMLElement | null>,
   timelineLength: Ref<number> | number,
@@ -31,30 +32,32 @@ export function useGanttZoom(
 
   watchEffect(
     (onCleanup) => {
-    const element = targetRef.value;
+      // ResizeObserver reagiert auch auf Layoutänderungen ohne Fenster-Resize,
+      // etwa beim Öffnen einer Seitenleiste oder beim Wechsel der Ansicht.
+      const element = targetRef.value;
 
-    if (!element) {
-      viewportWidth.value = 0;
-      return;
-    }
+      if (!element) {
+        viewportWidth.value = 0;
+        return;
+      }
 
-    const updateViewportWidth = () => {
-      viewportWidth.value = Math.floor(element.clientWidth);
-    };
+      const updateViewportWidth = () => {
+        viewportWidth.value = Math.floor(element.clientWidth);
+      };
 
-    updateViewportWidth();
+      updateViewportWidth();
 
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
+      if (observer) {
+        observer.disconnect();
+        observer = null;
+      }
 
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
+      if (typeof ResizeObserver === "undefined") {
+        return;
+      }
 
-    observer = new ResizeObserver(updateViewportWidth);
-    observer.observe(element);
+      observer = new ResizeObserver(updateViewportWidth);
+      observer.observe(element);
       onCleanup(() => {
         observer?.disconnect();
         observer = null;

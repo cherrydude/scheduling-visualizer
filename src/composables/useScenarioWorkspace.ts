@@ -6,6 +6,7 @@ import type {
   Scenario,
 } from "@/types";
 
+/** Verbindung zwischen Szenario-Editor, Persistenz und ausgewählten Algorithmus-Runs. */
 export interface AlgorithmAttachment {
   algorithm: AlgorithmType;
   algorithmParams: AlgorithmParams;
@@ -48,6 +49,7 @@ const DEFAULT_ALGORITHM_PARAMS: AlgorithmParams = {
   lcfsTieBreak: "stack",
 };
 
+/** Erzeugt eine stabile ID mit crypto.randomUUID und Fallback für ältere Umgebungen. */
 function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -56,19 +58,23 @@ function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+/** Erstellt eine flache Kopie, damit UI-Änderungen nicht in gespeicherte Daten hineinmutieren. */
 function cloneProcesses(processes: ProcessInput[]): ProcessInput[] {
   return processes.map((process) => ({ ...process }));
 }
 
+/** Konvertiert beliebige Storage-/Formularwerte in endliche Zahlen. */
 function toFiniteNumber(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/** Normalisiert Ganzzahlen für Parameter, die mindestens einen gültigen Wert benötigen. */
 function toPositiveInteger(value: unknown, fallback: number): number {
   return Math.max(1, Math.floor(toFiniteNumber(value, fallback)));
 }
 
+/** Bereinigt einen einzelnen Prozessdatensatz an der Eingabegrenze. */
 function normalizeProcessInput(
   process: Partial<ProcessInput> | null | undefined,
   fallbackIndex: number,
@@ -100,6 +106,7 @@ function normalizeProcessInput(
   };
 }
 
+/** Verwirft nicht-arrayförmige Prozessdaten und normalisiert jedes Arrayelement. */
 function normalizeProcesses(processes: unknown): ProcessInput[] {
   if (!Array.isArray(processes)) {
     return [];
@@ -110,6 +117,7 @@ function normalizeProcesses(processes: unknown): ProcessInput[] {
   );
 }
 
+/** Type Guard für aus Local Storage oder Formularen stammende Algorithmuswerte. */
 function isAlgorithmType(value: unknown): value is AlgorithmType {
   return (
     value === "roundRobin" ||
@@ -120,6 +128,7 @@ function isAlgorithmType(value: unknown): value is AlgorithmType {
   );
 }
 
+/** Ergänzt fehlende Algorithmusparameter mit den fachlichen Standardwerten. */
 function createAlgorithmParams(
   params: Partial<AlgorithmParams> | null | undefined,
 ): AlgorithmParams {
@@ -149,6 +158,7 @@ function createAlgorithmParams(
   };
 }
 
+/** Verpackt einen Algorithmus samt normalisierten Parametern als Run-Anhang. */
 function createAlgorithmAttachment(
   algorithm: AlgorithmType,
   params?: Partial<AlgorithmParams> | null,
@@ -172,6 +182,7 @@ function normalizeAlgorithmAttachment(
   );
 }
 
+/** Prüft und normalisiert einen gespeicherten oder neu angelegten Run. */
 function normalizeRun(
   run: Partial<ScenarioRunRecord> | Partial<AlgorithmAttachment>,
   fallbackId?: string,
@@ -191,6 +202,7 @@ function normalizeRun(
   };
 }
 
+/** Normalisiert die editierbaren Basisdaten eines Szenarios. */
 function normalizeScenarioDraft(
   record: Partial<ScenarioUpdateDraft>,
 ): ScenarioUpdateDraft {
@@ -208,6 +220,7 @@ function normalizeScenarioDraft(
   };
 }
 
+/** Migriert auch ältere gespeicherte Szenarioformen in das aktuelle Datenmodell. */
 function normalizeScenario(record: Partial<ScenarioRecord>): ScenarioRecord {
   const runs = Array.isArray((record as ScenarioRecord).runs)
     ? (record as ScenarioRecord).runs
@@ -256,6 +269,7 @@ function normalizeScenario(record: Partial<ScenarioRecord>): ScenarioRecord {
   };
 }
 
+/** Baut aus Szenario und ausgewähltem Run das direkt simulierbare Eingabeobjekt. */
 export function buildSimulationScenario(
   scenario: ScenarioRecord,
   run: ScenarioRunRecord | null = getActiveRun(scenario),
@@ -276,6 +290,7 @@ export function buildSimulationScenario(
   };
 }
 
+/** Liefert den aktuell ausgewählten Algorithmuslauf eines Szenarios. */
 export function getActiveRun(
   scenario: ScenarioRecord,
 ): ScenarioRunRecord | null {
@@ -286,6 +301,7 @@ export function getActiveRun(
   return scenario.runs[scenario.activeRunIndex] ?? null;
 }
 
+/** Erzeugt eine deterministische Signatur, mit der abhängige Ansichten Änderungen erkennen. */
 export function getScenarioRenderSignature(
   scenario: Pick<
     ScenarioRecord,
@@ -323,6 +339,7 @@ export function getScenarioRenderSignature(
   ].join("|");
 }
 
+/** Liest Szenarien tolerant aus Local Storage; beschädigte Daten werden ignoriert. */
 function loadScenarios(): ScenarioRecord[] {
   if (typeof window === "undefined") {
     return [];
@@ -345,6 +362,7 @@ function loadScenarios(): ScenarioRecord[] {
   }
 }
 
+/** Liest die zuletzt aktive Szenario-ID aus Local Storage. */
 function loadActiveScenarioId(): string | null {
   if (typeof window === "undefined") {
     return null;
@@ -353,6 +371,7 @@ function loadActiveScenarioId(): string | null {
   return window.localStorage.getItem(ACTIVE_KEY) || null;
 }
 
+/** Speichert die gesamte Szenarioliste in einem einzigen versionierten Storage-Eintrag. */
 function persistScenarios(scenarios: ScenarioRecord[]): void {
   if (typeof window === "undefined") {
     return;
@@ -361,6 +380,7 @@ function persistScenarios(scenarios: ScenarioRecord[]): void {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(scenarios));
 }
 
+/** Liefert die leere Ausgangsform für den Szenario-Editor. */
 export function createBlankScenarioDraft(): ScenarioDraft {
   return {
     title: "",
@@ -371,6 +391,7 @@ export function createBlankScenarioDraft(): ScenarioDraft {
   };
 }
 
+/** Verwaltet Szenarien, Runs, aktive Auswahl und deren Persistenz. */
 export function useScenarioWorkspace() {
   const scenarios = ref<ScenarioRecord[]>(loadScenarios());
   const activeScenarioId = ref<string | null>(loadActiveScenarioId());
@@ -494,6 +515,8 @@ export function useScenarioWorkspace() {
   }
 
   function applyAlgorithm(attachment: AlgorithmAttachment): void {
+    // Jeder Klick auf "Algorithmus anwenden" erzeugt bewusst einen neuen Run;
+    // dadurch bleiben frühere Ergebnisse für Vergleiche erhalten.
     if (!activeScenario.value) {
       return;
     }

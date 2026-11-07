@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { simulateScenario } from "@/simulation";
 import type { Scenario } from "@/types";
 
+// Ergänzende Algorithmusszenarien prüfen Präemption, Queues und Abschlussmetriken.
 describe("Simulation additional checks", () => {
   it("MLFQ demotes process when quantum expires", () => {
     const scenario: Scenario = {

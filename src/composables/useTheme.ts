@@ -1,12 +1,15 @@
 const THEME_KEY = "scheduling-visualizer.theme";
 
+/** Vom UI unterstützte Darstellungsthemen. */
 type Theme = "light" | "dark";
 
+/** Überträgt ein Thema auf das Root-Element, ohne Storage-Zugriffe auszulösen. */
 function setHtmlTheme(theme: Theme) {
   if (typeof document === "undefined") return;
   document.documentElement.setAttribute("data-theme", theme);
 }
 
+/** Liest ein früher gespeichertes Thema; ungültige Werte werden verworfen. */
 export function getStoredTheme(): Theme | null {
   try {
     const v = localStorage.getItem(THEME_KEY);
@@ -16,6 +19,7 @@ export function getStoredTheme(): Theme | null {
   }
 }
 
+/** Persistiert ein Thema best-effort, da Storage im Browser blockiert sein kann. */
 export function storeTheme(theme: Theme | null) {
   try {
     if (theme === null) localStorage.removeItem(THEME_KEY);
@@ -25,6 +29,7 @@ export function storeTheme(theme: Theme | null) {
   }
 }
 
+/** Prüft die aktuelle Präferenz des Betriebssystems. */
 export function systemPrefersDark(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -33,6 +38,7 @@ export function systemPrefersDark(): boolean {
   );
 }
 
+/** Initialisiert das Thema und reagiert auf spätere Systemänderungen. */
 export function initTheme() {
   if (typeof window === "undefined") return;
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -55,6 +61,7 @@ export function initTheme() {
   }
 }
 
+/** Setzt das Thema direkt; null bedeutet Rückfall auf die Systemeinstellung. */
 export function setTheme(theme: Theme | null) {
   // Keep API but do not persist user choice; directly apply theme when called.
   if (theme === null) {
@@ -64,6 +71,7 @@ export function setTheme(theme: Theme | null) {
   setHtmlTheme(theme);
 }
 
+/** Wechselt zwischen hellem und dunklem Thema. */
 export function toggleTheme() {
   // toggle remains, but will not persist user preference.
   const current =
@@ -72,6 +80,7 @@ export function toggleTheme() {
   setTheme(current === "dark" ? "light" : "dark");
 }
 
+/** Gibt das aktuell am Dokument sichtbare Thema zurück. */
 export function currentTheme(): Theme {
   return (
     (document.documentElement.getAttribute("data-theme") as Theme) ||

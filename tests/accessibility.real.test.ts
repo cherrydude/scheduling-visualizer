@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
+// Statische Prüfungen sichern zentrale Dialogrollen und zugängliche SVG-Marker.
 describe("accessibility (static checks)", () => {
   it("WelcomeModal.vue contains dialog role and aria-modal", () => {
     const path = resolve(__dirname, "../src/components/WelcomeModal.vue");

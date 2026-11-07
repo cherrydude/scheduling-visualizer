@@ -1,3 +1,4 @@
+/** Layoutentscheidung für die horizontale Zeitleiste. */
 export type TimelineLayout = {
   cellWidth: number;
   svgWidth: number;
@@ -5,6 +6,10 @@ export type TimelineLayout = {
   mode: "fit" | "scroll";
 };
 
+/**
+ * Berechnet Zellbreite und SVG-Größe abhängig von verfügbaren Platz und Laufzeit.
+ * Lange Zeitachsen bleiben scrollbar, kurze Zeitachsen werden möglichst gut eingepasst.
+ */
 export function createTimelineLayout(params: {
   timelineLength: number;
   containerWidth: number;
@@ -32,6 +37,8 @@ export function createTimelineLayout(params: {
   const rawCellWidth = usableWidth / safeLength;
 
   if (forceFit) {
+    // Im Fokusmodus ist Scrollen unerwünscht. Bei kurzen Läufen darf die
+    // Darstellung wachsen; lange Läufe behalten dagegen die Maximalbreite.
     const shouldStretch = safeLength <= 16;
     const fittedCellWidth = shouldStretch ? rawCellWidth : maxCellWidth;
     const finalCellWidth = Math.max(1, fittedCellWidth);
@@ -53,6 +60,8 @@ export function createTimelineLayout(params: {
     minCellWidth,
     Math.min(maxCellWidth, rawCellWidth),
   );
+  // Sobald die ideale Darstellung den nutzbaren Bereich überschreitet,
+  // wird die Zellbreite begrenzt und die überstehende Zeitachse scrollbar.
   const shouldScroll = safeLength * idealCellWidth > usableWidth;
   const cellWidth = shouldScroll
     ? Math.max(minCellWidth, Math.min(idealCellWidth, lockedCellWidth))

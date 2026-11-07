@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import { simulateScenario } from "@/simulation";
 import type { Scenario } from "@/types";
 
+// Algorithmusunabhängige Eigenschaften für reproduzierbare Simulationsläufe.
 describe("Simulation basic properties", () => {
+  // Determinismus ist Voraussetzung für stabile Visualisierungen und Vergleiche.
   it("is deterministic for the same input", () => {
     const scenario: Scenario = {
       algorithm: "roundRobin",
@@ -34,6 +36,7 @@ describe("Simulation basic properties", () => {
     expect(JSON.stringify(a.segments)).toBe(JSON.stringify(b.segments));
   });
 
+  // Der erste Snapshot beschreibt den Zustand vor der ersten Disposition.
   it("exposes the first dispatched task after the initial snapshot", () => {
     const scenario: Scenario = {
       algorithm: "roundRobin",
@@ -71,6 +74,7 @@ describe("Simulation basic properties", () => {
     );
   });
 
+  // LCFS muss bei einer neuen Ankunft den laufenden Prozess sofort verdrängen.
   it("LCFS preempts on new arrival in preemptive mode", () => {
     const scenario: Scenario = {
       algorithm: "lcfs",

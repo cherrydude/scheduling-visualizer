@@ -6,6 +6,7 @@ import {
   type ScenarioRecord,
 } from "@/composables/useScenarioWorkspace";
 
+// Prüft Szenario-Run-Verwaltung und stabile Signaturen für reaktive Ansichten.
 describe("workspace helpers", () => {
   const scenario: ScenarioRecord = {
     id: "scenario-1",
@@ -43,7 +44,7 @@ describe("workspace helpers", () => {
 
   it("returns the active run safely", () => {
     expect(getActiveRun(scenario)?.id).toBe("run-1");
-    expect(getActiveRun({ ...scenario, activeRunIndex: -1 }) ).toBeNull();
+    expect(getActiveRun({ ...scenario, activeRunIndex: -1 })).toBeNull();
   });
 
   it("builds a simulation scenario from the active run", () => {

@@ -1,0 +1,2947 @@
+﻿Konzeption und Implementierung einer
+interaktiven Visualisierung präemptiver
+Scheduling-Verfahren für die Lehre
+Bachelorarbeit
+
+vorgelegt von
+
+Marten Kirschenhofer
+Matrikelnummer: 833825
+
+dem Fachbereich VI – Informatik und Medien
+der Berliner Hochschule für Technik
+vorgelegte Bachelorarbeit
+zur Erlangung des akademischen Grades
+Bachelor of Science (B.Sc.)
+im Studiengang
+Medieninformatik
+
+Tag der Abgabe: 29.09.2026
+
+Betreuung
+Prof. Dr. Christian Forler
+
+
+
+Vorwort
+
+Diese Arbeit entstand im Rahmen des Bachelorstudiums Medieninformatik an der Berliner
+Hochschule für Technik. Gegenstand der Arbeit ist die Konzeption und Implementierung
+einer interaktiven Webanwendung zur Visualisierung präemptiver Scheduling-Verfahren.
+
+Hinweis zur Verwendung generativer KI
+
+Bei der Erstellung dieser Arbeit wurden generative KI-Werkzeuge unterstützend einge-
+setzt. Sie dienten insbesondere zur Diskussion von Gliederungs- und Formulierungsvor-
+schlägen, zur sprachlichen Überarbeitung, zur Erklärung technischer Fehlermeldungen so-
+wie zur Unterstützung bei der Analyse von LaTeX-, Git-, npm- und Entwicklungsfragen.
+Die fachliche Konzeption der Arbeit, die Auswahl und Bewertung der Inhalte, die Im-
+plementierung der Anwendung, die Durchführung und Auswertung der Tests sowie die
+Prüfung und Überarbeitung der finalen Fassung erfolgten durch den Verfasser. Sämtliche
+KI-generierten Vorschläge wurden eigenständig geprüft, angepasst oder verworfen. Die
+Verantwortung für die inhaltliche Richtigkeit, die Quellenangaben und die technischen
+Entscheidungen liegt vollständig beim Verfasser. Generative KI wurde nicht als wissen-
+schaftliche Quelle verwendet.
+
+Tabelle 1.: Bereiche der unterstützenden Verwendung generativer KI.
+Bereich Art der Unterstützung
+Textstruktur Diskussion möglicher Gliederungen und Übergän-
+
+ge.
+Sprachliche Überarbei- Vorschläge zu Verständlichkeit, Grammatik und
+tung Formulierungen.
+Qualitätsprüfung Hinweise auf Inkonsistenzen, fehlende Querver-
+
+weise und mögliche LaTeX-Probleme.
+
+ii
+
+
+
+Danksagung
+
+Ich widme diese Arbeit meinen lieben Schwiegereltern, die mir stets mit gutem Rat zur
+Seite standen, meiner wundervollen Verlobten, die mich auch in schwierigen Zeiten un-
+terstützt hat, und meinem besten Freund, bei dem ich trotz des großen Stresses stets ich
+selbst sein konnte.
+
+iii
+
+
+
+Inhaltsverzeichnis
+Abbildungsverzeichnis vi
+
+Tabellenverzeichnis vii
+
+Verzeichnis der Listings viii
+
+1. Einleitung 1
+1.1. Motivation und Problemstellung . . . . . . . . . . . . . . . . . . . . . . . . 1
+1.2. Zielsetzung der Arbeit . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1
+1.3. Thematische Ausrichtung und Abgrenzung . . . . . . . . . . . . . . . . . . . 2
+1.4. Leitgedanke der Arbeit . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+
+2. Grundlagen 4
+2.1. Prozessverwaltung und CPU-Scheduling . . . . . . . . . . . . . . . . . . . . 4
+2.2. Präemptives CPU-Scheduling . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+2.3. Bewertungsmetriken . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+2.4. Gemeinsames Beispielszenario . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+2.5. Betrachtete Scheduling-Verfahren . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.6. Vergleich der Verfahren . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+2.7. Algorithmusvisualisierung und Accessibility . . . . . . . . . . . . . . . . . . 10
+
+3. Anforderungsanalyse 12
+3.1. Zielgruppe und Einsatzkontext . . . . . . . . . . . . . . . . . . . . . . . . . 12
+3.2. Anforderungsquellen und Ableitung . . . . . . . . . . . . . . . . . . . . . . . 12
+3.3. Funktionale Anforderungen . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+3.4. Nicht-funktionale Anforderungen . . . . . . . . . . . . . . . . . . . . . . . . 13
+3.5. Priorisierung und Abgrenzung . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+
+4. Systementwurf 18
+4.1. Entwurfsziele . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+4.2. Gesamtarchitektur . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+4.3. Domänen- und Datenmodell . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+4.4. Daten- und Kontrollfluss . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+4.5. Interaktionsmodell . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28
+4.6. Vergleich mehrerer Runs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+4.7. Persistenz und Dateiaustausch . . . . . . . . . . . . . . . . . . . . . . . . . 30
+4.8. Accessibility als Entwurfsprinzip . . . . . . . . . . . . . . . . . . . . . . . . 30
+4.9. Erweiterbarkeit und Entwurfsgrenzen . . . . . . . . . . . . . . . . . . . . . . 31
+
+5. Implementierung 32
+5.1. Technologien und Projektstruktur . . . . . . . . . . . . . . . . . . . . . . . . 32
+5.2. Datenmodell . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+5.3. Implementierung des Simulationskerns . . . . . . . . . . . . . . . . . . . . . 34
+
+iv
+
+
+
+5.4. Umsetzung der Scheduling-Verfahren . . . . . . . . . . . . . . . . . . . . . . 36
+5.5. Szenarioverwaltung und Run-Erzeugung . . . . . . . . . . . . . . . . . . . . 38
+5.6. Wiedergabesteuerung . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 38
+5.7. Visualisierung und Vergleich . . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+5.8. Accessibility und technische Bereitstellung . . . . . . . . . . . . . . . . . . . 40
+
+6. Qualitätssicherung 41
+6.1. Prüfstrategie und Qualitätsziele . . . . . . . . . . . . . . . . . . . . . . . . . 41
+6.2. Automatisierte Prüfung des Simulationskerns . . . . . . . . . . . . . . . . . 42
+6.3. Prüfung der Ergebnisstrukturen . . . . . . . . . . . . . . . . . . . . . . . . . 43
+6.4. Prüfung von Interaktion und Accessibility . . . . . . . . . . . . . . . . . . . 44
+6.5. Testmetriken und Codeabdeckung . . . . . . . . . . . . . . . . . . . . . . . 45
+
+7. Ergebnis und Produktpräsentation 47
+7.1. Entwickeltes Produkt und Produktnutzen . . . . . . . . . . . . . . . . . . . 47
+7.2. Nutzerfluss . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+7.3. Szenariokonfiguration . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+7.4. Fokusansicht und Ablaufsteuerung . . . . . . . . . . . . . . . . . . . . . . . 50
+7.5. Interpretation der Scheduling-Verfahren . . . . . . . . . . . . . . . . . . . . 51
+7.6. Kennzahlen und Ergebnisinterpretation . . . . . . . . . . . . . . . . . . . . 52
+7.7. Vergleich mehrerer Runs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 52
+7.8. Bewertungsmatrix . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 53
+7.9. Soll-Ist-Abgleich . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 54
+7.10. Ergebnisbewertung . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 55
+
+8. Fazit und Ausblick 56
+8.1. Zusammenfassung der erreichten Ergebnisse . . . . . . . . . . . . . . . . . . 56
+8.2. Bewertung der Zielerreichung . . . . . . . . . . . . . . . . . . . . . . . . . . 57
+8.3. Beitrag der Arbeit . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 58
+8.4. Grenzen der Umsetzung . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 58
+8.5. Ausblick . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 59
+8.6. Schlussfolgerung . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 60
+
+Literaturverzeichnis 62
+
+A. Anhang 63
+A.1. Ergänzende Abbildungen . . . . . . . . . . . . . . . . . . . . . . . . . . . . 63
+A.2. Zusätzliche Testfälle und Szenarien . . . . . . . . . . . . . . . . . . . . . . . 63
+A.3. Operationalisierungsmatrix Accessibility . . . . . . . . . . . . . . . . . . . . 63
+A.4. Kompaktes manuelles Accessibility-Prüfprotokoll . . . . . . . . . . . . . . . 64
+A.5. Ergänzende technische Artefakte (z. B. Konfigurationsbeispiele) . . . . . . . 64
+
+v
+
+
+
+Abbildungsverzeichnis
+2.1. Zustände und Übergänge eines Prozesses im Simulationsmodell. . . . . . . . 5
+
+4.1. Komponenten- und Datenflussdiagramm mit Anwendungslogik, Simulati-
+onskern, Ergebnisdaten und Präsentationsschicht. . . . . . . . . . . . . . . . 20
+
+4.2. Domänenmodell mit SimulationRun als zentraler Ergebnisstruktur eines
+einzelnen Simulationslaufs. . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+
+4.3. Vereinfachter Sequenzablauf eines einzelnen Simulationslaufs. . . . . . . . . 26
+
+7.1. Modal zur Erzeugung eines neuen Szenarios. . . . . . . . . . . . . . . . . . . 49
+7.2. Modal zur Anwendung eines Scheduling-Verfahrens auf das erstellte Szenario. 49
+7.3. Fokusansicht eines Simulationslaufs mit Gantt-Modell, Stack-Liste, Playback-
+
+Steuerung und Kennzahlen. . . . . . . . . . . . . . . . . . . . . . . . . . . . 50
+7.4. Vergleich mehrerer Runs auf identischer Szenariobasis. . . . . . . . . . . . . 53
+7.5. Bewertungsmatrix zur gewichteten Gegenüberstellung mehrerer Runs. . . . 53
+
+vi
+
+
+
+Tabellenverzeichnis
+1. Bereiche der unterstützenden Verwendung generativer KI. . . . . . . . . . . ii
+
+2.1. Prozesszustände im Simulationsmodell. . . . . . . . . . . . . . . . . . . . . . 5
+2.2. Zentrale Bewertungsmetriken der Simulation. . . . . . . . . . . . . . . . . . 8
+2.3. Gemeinsames Beispielszenario für die betrachteten Verfahren. . . . . . . . . 8
+2.4. Vergleich der betrachteten Scheduling-Verfahren. . . . . . . . . . . . . . . . 10
+
+3.1. Funktionale Anforderungen des Scheduling-Visualizers. . . . . . . . . . . . . 14
+3.2. Nicht-funktionale Anforderungen des Scheduling-Visualizers. . . . . . . . . . 15
+3.3. Ausgewählte Accessibility-Anforderungen. . . . . . . . . . . . . . . . . . . . 16
+
+4.1. Zentrale Entwurfsziele und ihre technische Konsequenz. . . . . . . . . . . . 18
+4.2. Zentrale Komponenten und ihre Verantwortlichkeiten. . . . . . . . . . . . . 22
+4.3. Zentrale Bestandteile des Domänenmodells. . . . . . . . . . . . . . . . . . . 23
+
+5.1. Zentrale Technologien und ihre Verwendung. . . . . . . . . . . . . . . . . . 33
+5.2. Technische Umsetzung der Scheduling-Verfahren. . . . . . . . . . . . . . . . 37
+
+6.1. Qualitätsziele und zugehörige Prüfverfahren. . . . . . . . . . . . . . . . . . . 41
+6.2. Algorithmusspezifische Prüfaspekte. . . . . . . . . . . . . . . . . . . . . . . 42
+6.3. Geprüfte Eigenschaften der Ergebnisstrukturen. . . . . . . . . . . . . . . . . 43
+6.4. Manuelle Prüfung zentraler Interaktions- und Accessibility-Funktionen. . . . 44
+6.5. Ergebnisse der automatisierten Tests. . . . . . . . . . . . . . . . . . . . . . . 45
+6.6. Codeabdeckung des Anwendungscodes im Verzeichnis src. . . . . . . . . . . 45
+6.7. Codeabdeckung ausgewählter zentraler Implementierungsbereiche. . . . . . 46
+
+7.1. Soll-Ist-Abgleich der zentralen Produktanforderungen. . . . . . . . . . . . . 54
+
+vii
+
+
+
+Verzeichnis der Listings
+2.1. Gemeinsamer konzeptioneller Ablauf der tick-basierten Simulation. . . . . . 6
+
+5.1. Vereinfachte Eingabe- und Laufzeitstruktur eines Prozesses. . . . . . . . . . 33
+5.2. Vereinfachter Ablauf der tick-basierten Simulation. . . . . . . . . . . . . . . 35
+5.3. Erzeugung einer Simulationsstruktur aus Szenariobasis und Run-Konfiguration. 38
+5.4. Verwendung der Snapshot-basierten Wiedergabesteuerung. . . . . . . . . . . 39
+
+viii
+
+
+
+1. Einleitung
+
+1.1. Motivation und Problemstellung
+
+Scheduling-Verfahren gehören zu den zentralen Mechanismen moderner Betriebssysteme.
+Sie legen fest, welcher Prozess zu welchem Zeitpunkt Prozessorzeit erhält, und beeinflussen
+dadurch unter anderem die Reaktionsfähigkeit, Fairness und Ressourcenauslastung eines
+Systems Stallings [2003], Tanenbaum and Bos [2016]. Obwohl die grundlegenden Verfahren
+in Lehrveranstaltungen zu Betriebssystemen häufig formal beschrieben werden, bleibt ihr
+zeitlicher Ablauf für Studierende teilweise schwer nachvollziehbar.
+Dies gilt insbesondere für präemptive Scheduling-Verfahren. Bei diesen Verfahren kann
+ein aktuell laufender Prozess vor dem Abschluss seiner Ausführung unterbrochen werden.
+Gründe hierfür können beispielsweise der Ablauf eines Zeitquantums, die Ankunft eines
+höher priorisierten Prozesses oder die Anwendung einer anderen Auswahlregel sein. Da-
+durch entstehen zahlreiche Zustandswechsel, Präemptionen und Wiedereinreihungen, die
+sich anhand einer rein textuellen oder statischen Beschreibung nur schwer mental verfolgen
+lassen.
+Die Unterschiede zwischen den Verfahren zeigen sich zudem nicht ausschließlich in ihrer
+jeweiligen Auswahlregel. Sie wirken sich auch auf den zeitlichen Ablauf, die Wartezeit,
+die Durchlaufzeit, die Reaktionszeit sowie die Anzahl der Kontextwechsel aus. Eine ver-
+ständliche Vermittlung muss daher nicht nur das Endergebnis einer Simulation darstellen,
+sondern auch sichtbar machen, wie dieses Ergebnis im zeitlichen Verlauf entsteht.
+Vor diesem Hintergrund wurde im Rahmen dieser Arbeit eine interaktive Webanwen-
+dung zur Visualisierung präemptiver CPU-Scheduling-Verfahren entwickelt. Die Anwen-
+dung berechnet die Abläufe ausgewählter Verfahren deterministisch und stellt die dabei
+entstehenden Zustandswechsel, Ausführungssegmente und Kennzahlen interaktiv dar. Da-
+durch sollen fachliche Zusammenhänge nicht nur berechnet, sondern auch beobachtbar
+und vergleichbar werden.
+
+1.2. Zielsetzung der Arbeit
+
+Ziel der Arbeit ist die Konzeption und Implementierung einer interaktiven Webanwendung
+zur Veranschaulichung präemptiver Scheduling-Verfahren für den Lehrkontext. Betrachtet
+werden die Verfahren Round Robin, LCFS, Strict Priority und Multilevel Feedback Queue.
+
+1
+
+
+
+Die Anwendung soll deren fachlich korrekten Ablauf auf Grundlage eines konfigurierbaren
+Prozessszenarios berechnen und die Ergebnisse verständlich aufbereiten.
+Ein besonderer Schwerpunkt liegt auf der Verbindung von Simulation und Interaktion.
+Nutzende sollen ein Szenario mit relevanten Prozessparametern definieren, ein Verfahren
+auswählen und den resultierenden Ablauf entweder kontinuierlich oder schrittweise verfol-
+gen können. Neben der zeitlichen Darstellung sollen zentrale Kennzahlen wie Wartezeit,
+Durchlaufzeit, Reaktionszeit, Kontextwechsel und Präemptionen verfügbar sein.
+Darüber hinaus soll die Anwendung den direkten Vergleich mehrerer Verfahrensausführun-
+gen ermöglichen. Hierzu werden mehrere konfigurierte Läufe auf identischer Szenariobasis
+berechnet und in einer gemeinsamen Vergleichsansicht gegenübergestellt. Auf diese Wei-
+se können Unterschiede zwischen den Verfahren auf ihre jeweiligen Scheduling-Strategien
+zurückgeführt und anhand gemeinsamer Eingabedaten analysiert werden.
+Der zentrale Produktnutzen liegt somit in der Verbindung aus fachlich konsistenter Simulation,
+steuerbarer zeitlicher Visualisierung und direktem Verfahrensvergleich. Die Anwendung
+zeigt nicht nur, welches Ergebnis ein Verfahren erzeugt, sondern unterstützt auch die
+Analyse der Entscheidungsschritte, durch die dieses Ergebnis entsteht.
+Die Arbeit verfolgt eine engineering-orientierte Zielsetzung. Im Mittelpunkt stehen die
+fachlich konsistente Modellierung, der Systementwurf, die Implementierung und die Quali-
+tätssicherung des entwickelten Softwareartefakts. Eine empirische Untersuchung der Lern-
+wirksamkeit mit Studierenden ist nicht Bestandteil der Arbeit.
+
+1.3. Thematische Ausrichtung und Abgrenzung
+
+Die Arbeit verbindet Grundlagen des Betriebssystembaus mit Methoden des Software En-
+gineering, der Algorithmusvisualisierung und der Mensch-Computer-Interaktion. Im fach-
+lichen Mittelpunkt steht die Simulation präemptiver CPU-Scheduling-Verfahren. Die Ver-
+fahren Round Robin, LCFS, Strict Priority und Multilevel Feedback Queue werden inner-
+halb eines gemeinsamen Simulationsrahmens umgesetzt und auf Grundlage einheitlicher
+Prozess- und Ereignismodelle visualisiert.
+Die Anwendung ist als didaktisches Werkzeug für Lehr- und Lernsituationen konzipiert. Sie
+soll die Analyse von Scheduling-Entscheidungen unterstützen und eine verständliche Dar-
+stellung des zeitlichen Ablaufs ermöglichen. Dabei werden insbesondere Zustandswechsel,
+Präemptionen, Kontextwechsel, Wartesituationen und Prozessabschlüsse berücksichtigt.
+Nicht Gegenstand der Arbeit ist die Entwicklung eines produktiven Betriebssystem-Schedulers.
+Die Simulation abstrahiert von hardware- und betriebssystemspezifischen Details wie rea-
+len Timer-Interrupts, tatsächlichen Prozesskontexten, Mehrkernverarbeitung oder betriebs-
+systemabhängigem Verwaltungsaufwand. Kontextwechsel werden als fachliche Kennzahl
+erfasst, jedoch nicht als zusätzliche reale Prozessorzeit modelliert.
+
+2
+
+
+
+Ebenfalls nicht untersucht wird die tatsächliche Lernwirksamkeit der Anwendung anhand
+einer empirischen Nutzerstudie. Aussagen darüber, ob die Anwendung den Lernerfolg
+messbar verbessert, können daher nicht getroffen werden. Die Arbeit bewertet stattdessen
+die technische Umsetzung, die fachliche Konsistenz, die Reproduzierbarkeit, die Nachvoll-
+ziehbarkeit der Darstellung sowie ausgewählte Aspekte der Bedienbarkeit und Accessibility.
+Der Untersuchungsumfang ist auf die vier genannten Scheduling-Verfahren begrenzt. An-
+dere Verfahren werden in der vorliegenden Arbeit weder fachlich analysiert noch in den
+Produktvergleich einbezogen.
+
+1.4. Leitgedanke der Arbeit
+
+Der Leitgedanke der Arbeit besteht darin, dass fachliche Korrektheit und verständliche In-
+teraktion bei einer Lernanwendung gemeinsam betrachtet werden müssen. Eine Simulation
+kann zwar korrekte Ergebnisse liefern, bleibt für Lernende jedoch eingeschränkt hilfreich,
+wenn die zugrunde liegenden Entscheidungen nicht nachvollziehbar dargestellt werden.
+Die Anwendung verbindet daher vier Perspektiven: eine fachlich korrekte Simulationslogik,
+eine konsistente Architektur, eine steuerbare Interaktion und eine zeitlich verständliche
+Visualisierung. Aus dieser Verbindung ergibt sich der zentrale Produktnutzen der Arbeit.
+Nutzende sehen nicht nur, welcher Prozess zu einem bestimmten Zeitpunkt ausgeführt
+wird, sondern können auch nachvollziehen, welche Ankunfts-, Auswahl- oder Präempti-
+onsentscheidung dazu geführt hat.
+Die Arbeit versteht Scheduling-Visualisierung somit nicht ausschließlich als technische Be-
+rechnung, sondern als Vermittlung fachlicher Zusammenhänge. Der entwickelte Visualizer
+soll die zeitliche Dynamik präemptiver Scheduling-Verfahren beobachtbar machen und
+dadurch eine Grundlage für deren Analyse im Lehrkontext schaffen.
+
+3
+
+
+
+2. Grundlagen
+
+Dieses Kapitel beschreibt die fachlichen und gestalterischen Grundlagen des entwickelten
+Scheduling-Visualizers. Zunächst werden zentrale Begriffe der Prozessverwaltung und des
+CPU-Scheduling erläutert. Anschließend werden die für die Anwendung relevanten Bewer-
+tungsmetriken und ein gemeinsames Beispielszenario eingeführt. Darauf aufbauend werden
+die vier betrachteten präemptiven Verfahren Round Robin, LCFS, Strict Priority und Mul-
+tilevel Feedback Queue eingeordnet. Abschließend werden Algorithmusvisualisierung und
+Accessibility als fachliche und gestalterische Grundlagen beschrieben.
+
+2.1. Prozessverwaltung und CPU-Scheduling
+
+Ein Betriebssystem verwaltet die Ressourcen eines Computersystems und stellt Pro-
+grammen eine kontrollierte Ausführungsumgebung bereit. Zu seinen Aufgaben gehören un-
+ter anderem die Prozess-, Speicher-, Datei- und Ein-/Ausgabeverwaltung Stallings [2003],
+Tanenbaum and Bos [2016].
+Für diese Arbeit ist insbesondere die Prozessverwaltung relevant. Sie umfasst die Er-
+zeugung, Zustandsverwaltung und Beendigung von Prozessen sowie die Zuteilung von
+Prozessorzeit. Da mehrere Prozesse gleichzeitig ausführungsbereit sein können, benötigt
+das Betriebssystem eine Regel für die Auswahl des jeweils nächsten Prozesses.
+Ein Prozess wird in der Simulation durch mehrere Scheduling-relevante Attribute be-
+schrieben:
+
+• Ankunftszeit: Zeitpunkt, ab dem ein Prozess für den Scheduler verfügbar ist.
+• Burst-Zeit: Benötigte CPU-Zeit bis zum Abschluss des Prozesses.
+• Restzeit: Noch nicht ausgeführter Anteil der Burst-Zeit.
+• Priorität: Wert für die relative Bevorzugung eines Prozesses.
+• Status: Aktueller Zustand des Prozesses innerhalb der Simulation.
+
+Die Anwendung abstrahiert von hardware- und betriebssystemspezifischen Details. Die
+CPU-Zeit wird in diskrete Zeitschritte, sogenannte Ticks, unterteilt. Jeder Tick kann eine
+Auswahlentscheidung, einen Zustandswechsel oder ein anderes Scheduling-Ereignis auslö-
+sen.
+
+4
+
+
+
+2.1.1. Prozesszustände
+
+Für die Modellierung werden die Zustände pending, ready, running, preempted und
+finished verwendet.
+
+Tabelle 2.1.: Prozesszustände im Simulationsmodell.
+Zustand Bedeutung
+pending Der Prozess ist noch nicht eingetroffen.
+ready Der Prozess ist eingetroffen und wartet auf CPU-Zeit.
+running Der Prozess wird aktuell ausgeführt.
+preempted Der Prozess wurde unterbrochen und wartet auf eine
+
+erneute Auswahl.
+finished Die benötigte Ausführungszeit wurde vollständig ver-
+
+braucht.
+
+Ein Prozess wechselt bei erreichter Ankunftszeit von pending nach ready. Wird er ausge-
+wählt, erhält er den Zustand running. Wird er vor seinem Abschluss unterbrochen, wird er
+wieder in die Bereitschaftsverwaltung aufgenommen. Nach dem Verbrauch seiner Restzeit
+erreicht er den Zustand finished.
+
+Pending
+
+arrival
+
+Ready
+
+quantumExpired dispatch
+
+enqueue Running
+
+preempt finish
+
+Preempted Finished
+
+Abbildung 2.1.: Zustände und Übergänge eines Prozesses im Simulationsmodell.
+
+5
+
+
+
+2.1.2. Scheduler, Dispatcher und Kontextwechsel
+
+Der Scheduler wählt aus der Menge der bereiten Prozesse den nächsten auszuführenden
+Prozess. Die Auswahlregel hängt vom verwendeten Verfahren ab und kann beispielsweise
+Ankunftsreihenfolge, Priorität, Queue-Ebene oder Zeitquantum berücksichtigen.
+Der Dispatcher setzt diese Auswahl um. Der Wechsel von einem laufenden zu einem an-
+deren Prozess wird als Kontextwechsel bezeichnet. In der Simulation wird der technische
+Aufwand eines Kontextwechsels nicht als zusätzliche CPU-Zeit modelliert. Die Anzahl der
+Kontextwechsel wird jedoch als Kennzahl erfasst.
+
+2.2. Präemptives CPU-Scheduling
+
+CPU-Scheduling bezeichnet die Zuteilung von Prozessorzeit an bereite Prozesse. Ein
+präemptives Scheduling-Verfahren kann einen laufenden Prozess vor dem Abschluss
+seiner Burst-Zeit unterbrechen und die CPU einem anderen Prozess zuweisen.
+Typische Auslöser einer Präemption sind:
+
+• der Ablauf eines Zeitquantums,
+• die Ankunft eines höher priorisierten Prozesses,
+• die Ankunft eines nach der Auswahlregel bevorzugten Prozesses,
+• ein Wechsel der Warteschlangenebene bei MLFQ.
+
+Die Bereitschaftsverwaltung enthält alle eingetroffenen und noch nicht abgeschlossenen
+Prozesse. Ihre Struktur beeinflusst die Auswahlentscheidung. Round Robin verwendet eine
+zyklische Warteschlange, LCFS orientiert sich an der Reihenfolge der letzten Ankünfte,
+Strict Priority an Prioritätswerten und MLFQ an mehreren Warteschlangenebenen.
+Die Simulation verarbeitet einen Ablauf grundsätzlich in der folgenden Reihenfolge:
+
+1. Eingetroffene Prozesse werden in die Bereitschaftsverwaltung aufgenommen.
+2. Die Auswahlregel des aktiven Verfahrens wird angewendet.
+3. Falls erforderlich, wird der bisher laufende Prozess präemptiert.
+4. Der ausgewählte Prozess wird für einen Tick ausgeführt.
+5. Restzeit, Ereignisse, Segmente und Zustandsabbilder werden aktualisiert.
+
+Die Reihenfolge ist fachlich relevant, weil eine neue Ankunft im selben Zeitschritt eine
+andere Auswahlentscheidung auslösen kann.
+
+1 Simulation(Szenario, Verfahren):
+2 initialisiere Prozesse, Zeit und Ergebnisstrukturen
+3
+4 solange nicht alle Prozesse abgeschlossen sind:
+
+6
+
+
+
+5 füge eingetroffene Prozesse der Bereitschaftsverwaltung hinzu
+6
+7 kandidat <- Auswahlregel des Verfahrens
+8
+9 falls eine Präemption erforderlich ist:
+
+10 erzeuge Präemptionsereignis
+11 füge laufenden Prozess zurück
+12
+13 falls kein Prozess aktiv ist:
+14 wähle kandidat als laufenden Prozess
+15 erzeuge Dispatch-Ereignis
+16
+17 führe den laufenden Prozess für einen Zeitschritt aus
+18 aktualisiere Restzeit, Wartezeit und Quantum
+19 speichere Ereignisse, Segmente und Snapshot
+20
+21 falls der Prozess abgeschlossen ist:
+22 erzeuge Abschlussereignis
+23 markiere Prozess als beendet
+24
+25 erhöhe die Simulationszeit
+
+Listing 2.1: Gemeinsamer konzeptioneller Ablauf der tick-basierten Simulation.
+
+Die Unterschiede der Verfahren liegen damit vor allem in der konkreten Auswahlregel, der
+Struktur der Bereitschaftsverwaltung und den Bedingungen, unter denen eine Präemption
+ausgelöst wird.
+
+2.3. Bewertungsmetriken
+
+Die Eigenschaften eines Scheduling-Verfahrens lassen sich nicht durch eine einzelne Kenn-
+zahl vollständig beschreiben. Die Anwendung verwendet deshalb mehrere Metriken, die
+unterschiedliche Aspekte des Ablaufes abbilden.
+Für einen Prozess i bezeichnet ai die Ankunftszeit, ci die Fertigstellungszeit, si den Zeit-
+punkt der ersten Ausführung und bi die benötigte Burst-Zeit.
+Die durchschnittlichen Werte werden über alle relevanten Prozesse gebildet. Neben Mittel-
+werten kann auch die maximale Wartezeit betrachtet werden, da ein guter Durchschnitts-
+wert lange Wartezeiten einzelner Prozesse verdecken kann. Die Kennzahlen werden aus
+derselben Ergebnisstruktur wie Ereignisse, Snapshots und Segmente abgeleitet.
+
+2.4. Gemeinsames Beispielszenario
+
+Zur vergleichbaren Beschreibung der vier Verfahren wird ein gemeinsames Ausgangsszena-
+rio verwendet. Es enthält drei Prozesse mit unterschiedlichen Ankunftszeiten, Burst-Zeiten
+
+7
+
+
+
+Tabelle 2.2.: Zentrale Bewertungsmetriken der Simulation.
+Metrik Definition Bedeutung
+Durchlaufzeit Ti = ci − ai Gesamtdauer vom Eintref-
+
+fen bis zum Abschluss
+Wartezeit Wi = Ti − bi Zeit ohne CPU-Zuteilung
+Reaktionszeit Ri = si − ai Zeit bis zur ersten Ausfüh-
+
+rung
+Präemptionen Anzahl der Unterbrechun- Häufigkeit erzwungener
+
+gen Prozesswechsel
+Kontextwechsel Anzahl der Wechsel zwi- Indikator für Verwaltungs-
+
+schen Prozessen aufwand
+CPU-Auslastung aktive CPU-Zeit / Simulati- Anteil der Zeit mit aktivem
+
+onszeit Prozess
+Leerlaufanteil Leerlaufzeit / Simulations- Anteil ungenutzter Simula-
+
+zeit tionszeit
+
+und Prioritäten.
+
+Tabelle 2.3.: Gemeinsames Beispielszenario für die betrachteten Verfahren.
+Prozess Ankunftszeit Burst-Zeit Priorität
+
+P1 0 5 2
+P2 1 3 1
+P3 2 2 3
+
+Für Round Robin wird ein Zeitquantum von q = 2 verwendet. Für MLFQ werden drei
+Warteschlangenebenen angenommen. Bei Strict Priority entspricht ein kleinerer Zahlen-
+wert einer höheren Priorität. Das Szenario bleibt für alle Verfahren unverändert, sodass
+Unterschiede in Ablauf und Kennzahlen auf die jeweilige Auswahlregel zurückgeführt wer-
+den können.
+
+2.5. Betrachtete Scheduling-Verfahren
+
+2.5.1. Round Robin
+
+Round Robin verwendet eine zyklische Bereitschaftswarteschlange. Jeder bereite Prozess
+erhält höchstens ein konfiguriertes Zeitquantum. Wird er innerhalb dieses Quantums nicht
+beendet, wird er präemptiert und am Ende der Warteschlange erneut eingereiht.
+Das Verfahren unterstützt eine gleichmäßigere Verteilung der CPU-Zeit und kann die
+Reaktionsfähigkeit verbessern. Ein kleines Quantum führt jedoch zu mehr Präemptionen
+und Kontextwechseln. In der Anwendung werden Quantumabläufe, Prozesswechsel und
+Präemptionen als Ereignisse erfasst und in der Gantt-Darstellung sichtbar gemacht.
+
+8
+
+
+
+2.5.2. LCFS
+
+Last-Come, First-Served bevorzugt den zuletzt eingetroffenen bereiten Prozess. In der
+präemptiven Variante kann ein neu eintreffender Prozess den aktuell laufenden Prozess
+verdrängen.
+LCFS ermöglicht neu eintreffenden Prozessen eine schnelle Reaktion. Ältere Prozesse kön-
+nen jedoch wiederholt zurückgestellt werden. Dadurch besteht die Gefahr langer Wartezei-
+ten. Für die Visualisierung sind insbesondere Neuankünfte, Präemptionen und die spätere
+Fortsetzung verdrängter Prozesse relevant.
+
+2.5.3. Strict Priority
+
+Strict Priority wählt aus der Bereitschaftsmenge den Prozess mit der höchsten Priori-
+tät. In der Anwendung wird ein kleinerer Zahlenwert als höhere Priorität interpretiert.
+Bei gleichen Prioritäten wird eine definierte Tie-Break-Regel verwendet, beispielsweise die
+FIFO-Reihenfolge.
+Trifft ein höher priorisierter Prozess ein, während ein Prozess mit niedrigerer Priorität
+läuft, kann eine Präemption ausgelöst werden. Die Stärke des Verfahrens liegt in der
+gezielten Bevorzugung wichtiger Prozesse. Eine mögliche Schwäche ist Starvation, bei
+der niedrig priorisierte Prozesse trotz Bereitschaft lange nicht ausgeführt werden.
+
+2.5.4. Multilevel Feedback Queue
+
+Die Multilevel Feedback Queue verwendet mehrere Bereitschaftswarteschlangen mit
+unterschiedlichen Prioritätsstufen. Prozesse können abhängig von ihrem bisherigen Aus-
+führungsverhalten zwischen den Ebenen wechseln.
+Neue Prozesse werden in eine festgelegte Startwarteschlange eingeordnet. Verbraucht ein
+Prozess sein Quantum, ohne abgeschlossen zu sein, kann er in eine niedrigere Ebene her-
+abgestuft werden. Höhere nichtleere Warteschlangen werden bevorzugt bedient.
+MLFQ ist dadurch adaptiv, da die weitere Behandlung eines Prozesses von seinem bisheri-
+gen Ablauf abhängt. Die Wahl der Ebenen und Quantumswerte beeinflusst dabei Reakti-
+onsfähigkeit und Fairness Meing and Tandingan [2025]. Der Visualizer stellt Queue-Ebene,
+Quantumablauf und Herabstufungsereignisse zusätzlich zur zeitlichen Ausführung dar.
+
+2.6. Vergleich der Verfahren
+
+Die vier Verfahren arbeiten auf derselben fachlichen Eingabestruktur. Sie unterscheiden
+sich jedoch in Auswahlregel, Warteschlangenorganisation und Präemptionsverhalten.
+
+9
+
+
+
+Tabelle 2.4.: Vergleich der betrachteten Scheduling-Verfahren.
+Verfahren Auswahlregel Charakteristik
+Round Robin Zyklische Reihenfolge mit Gleichmäßige CPU-
+
+Quantum Verteilung, mögliche viele
+Kontextwechsel
+
+LCFS Zuletzt eingetroffener Pro- Schnelle Reaktion neuer Pro-
+zess zuerst zesse, mögliche Benachteili-
+
+gung älterer Prozesse
+Strict Priority Prozess mit höchster Priori- Gezielte Priorisierung, mögli-
+
+tät che Starvation
+MLFQ Auswahl aus mehreren Adaptive Behandlung abhän-
+
+Queue-Ebenen gig vom bisherigen Verhalten
+
+2.7. Algorithmusvisualisierung und Accessibility
+
+Eine Algorithmusvisualisierung übersetzt abstrakte Berechnungsschritte in eine beob-
+achtbare Darstellung. Im Scheduling-Visualizer werden Prozesse deshalb nicht nur durch
+Endkennzahlen beschrieben. Ihre Entwicklung wird als zeitliche Folge von Ankunft, Be-
+reitschaft, Ausführung, Präemption und Abschluss dargestellt.
+Die Gantt-Ansicht zeigt die Reihenfolge und Dauer der Ausführungssegmente. Ereignisse
+und Statusdarstellungen ergänzen diese zeitliche Perspektive um Informationen zu Aus-
+wahlentscheidungen, Warteschlangen und Prozesszuständen. Die vorberechneten Snaps-
+hots ermöglichen eine schrittweise oder kontinuierliche Untersuchung des Ablaufes.
+Algorithmusvisualisierung führt nicht automatisch zu einer höheren Lernwirksamkeit. Der
+Nutzen hängt unter anderem davon ab, ob Lernende aktiv mit der Darstellung arbeiten
+und ob relevante Entscheidungen verständlich markiert werden Hundhausen et al. [2002].
+Die vorliegende Arbeit untersucht diese Wirkung nicht empirisch. Sie leitet daraus jedoch
+die Anforderung ab, den Ablauf steuerbar, erklärbar und vergleichbar zu gestalten.
+Accessibility bezeichnet die Zugänglichkeit einer Anwendung für Menschen mit unter-
+schiedlichen sensorischen, motorischen oder kognitiven Voraussetzungen. Für den Visuali-
+zer betrifft dies nicht nur Farben und Layout, sondern auch die semantische Struktur und
+die Bedienlogik.
+Für die Anwendung sind insbesondere folgende Aspekte relevant:
+
+• semantisch verständliche Namen und Rollen,
+• Bedienbarkeit zentraler Funktionen mit der Tastatur,
+• sichtbare und logisch geführte Fokuszustände,
+• verständliche Statuskommunikation,
+• ausreichende Text- und Fokuskontraste,
+
+10
+
+
+
+• keine ausschließliche Informationsvermittlung durch Farbe,
+• Nutzbarkeit bei vergrößerter Darstellung und schmalem Viewport,
+• Rücksichtnahme auf reduzierte Bewegung.
+
+Die Web Content Accessibility Guidelines dienen als normative Referenz für ausgewählte
+Accessibility-Anforderungen W3C [2018]. Die konkrete Prüfung wird auf einen fokussier-
+ten Prüfstand der Scheduler-Oberfläche begrenzt. Eine vollständige WCAG- oder BITV-
+Konformitätsprüfung ist nicht Gegenstand dieser Arbeit.
+
+11
+
+
+
+3. Anforderungsanalyse
+
+Die Anforderungen an den Scheduling-Visualizer ergeben sich aus den fachlichen Grund-
+lagen des CPU-Scheduling, dem vorgesehenen Einsatz im Lehrkontext sowie technischen
+und gestalterischen Qualitätszielen. Ziel der Anforderungsanalyse ist es, den notwendigen
+Funktionsumfang und die qualitativen Eigenschaften der Anwendung zu bestimmen. Die
+Anforderungen bilden die Grundlage für den Systementwurf, die Implementierung und die
+Qualitätssicherung.
+
+3.1. Zielgruppe und Einsatzkontext
+
+Die primäre Zielgruppe der Anwendung sind Studierende in Lehrveranstaltungen zu Be-
+triebssystemen und Rechnerarchitektur. Der Visualizer soll sowohl in begleiteten Lehr-
+veranstaltungen als auch zur eigenständigen Bearbeitung von Beispielszenarien eingesetzt
+werden können.
+Im Mittelpunkt steht die Vermittlung der zeitlichen Dynamik der vier betrachteten prä-
+emptiven Scheduling-Verfahren Round Robin, LCFS, Strict Priority und Multilevel Feed-
+back Queue. Lernende sollen nicht nur erkennen, welcher Prozess zu einem bestimmten
+Zeitpunkt ausgeführt wird, sondern auch nachvollziehen können, warum eine Scheduling-
+Entscheidung getroffen wurde. Dafür müssen Ankünfte, Präemptionen, Quantumabläufe,
+Warteschlangenänderungen und Prozessabschlüsse sichtbar und zeitlich einordenbar sein.
+Die Anwendung ist als ergänzendes Analyse- und Visualisierungswerkzeug konzipiert. Sie
+ersetzt weder ein Lehrbuch noch einen vollständigen Betriebssystem-Simulator. Hardware-
+und betriebssystemspezifische Details werden zugunsten einer verständlichen, diskreten
+Simulation abstrahiert.
+
+3.2. Anforderungsquellen und Ableitung
+
+Die Anforderungen wurden aus drei Bereichen abgeleitet. Die fachlichen Anforderungen
+ergeben sich aus den Eigenschaften der in Kapitel 2 beschriebenen Scheduling-Verfahren.
+Daraus folgen Anforderungen an Prozessdaten, Scheduling-Parameter, Zustandsübergän-
+ge, Ereignisse und Kennzahlen.
+Die didaktischen Anforderungen leiten sich aus dem Ziel ab, zeitliche Scheduling-Entscheidungen
+
+12
+
+
+
+nachvollziehbar zu vermitteln. Die Anwendung muss daher kontrollierte Wiedergabe, Schritt-
+steuerung, verständliche Visualisierung und den Vergleich mehrerer Runs unterstützen.
+Als dritte Quelle dienen technische und gestalterische Qualitätsziele. Dazu gehören Deter-
+ministik, Testbarkeit, Erweiterbarkeit, Tastaturbedienung, Fokusführung und verständli-
+che Statuskommunikation. Die Web Content Accessibility Guidelines werden als normati-
+ve Referenz für ausgewählte Accessibility-Anforderungen verwendet W3C [2018]. Ergän-
+zend werden grundlegende Prinzipien der Mensch-Computer-Interaktion berücksichtigt
+Heinecke and Gerken [2024].
+Die Anforderungen werden in funktionale und nicht-funktionale Anforderungen gebün-
+delt. Funktionale Anforderungen beschreiben, welche Aufgaben die Anwendung ausführen
+muss. Nicht-funktionale Anforderungen beschreiben Eigenschaften, die bei der Ausführung
+gewährleistet werden sollen.
+
+3.3. Funktionale Anforderungen
+
+Die funktionalen Anforderungen umfassen die Verwaltung von Szenarien, die Simulation
+der vier Verfahren, die Ablaufsteuerung, die Darstellung der Ergebnisse sowie den Vergleich
+mehrerer Runs.
+Die funktionalen Anforderungen bilden den zentralen Nutzungskreislauf der Anwendung:
+
+Szenario definieren → Run konfigurieren → Simulation ausführen → Ablauf untersuchen
+→ Runs vergleichen
+
+Dabei bleibt die Prozessbasis eines Szenarios für alle zugehörigen Runs gleich. Unterschie-
+de zwischen den Läufen entstehen durch das jeweils verwendete Verfahren und dessen
+Parameter.
+
+3.4. Nicht-funktionale Anforderungen
+
+Die nicht-funktionalen Anforderungen beschreiben Eigenschaften, die für die technische,
+didaktische und praktische Qualität der Anwendung relevant sind. Sie beziehen sich nicht
+auf eine einzelne Funktion, sondern auf das Verhalten des Gesamtsystems.
+Die gemeinsame Ergebnisstruktur ist für mehrere Anforderungen zentral. Sie stellt sicher,
+dass Gantt-Darstellung, Statusinformationen, Wiedergabe und Kennzahlen denselben Si-
+mulationsablauf verwenden. Dadurch werden Widersprüche zwischen verschiedenen An-
+sichten vermieden.
+
+13
+
+
+
+Tabelle 3.1.: Funktionale Anforderungen des Scheduling-Visualizers.
+Bereich Anforderungen
+Szenarioverwaltung Prozessszenarien können erstellt, bearbeitet, ausgewählt, zu-
+
+rückgesetzt und gelöscht werden. Prozesse besitzen minde-
+stens eine eindeutige Bezeichnung, eine Ankunftszeit und ei-
+ne Burst-Zeit. Ergänzende Parameter wie Priorität und Farbe
+können erfasst werden.
+
+Simulation Round Robin, LCFS, Strict Priority und Multilevel Feed-
+back Queue werden in einem gemeinsamen Simulations-
+rahmen ausgeführt. Algorithmusspezifische Parameter wie
+Zeitquantum, Tie-Break-Regel, Queue-Anzahl und MLFQ-
+Modus können festgelegt werden.
+
+EreignisverarbeitungAnkünfte, Dispatches, Präemptionen, Quantumabläufe,
+Kontextwechsel und Prozessabschlüsse werden in zeitlich
+nachvollziehbarer Reihenfolge verarbeitet.
+
+Ergebnisbildung Jeder Simulationslauf erzeugt Ereignisse, Snapshots, Segmen-
+te, Kennzahlen und Prozesszustände.
+
+Ablaufsteuerung Die Wiedergabe kann gestartet, pausiert, zurückgesetzt und
+schrittweise vor- oder zurückbewegt werden. Ein bestimmter
+Zeitpunkt kann direkt über einen Zeitregler ausgewählt wer-
+den.
+
+Visualisierung Die Ausführung wird als Gantt-Darstellung angezeigt. Ak-
+tiver Prozess, Prozessstatus, Warteschlangensituation, Prä-
+emptionen und Quantumabläufe müssen nachvollziehbar sein.
+
+Kennzahlen Zentrale Kennzahlen wie Wartezeit, Durchlaufzeit, Reak-
+tionszeit, Präemptionen, Kontextwechsel, CPU-Auslastung
+und abgeschlossene Prozesse werden berechnet und angezeigt.
+
+Vergleich Ein Szenario kann mehrere Runs enthalten. Diese werden
+auf identischer Szenariobasis simuliert und hinsichtlich Ab-
+lauf und Kennzahlen gegenübergestellt.
+
+Bewertungsmatrix Relevante Kennzahlen können in einer Vergleichsansicht aus-
+gewählt, gewichtet und zu einem ergänzenden Vergleichswert
+zusammengeführt werden.
+
+14
+
+
+
+Tabelle 3.2.: Nicht-funktionale Anforderungen des Scheduling-Visualizers.
+Bereich Anforderungen
+Deterministik Identische Szenarien und Parameter erzeugen identische Er-
+
+eignisfolgen, Segmente, Snapshots und Kennzahlen.
+Fachliche Konsi- Visualisierung, Kennzahlen und Zustandsdarstellung werden
+stenz aus einer gemeinsamen Ergebnisstruktur abgeleitet.
+Testbarkeit Der Simulationskern kann unabhängig von der Benutzero-
+
+berfläche automatisiert geprüft werden.
+Erweiterbarkeit Weitere Kennzahlen, Darstellungen und technische Erweite-
+
+rungen können ergänzt werden, ohne die gesamte Benutze-
+roberfläche neu zu strukturieren.
+
+Wartbarkeit Simulationslogik, Szenarioverwaltung, Wiedergabesteuerung
+und Darstellung besitzen klar getrennte Verantwortlichkei-
+ten.
+
+Bedienbarkeit Der Nutzerfluss von der Szenariokonfiguration bis zur Er-
+gebnisinterpretation ist verständlich und kontrollierbar.
+
+Didaktische Nach- Der zeitliche Ablauf kann sowohl im Überblick als auch
+vollziehbarkeit schrittweise untersucht werden. Relevante Entscheidungen
+
+werden sichtbar dargestellt.
+Technische Bereit- Die Anwendung kann clientseitig ausgeführt und als stati-
+stellung sches Build-Artefakt bereitgestellt werden.
+
+3.4.1. Accessibility-Anforderungen
+
+Accessibility wird als Querschnittseigenschaft der Anwendung verstanden. Die Anforde-
+rungen betreffen semantische Struktur, Tastaturbedienung, Fokusführung, Statuskommu-
+nikation, Darstellung und Bewegungsverhalten.
+Die Accessibility-Anforderungen bilden keinen vollständigen WCAG- oder BITV-Audit
+ab. Sie begrenzen den Prüfgegenstand auf die für die Scheduler-Oberfläche zentralen
+Interaktions- und Darstellungsfunktionen. Die konkrete technische Umsetzung wird in Ka-
+pitel 5 beschrieben. Die durchgeführten Prüfungen und ihre Grenzen werden in Kapitel 6
+erläutert.
+
+3.5. Priorisierung und Abgrenzung
+
+Die Anforderungen werden in Kernanforderungen, Qualitätsanforderungen und optionale
+Erweiterungen eingeteilt.
+Zu den Kernanforderungen gehören die Simulation der vier betrachteten Verfahren,
+die Gantt-Darstellung, die Ablaufsteuerung, die Ausgabe zentraler Kennzahlen sowie der
+Vergleich mehrerer Runs auf identischer Szenariobasis.
+Die Qualitätsanforderungen betreffen insbesondere Deterministik, fachliche Konsistenz,
+
+15
+
+
+
+Tabelle 3.3.: Ausgewählte Accessibility-Anforderungen.
+ID Anforderung Referenz
+A11Y-01 Dialoge, Steuerelemente und Ansichten besitzen ver- WCAG
+
+ständliche semantische Namen und Rollen. 1.3.1,
+4.1.2
+
+A11Y-02 Zentrale Funktionen sind ohne Maus mit der Tastatur WCAG
+bedienbar. 2.1.1
+
+A11Y-03 Der Fokus ist sichtbar, logisch geführt und wird in Dia- WCAG
+logen eingeschlossen sowie anschließend zurückgegeben. 2.4.3,
+
+2.4.7
+A11Y-04 Änderungen von Playback, Vergleichszustand und Sta- WCAG
+
+tus werden verständlich kommuniziert. 4.1.3
+A11Y-05 Gantt-Darstellungen und interaktive Segmente besit- WCAG
+
+zen beschreibende Namen und zugängliche Interakti- 1.1.1,
+onsmöglichkeiten. 2.1.1
+
+A11Y-06 Farbe ist nicht der alleinige Informationsträger; Text- WCAG
+und Fokuskontraste werden berücksichtigt. 1.4.1,
+
+1.4.3,
+1.4.11
+
+A11Y-07 Die Oberfläche bleibt bei vergrößerter Darstellung und WCAG
+schmalem Viewport grundsätzlich nutzbar. 1.4.4,
+
+1.4.10
+A11Y-08 Nicht notwendige Bewegung und Animation werden bei WCAG
+
+aktivierter Präferenz für reduzierte Bewegung einge- 2.3.3
+schränkt.
+
+16
+
+
+
+Testbarkeit, Verständlichkeit, Bedienbarkeit und grundlegende Accessibility. Diese Eigen-
+schaften sind notwendig, damit die Anwendung im vorgesehenen Lehrkontext sinnvoll
+eingesetzt werden kann.
+Zu den Erweiterungen gehören beispielsweise zusätzliche Exportformate, ausführlichere
+Lernpfade, weitere Szenariovorlagen oder zusätzliche Analysefunktionen. Sie sind für die
+Erfüllung des definierten Produktumfangs nicht zwingend erforderlich.
+Der fachliche Untersuchungsumfang ist auf Round Robin, LCFS, Strict Priority und Mul-
+tilevel Feedback Queue begrenzt. Die in dieser Arbeit nicht betrachteten Verfahren werden
+weder in die fachliche Analyse noch in den Produktvergleich einbezogen.
+
+17
+
+
+
+4. Systementwurf
+
+Der Systementwurf überführt die in Kapitel 3 abgeleiteten funktionalen und nicht-funktionalen
+Anforderungen in eine technische Struktur. Im Mittelpunkt stehen die Trennung von An-
+wendungslogik und Darstellung, die gemeinsame Datenbasis eines Simulationslaufs sowie
+die Möglichkeit, mehrere Scheduling-Verfahren auf identischer Szenariobasis zu verglei-
+chen.
+Da die Anwendung als didaktisches Werkzeug eingesetzt werden soll, müssen fachliche
+Entscheidungen im zeitlichen Ablauf sichtbar und durch Interaktion analysierbar sein.
+Der Systementwurf verbindet deshalb Szenarioverwaltung, Simulationskern, Ergebnisver-
+arbeitung, Wiedergabesteuerung und Darstellung zu einem zusammenhängenden System.
+
+4.1. Entwurfsziele
+
+Aus den Anforderungen ergeben sich die folgenden zentralen Entwurfsziele:
+
+Tabelle 4.1.: Zentrale Entwurfsziele und ihre technische Konsequenz.
+Entwurfsziel Technische Konsequenz
+Fachliche Konsistenz Ereignisse, Segmente, Snapshots, Prozesszustände
+
+und Kennzahlen werden aus einem gemeinsamen Si-
+mulationsergebnis abgeleitet.
+
+Trennung der Verant- Einstieg, Anwendungslogik, Simulationskern, Ergeb-
+wortlichkeiten nisdaten und Präsentationsschicht werden logisch
+
+voneinander getrennt.
+Deterministik Identische Szenarien und Parameter erzeugen identi-
+
+sche Simulationsergebnisse.
+Didaktische Nachvoll- Scheduling-Entscheidungen werden durch Ereignisse,
+ziehbarkeit Zustandsabbilder, Ausführungssegmente und Schritt-
+
+steuerung sichtbar gemacht.
+Erweiterbarkeit Weitere Ansichten, Kennzahlen und Scheduling-
+
+Verfahren können auf gemeinsamen Datenstrukturen
+aufbauen.
+
+Austauschbarkeit Szenarien können lokal gespeichert sowie über JSON
+importiert und exportiert werden.
+
+Eine zentrale Konsequenz ist, dass die Benutzeroberfläche keine eigene Scheduling-Logik
+enthalten darf. Sie stellt die vom Simulationskern berechneten Daten dar und ermöglicht
+
+18
+
+
+
+die Navigation durch den erzeugten Ablauf. Dadurch werden fachliche Berechnung und
+visuelle Präsentation voneinander entkoppelt.
+
+4.2. Gesamtarchitektur
+
+Die Anwendung ist als clientseitige Single-Page-Webanwendung aufgebaut. Die zentrale
+Anwendungshülle wird durch AppShell.vue gebildet. Sie bildet den Einstiegspunkt für
+die Benutzerinteraktion und steuert den Zugriff auf die Szenarioverwaltung.
+Die Szenarioverwaltung verwaltet die gemeinsame Szenariobasis sowie die konkreten Run-
+Konfigurationen. Diese Daten werden gemeinsam an den Simulationskern übergeben. Die
+Funktion simulateScenario() erzeugt daraus ein SimulationRun, das die Ergebnisdaten
+des Simulationslaufs enthält.
+Ergänzend unterstützt die Anwendung eine Wiedergabesteuerung zur Navigation durch
+einen berechneten Simulationslauf sowie eine Vergleichssteuerung zur Gegenüberstellung
+mehrerer Runs. Szenarien können im Browser gespeichert und über JSON importiert be-
+ziehungsweise exportiert werden.
+Die Gesamtstruktur und die wichtigsten Datenflüsse sind in Abbildung 4.1 dargestellt.
+Das Diagramm unterscheidet zwischen sieben logisch getrennten Bereichen:
+
+1. Einstieg: Benutzer und zentrale Anwendungshülle AppShell.vue;
+2. Anwendungslogik: Szenarioverwaltung, Wiedergabesteuerung und Vergleichssteue-
+
+rung;
+3. Eingabedaten: Szenariobasis und Run-Konfiguration;
+4. Simulationskern: Ausführung von simulateScenario();
+5. Ergebnisdaten: erzeugtes Objekt SimulationRun;
+6. Präsentationsschicht: Fokus- und Vergleichsansicht;
+7. Persistenz und Dateiaustausch: Speicherung im Browser sowie JSON-Import
+
+und JSON-Export.
+
+Die folgende Abbildung wird auf einer eigenen Querformatseite dargestellt, damit die
+horizontal angeordneten Komponenten und Datenflüsse lesbar bleiben.
+
+19
+
+
+
+20
+
+Persistenz und Dateiaustausch
+Anwendungslogik
+
+Browser 
+speichert / lädt
+
+localStorage
+
+JSON-Import/-
+importiert / exportiert
+
+Export
+
+Einstieg
+Simulationskern
+
+AppShell.vue
+Benutzer Bedienung steuert Szenarioverwaltung startet Ergebnisdaten Präsentationsschicht
+
+Orchestrator
+
+Eingabedaten
+SimulationRun Fokus- und
+
+simulateScenario() erzeugt Ergebnisdaten
+Simulationsergebnis Vergleichsansicht
+
+ScenarioRecord
+Wiedergabesteuerung verwaltet Eingabedaten
+
+Szenariobasis
+
+Vergleichssteuerung
+ScenarioRunRecord
+
+verwaltet Parameter
+Run-Konfiguration
+
+Abbildung 4.1.: Komponenten- und Datenflussdiagramm mit Anwendungslogik, Simulationskern, Ergebnisdaten und Präsentationsschicht.
+
+
+
+Das Diagramm zeigt den primären fachlichen Datenfluss von der Benutzerinteraktion bis
+zur Ergebnisdarstellung. Die Bedienung erfolgt über AppShell.vue. Die Anwendungshülle
+steuert die Szenarioverwaltung, über die Szenariodaten und Run-Konfigurationen verwal-
+tet werden.
+Die Szenariobasis wird im Diagramm als ScenarioRecord bezeichnet. Sie beschreibt die
+gemeinsamen Eingabedaten eines Szenarios. Die konkrete Ausführungskonfiguration wird
+durch ScenarioRunRecord dargestellt. Sie enthält das ausgewählte Scheduling-Verfahren
+und die zugehörigen Parameter.
+Beide Eingabestrukturen werden gemeinsam an simulateScenario() übergeben. Der Si-
+mulationskern verarbeitet die Daten und erzeugt daraus ein SimulationRun. Dieses Si-
+mulationsergebnis wird anschließend von der Fokus- und Vergleichsansicht verwendet.
+Die gestrichelten Verbindungen zur Browser-Persistenz und zum JSON-Import bezie-
+hungsweise JSON-Export kennzeichnen Speicher- und Austauschoperationen. Sie gehören
+nicht zum eigentlichen Berechnungspfad der Simulation, sondern unterstützen die Verwal-
+tung und Wiederverwendung von Szenarien.
+
+4.2.1. Komponenten und Verantwortlichkeiten
+
+Die wichtigsten Komponenten und Module werden in Tabelle 4.2 zusammengefasst.
+Die Darstellungskomponenten treffen keine eigenen Scheduling-Entscheidungen. Sie ver-
+wenden Ergebnisdaten des Simulationslaufs. Je nach Komponente greifen sie auf das voll-
+ständige SimulationRun, auf einzelne Bestandteile wie Snapshots oder Segmente oder auf
+daraus abgeleitete Darstellungsdaten zu.
+
+4.3. Domänen- und Datenmodell
+
+Das Domänenmodell unterscheidet zwischen den Eingabedaten eines Simulationslaufs,
+dem Simulationskern und dem daraus erzeugten Ergebnis. Dabei werden die Szenario-
+basis und die konkrete Run-Konfiguration gemeinsam an den Simulationskern übergeben.
+Die Szenariobasis wird durch ScenarioRecord beschrieben. Sie enthält die Prozesse und
+allgemeine Szenariodaten. Die konkrete Ausführung wird durch ScenarioRunRecord be-
+schrieben. Diese Struktur enthält das Scheduling-Verfahren und die zugehörigen algorith-
+musspezifischen Parameter.
+Die fachliche Beziehung lautet:
+
+ScenarioRecord + ScenarioRunRecord → simulateScenario() → SimulationRun
+
+Das SimulationRun bildet die zentrale Ergebnisstruktur eines einzelnen Simulationslaufs.
+
+21
+
+
+
+Tabelle 4.2.: Zentrale Komponenten und ihre Verantwortlichkeiten.
+Komponente oder Mo- Verantwortlichkeit
+dul
+AppShell.vue Zentraler Einstiegspunkt und Koordination
+
+der Benutzerinteraktion.
+Szenarioverwaltung Verwaltung der Szenariobasis, Run-
+
+Konfigurationen und Auswahlzustände.
+Wiedergabesteuerung Navigation durch einen berechneten Simulati-
+
+onsablauf, einschließlich Start, Pause, Zurück-
+setzen und schrittweiser Navigation.
+
+Vergleichssteuerung Verwaltung und Gegenüberstellung mehrerer
+Simulationsläufe.
+
+ScenarioRecord Beschreibung der gemeinsamen Szenariobasis
+mit den enthaltenen Prozessen und allgemei-
+nen Szenariodaten.
+
+ScenarioRunRecord Beschreibung einer konkreten Run-
+Konfiguration mit Verfahren und algo-
+rithmusspezifischen Parametern.
+
+simulateScenario() Tick-basierte Berechnung des Scheduling-
+Ablaufs und Erzeugung des SimulationRun.
+
+SimulationRun Zentrale Ergebnisstruktur eines einzelnen Si-
+mulationslaufs mit Ereignissen, Snapshots,
+Segmenten, Zuständen und Kennzahlen.
+
+Fokus- und Vergleichsan- Darstellung eines einzelnen Laufs beziehungs-
+sicht weise paralleler Ergebnisse mehrerer Runs.
+Browser-localStorage Lokale Speicherung von Szenariodaten im
+
+Browser.
+JSON-Import/-Export Austausch von Szenariodaten zwischen An-
+
+wendung und Dateisystem.
+
+22
+
+
+
+Es bündelt das Ereignisprotokoll, Simulations-Snapshots, Zeitsegmente, Kennzahlen, Pro-
+zesszustände und die Gesamtdauer der Simulation.
+
+Tabelle 4.3.: Zentrale Bestandteile des Domänenmodells.
+Bestandteil Inhalt Funktion
+ScenarioRecord Prozesse und allgemeine Szena- Gemeinsame Szena-
+
+riodaten riobasis
+ScenarioRunRecord Scheduling-Verfahren und algo- Konkrete Run-
+
+rithmusspezifische Parameter Konfiguration
+simulateScenario() Tick-basierte Verarbeitung der Erzeugung des
+
+Eingabedaten Simulationsergeb-
+nisses
+
+SimulationRun Ereignisse, Snapshots, Segmen- Zentrale Ergebnis-
+te, Kennzahlen, Prozesszustän- struktur
+de und Gesamtdauer
+
+4.3.1. ScenarioRecord
+
+Ein ScenarioRecord beschreibt die gemeinsame Ausgangslage einer Simulation. Es enthält
+die Prozesse und allgemeine Szenariodaten. Die Prozessdaten werden unabhängig von
+einem konkreten Scheduling-Verfahren definiert.
+Zu den relevanten Prozessdaten gehören insbesondere:
+
+• eindeutige Prozessbezeichnung,
+• Ankunftszeit,
+• Burst-Zeit,
+• Priorität,
+• Farbe oder andere Darstellungsinformationen,
+• optionale Gruppierungsinformationen.
+
+Die Restzeit, der aktuelle Status, die Wartezeit und weitere Laufzeitdaten werden nicht als
+unveränderliche Szenarioeingabe verstanden. Diese Informationen entstehen während der
+Simulation und werden im Ergebnisobjekt beziehungsweise in dessen Prozesszuständen
+geführt.
+Ein Szenario kann mehreren Runs zugrunde liegen. Werden beispielsweise Round Robin,
+LCFS, Strict Priority und Multilevel Feedback Queue auf demselben Szenario ausgeführt,
+bleiben die Prozessdaten identisch. Unterschiede zwischen den Läufen entstehen durch die
+verwendeten Verfahren und deren Parameter.
+
+23
+
+
+
+4.3.2. ScenarioRunRecord
+
+Ein ScenarioRunRecord beschreibt eine konkrete Ausführungskonfiguration. Er enthält
+ein Scheduling-Verfahren und dessen algorithmusspezifische Parameter.
+Beispiele für solche Parameter sind:
+
+• Zeitquantum bei Round Robin,
+• Tie-Break-Regel bei Strict Priority,
+• Anzahl der Queue-Ebenen bei MLFQ,
+• stufenabhängige Quantumswerte,
+• Konfiguration des jeweiligen MLFQ-Modus.
+
+Ein ScenarioRunRecord enthält zunächst nur die Konfiguration. Der eigentliche zeitliche
+Ablauf entsteht erst bei der Ausführung durch simulateScenario().
+
+4.3.3. SimulationRun als zentrale Ergebnisstruktur
+
+Ein SimulationRun bildet das Ergebnis eines berechneten Simulationslaufs. Die Struk-
+tur wird von simulateScenario() erzeugt und enthält alle Daten, die für Wiedergabe,
+Visualisierung, Analyse und Vergleich benötigt werden.
+Die zentralen Bestandteile sind:
+
+• events: chronologisch geordnetes Ereignisprotokoll;
+• snapshots: Zustandsabbilder zu den Zeitpunkten der Simulation;
+• segments: zeitliche Ausführungsabschnitte für die Gantt-Darstellung;
+• finalMetrics: aggregierte Kennzahlen des abgeschlossenen Laufs;
+• processStates: Laufzeitdaten der einzelnen Prozesse;
+• totalTime: Gesamtdauer des Simulationslaufs.
+
+Das SimulationRun ist die zentrale Ergebnisstruktur eines einzelnen Laufs. Die einzel-
+nen Ansichten greifen auf die jeweils benötigten Bestandteile dieses Ergebnisses zu. Die
+Gantt-Darstellung verwendet insbesondere die Zeitsegmente, die Wiedergabesteuerung die
+Snapshots und die Kennzahlenansicht die aggregierten Metriken.
+Die zentrale Ergebnisstruktur bedeutet nicht, dass SimulationRun die einzige Datenquelle
+der gesamten Anwendung ist. Szenariodaten und Run-Konfigurationen werden weiterhin
+durch die Szenarioverwaltung bereitgestellt. Für mehrere Runs können mehrere unabhän-
+gige SimulationRun-Objekte erzeugt werden.
+
+24
+
+
+
+Szenario Run-Konfiguration
+
+ScenarioRecord ScenarioRunRecord
+
+Szenariodaten Verfahren und Parameter
+
+Simulationskern
+
+simulateScenario()
+
+erzeugt
+
+SimulationRun
+
+(Zentrale 
+
+Ergebnisstruktur)
+
+Simulations-
+Ereignisprotokoll Zeitsegmente Kennzahlen Prozesszustände Gesamtdauer
+
+Snapshots
+events segments finalMetrics processStates totalTime
+
+snapshots
+
+Abbildung 4.2.: Domänenmodell mit SimulationRun als zentraler Ergebnisstruktur eines einzelnen
+Simulationslaufs.
+
+4.4. Daten- und Kontrollfluss
+
+Der Ablauf eines Simulationslaufs beginnt mit der Auswahl eines Szenarios und einer
+zugehörigen Run-Konfiguration. Die Szenarioverwaltung stellt die erforderlichen Einga-
+bedaten bereit. Anschließend werden Szenariobasis, Verfahren und algorithmusspezifische
+Parameter an den Simulationskern übergeben.
+Der Datenfluss umfasst fünf zentrale Schritte:
+
+1. Auswahl: Der Benutzer wählt eine Szenariobasis und eine Run-Konfiguration aus.
+2. Aufbereitung: Die Prozessdaten und algorithmusspezifischen Parameter werden zu
+
+einer Simulationsstruktur verbunden und für die Simulation vorbereitet.
+3. Simulation: Der Simulationskern verarbeitet Ankünfte, Auswahlentscheidungen,
+
+Ausführung, Präemptionen und Prozessabschlüsse tick-basiert.
+4. Ergebnisbildung: Ereignisse, Segmente, Snapshots, Prozesszustände und Kenn-
+
+zahlen werden zu einem SimulationRun zusammengeführt.
+5. Darstellung: Die Anwendung verwendet das Simulationsergebnis für Gantt-Darstellung,
+
+Statusanzeige, Wiedergabesteuerung und Vergleich.
+
+Vor der folgenden Abbildung ist zu beachten, dass das Sequenzdiagramm den zentralen
+Berechnungspfad eines einzelnen Simulationslaufs vereinfacht darstellt. Die vorgelagerte
+Auswahl des Szenarios und der Run-Konfiguration durch die Szenarioverwaltung sowie
+die nachgelagerte Navigation durch die Wiedergabesteuerung werden aus Gründen der
+Übersicht nicht als eigene Lebenslinien dargestellt.
+Das Sequenzdiagramm zeigt den zentralen Berechnungspfad von der Benutzerinteraktion
+bis zur Aktualisierung der Ansichten. Nach der Konfiguration und Übergabe der Szenari-
+
+25
+
+
+
+Benutzeroberfläche Szenarioverwaltung simulateScenario() Wiedergabesteuerung Ansichten
+Benutzer
+
+Szenario und Run auswählen
+
+Aktives Szenario und aktiven Run abfragen
+
+ScenarioRecord und ScenarioRunRecord
+
+Simulationsdaten aufbereiten
+
+Scenario für den aktiven Run
+
+Simulation starten
+
+simulateScenario(Scenario)
+
+loop [Tick-basierte Simulation]
+
+Ankünfte verarbeiten
+
+Scheduling-Entscheidung treffen
+
+Prozesszustände aktualisieren
+
+Ereignisse erzeugen
+
+Snapshots erzeugen
+
+Zeitsegmente aktualisieren
+
+Kennzahlen berechnen
+
+SimulationRun erzeugen
+
+SimulationRun zurückgeben
+
+Snapshots bereitstellen
+
+Aktuellen Snapshot liefern
+
+Ereignisse, Segmente, Zustände und Kennzahlen übergeben
+
+Gantt-, Status- und Kennzahlenansicht anzeigen
+
+Benutzeroberfläche Szenarioverwaltung simulateScenario() Wiedergabesteuerung Ansichten
+
+Benutzer
+
+Abbildung 4.3.: Vereinfachter Sequenzablauf eines einzelnen Simulationslaufs.
+
+26
+
+
+
+odaten verarbeitet simulateScenario() die Simulation in einer tick-basierten Schleife.
+Während der Schleife werden Ankünfte verarbeitet, Scheduling-Entscheidungen getroffen,
+Prozesszustände aktualisiert sowie Ereignisse, Snapshots und Zeitsegmente erzeugt. Nach
+Abschluss der Schleife werden die Kennzahlen berechnet und gemeinsam mit den übrigen
+Ergebnisdaten in einem SimulationRun zusammengeführt.
+Das Ergebnis wird an die Benutzeroberfläche zurückgegeben. Diese aktualisiert anschlie-
+ßend die verfügbaren Ansichten. Die Auswahl des aktuellen Snapshots und die Navigation
+durch den Ablauf erfolgen in der konkreten Anwendung über die Wiedergabesteuerung.
+
+4.4.1. Simulation durch simulateScenario()
+
+Die Funktion simulateScenario() bildet die zentrale fachliche Schnittstelle zwischen Ein-
+gabedaten und Simulationsergebnis. Sie erhält die aus Szenariobasis und Run-Konfiguration
+zusammengesetzte Simulationsstruktur und verarbeitet diese in einer diskreten Zeitschlei-
+fe.
+Während der Simulation werden unter anderem folgende Informationen erzeugt:
+
+• Ankunft und Aufnahme neuer Prozesse,
+• Auswahlentscheidungen des Scheduling-Verfahrens,
+• Dispatch- und Präemptionsereignisse,
+• Ausführungssegmente,
+• Quantumabläufe,
+• Änderungen der Prozesszustände,
+• Prozessabschlüsse,
+• Kennzahlen für die spätere Auswertung.
+
+Die Funktion erzeugt dadurch nicht nur einen abschließenden Kennzahlensatz, sondern
+einen vollständig nachvollziehbaren zeitlichen Ablauf. Dieser Ablauf kann anschließend
+schrittweise betrachtet und mit anderen Runs verglichen werden.
+
+4.4.2. Tick-basierte Verarbeitung
+
+Die Simulation arbeitet diskret in einzelnen Zeitschritten. Pro Tick werden unter anderem
+neue Ankünfte verarbeitet, Scheduling-Entscheidungen überprüft und der Zustand des
+aktuell ausgeführten Prozesses aktualisiert.
+Während der Ausführung können Präemptionen, Quantumabläufe, Kontextwechsel und
+Prozessabschlüsse auftreten. Die dabei entstehenden Informationen werden in den Ereig-
+nissen, Zeitsegmenten, Snapshots und Prozesszuständen des SimulationRun festgehalten.
+Die tick-basierte Verarbeitung unterstützt insbesondere die didaktische Nachvollziehbar-
+
+27
+
+
+
+keit. Lernende können dadurch erkennen, zu welchem Zeitpunkt eine Scheduling-Entscheidung
+getroffen wurde und wie sich diese Entscheidung auf Warteschlangen und Prozesszustände
+auswirkt.
+
+4.4.3. Snapshot-basierte Wiedergabe
+
+Die Simulation wird vollständig berechnet, bevor der Ablauf über die Wiedergabesteue-
+rung betrachtet wird. Die Playback-Logik verändert deshalb nicht den Simulationslauf,
+sondern den Index des aktuell sichtbaren Snapshots.
+Diese Entscheidung hat mehrere Vorteile:
+
+• Der Ablauf bleibt unabhängig von Wiedergabegeschwindigkeit und Benutzerinter-
+aktion.
+
+• Ein Lauf kann vorwärts, rückwärts und wiederholt betrachtet werden.
+• Die Oberfläche muss während der Wiedergabe keine eigene Scheduling-Logik aus-
+
+führen.
+• Die Wiedergabe kann auf bereits berechnete Zustandsinformationen zugreifen.
+• Unterschiedliche Ansichten können denselben zeitlichen Zustand verwenden.
+
+Die Snapshot-Struktur bildet damit die Schnittstelle zwischen fachlicher Simulation und
+zeitlicher Darstellung. Der aktuelle Wiedergabeindex bestimmt, welcher Zustand in der
+Fokusansicht sichtbar ist.
+
+4.5. Interaktionsmodell
+
+Der Nutzerfluss folgt der fachlichen Struktur des Simulationsmodells:
+
+Szenariobasis auswählen → Run konfigurieren → Simulation starten → Ablauf
+untersuchen → Runs vergleichen
+
+Aus diesem Ablauf ergeben sich drei zentrale Nutzungsformen:
+
+• Beobachten: Der vollständige Ablauf wird als Gantt-Zeitachse betrachtet.
+• Untersuchen: Ein bestimmter Simulationszeitpunkt wird über Wiedergabe, Zeit-
+
+regler und Schrittsteuerung analysiert.
+• Vergleichen: Mehrere Runs werden anhand ihrer Ausführungssegmente und Kenn-
+
+zahlen gegenübergestellt.
+
+Die Interaktion dient damit der Navigation durch ein berechnetes Ergebnis. Sie verän-
+dert nicht die zugrunde liegende fachliche Simulation. Änderungen an Szenario- oder Run-
+
+28
+
+
+
+Daten erzeugen stattdessen eine neue Simulationskonfiguration beziehungsweise einen neu-
+en Simulationslauf.
+
+4.6. Vergleich mehrerer Runs
+
+Der Vergleich mehrerer Runs basiert auf der gemeinsamen Szenariobasis. Für jeden Run
+werden die Prozessdaten des Szenarios mit dem jeweiligen Verfahren und dessen Para-
+metern verbunden. Anschließend erzeugt simulateScenario() für jeden Run ein eigenes
+Ergebnisobjekt.
+Dadurch können mehrere SimulationRun-Objekte unabhängig voneinander ausgewertet
+werden. Die Vergleichsansicht stellt deren Ausführungssegmente parallel dar. Die Ver-
+gleichssteuerung ergänzt den zeitlichen Vergleich um Kennzahlen wie:
+
+• durchschnittliche Wartezeit,
+• durchschnittliche Durchlaufzeit,
+• durchschnittliche Reaktionszeit,
+• Anzahl der Präemptionen,
+• Anzahl der Kontextwechsel,
+• CPU-Auslastung und Leerlaufanteil.
+
+Eine zusätzliche Gewichtung kann verwendet werden, um unterschiedliche Anwendungs-
+fälle abzubilden. Der daraus berechnete Vergleichswert dient als ergänzende Orientierung
+und ersetzt nicht die fachliche Interpretation der zeitlichen Abläufe.
+Die Vergleichbarkeit wird durch drei Entwurfsentscheidungen unterstützt:
+
+1. Alle Runs verwenden dieselbe Szenariobasis.
+2. Jeder Run erzeugt ein einheitlich strukturiertes SimulationRun.
+3. Die Kennzahlen werden aus den jeweiligen Simulationsergebnissen nach denselben
+
+Regeln berechnet.
+
+Dadurch können sowohl zeitliche Unterschiede im Gantt-Verlauf als auch quantitative
+Unterschiede in der Kennzahlendarstellung untersucht werden.
+Bei der Mehrfachansicht wird der Simulationsablauf für jeden Run separat berechnet. Die
+Ergebnisse werden anschließend gemeinsam dargestellt. Damit bleiben die einzelnen Läufe
+unabhängig voneinander, verwenden jedoch dieselbe Prozessbasis des Szenarios.
+
+29
+
+
+
+4.7. Persistenz und Dateiaustausch
+
+Die Anwendung unterstützt zwei Formen der Datenhaltung und des Datenaustauschs. Für
+die lokale Verwendung können Szenarien im Browser-localStorage gespeichert werden.
+Dadurch bleiben Szenariodaten auch nach einem erneuten Laden der Anwendung verfüg-
+bar.
+Zusätzlich können Szenarien als JSON-Daten exportiert und zu einem späteren Zeitpunkt
+wieder importiert werden. Der JSON-Austausch ermöglicht die Weitergabe von Beispiels-
+zenarien und unterstützt reproduzierbare Demonstrationen im Lehrkontext.
+Die Persistenz ist vom eigentlichen Simulationskern getrennt. Der Simulationskern benö-
+tigt lediglich die normalisierten Eingabedaten. Ob diese Daten aus dem localStorage,
+einem JSON-Import oder einer direkten Benutzereingabe stammen, hat keinen Einfluss
+auf die Berechnung des Simulationsablaufs.
+Die Persistenz speichert dabei Szenario- und Konfigurationsdaten. Ein SimulationRun
+wird nicht als dauerhafte zentrale Datenquelle der Anwendung verstanden, sondern bei
+Bedarf aus den aktuellen Eingabedaten berechnet. Dadurch bleiben die Simulationsergeb-
+nisse reproduzierbar und können nach Änderungen an Szenario oder Run-Konfiguration
+neu erzeugt werden.
+
+4.8. Accessibility als Entwurfsprinzip
+
+Accessibility wird als Querschnittseigenschaft der Präsentations- und Interaktionsschicht
+berücksichtigt. Der Entwurf orientiert sich dabei an den in Kapitel 3 definierten nicht-
+funktionalen Anforderungen und an ausgewählten WCAG-Kriterien W3C [2018].
+Dialoge werden als begrenzte Interaktionszustände behandelt. Für sie werden initialer
+Fokus, logische Fokusführung, Escape-Schließen und Fokus-Rückgabe vorgesehen. Dadurch
+bleibt die Bedienung auch bei geöffneten Dialogen nachvollziehbar.
+Für die Gantt-Darstellung wird SVG verwendet, weil einzelne Elemente des Dokumentmo-
+dells beschrieben und interaktiv zugänglich gemacht werden können. Die SVG-Struktur
+kann mit Titel, Beschreibung und zugänglichen Namen versehen werden. Interaktive Seg-
+mente können dadurch einem Prozess und einem Zeitintervall zugeordnet werden.
+Statusänderungen werden zusätzlich textuell kommuniziert. Dies betrifft beispielsweise:
+
+• den aktuellen Playback-Zeitpunkt,
+• den Wiedergabestatus,
+• das zuletzt eingetretene Ereignis,
+• die ausgewählte Szenariobasis,
+• den aktiven Run,
+
+30
+
+
+
+• Ergebnisse der Vergleichsansicht.
+
+Farben und Animationen dienen der visuellen Orientierung, sind jedoch nicht als allei-
+nige Informationsquelle vorgesehen. Prozesszustände und Scheduling-Ereignisse müssen
+zusätzlich über Text, Beschriftungen oder semantische Strukturen nachvollziehbar sein.
+Die gewählte Architektur unterstützt Accessibility bereits auf der Entwurfsebene. Die
+konkrete Umsetzung wird in Kapitel 5 beschrieben und in Kapitel 6 anhand des begrenzten
+Prüfstands untersucht.
+
+4.9. Erweiterbarkeit und Entwurfsgrenzen
+
+Die Architektur ermöglicht die Ergänzung weiterer Kennzahlen, Darstellungskomponenten
+und Szenariofunktionen, sofern diese auf den bestehenden Ergebnisstrukturen aufbauen
+können. Auch weitere Scheduling-Strategien könnten grundsätzlich in den Simulationskern
+integriert werden, ohne das gesamte Domänen- und Präsentationsmodell neu zu entwerfen.
+Neue Verfahren müssten insbesondere die gemeinsame Eingabestruktur, standardisierte
+Ereignisse, Snapshots, Segmente und Kennzahlen verwenden. Dadurch könnten bestehen-
+de Darstellungen wie Gantt-Verlauf, Wiedergabesteuerung und Vergleichsansicht weiter-
+verwendet werden.
+Gleichzeitig ist der Entwurf auf ein diskretes, lehrorientiertes Simulationsmodell begrenzt.
+Mehrkernverarbeitung, Ein-/Ausgabe-Blockierungen, reale Kontextwechselkosten und be-
+triebssystemspezifische Verwaltungsmechanismen werden nicht abgebildet. Diese Abgren-
+zung entspricht dem in Kapitel 3 definierten Untersuchungsumfang.
+Auch die Persistenz ist bewusst begrenzt. Der Browser-localStorage dient der lokalen
+Speicherung und ist nicht als zentrale Mehrbenutzer- oder Serverdatenbank vorgesehen.
+Der JSON-Import und -Export unterstützt den Datenaustausch, übernimmt jedoch keine
+vollständige Versionsverwaltung oder Konfliktauflösung.
+
+31
+
+
+
+5. Implementierung
+
+Dieses Kapitel beschreibt die technische Umsetzung des in Kapitel 4 entworfenen Scheduling-
+Visualizers. Im Mittelpunkt stehen der Simulationskern, die verwendeten Datenstrukturen,
+die Wiedergabesteuerung und die Darstellung der Simulationsergebnisse.
+Die Anwendung wurde als clientseitige Single-Page-Webanwendung entwickelt. Die Scheduling-
+Berechnung erfolgt vollständig im Browser. Ein Server ist für die Ausführung der Simulation
+nicht erforderlich. Szenarien und ausgewählte Benutzereinstellungen können zusätzlich lo-
+kal im Browser gespeichert werden.
+
+5.1. Technologien und Projektstruktur
+
+Für die Implementierung werden Vue 3, TypeScript und Vite eingesetzt. Vue 3 bildet
+die Grundlage der komponentenbasierten Benutzeroberfläche Vue.js Core Team [2026].
+TypeScript beschreibt die fachlichen Datenstrukturen und unterstützt die Konsistenz der
+Schnittstellen zwischen Simulationskern, Anwendungslogik und Darstellung.
+Vite übernimmt den Entwicklungs- und Build-Prozess Vite [2026]. Die zeitliche Darstel-
+lung wird mit SVG umgesetzt, da einzelne Segmente, Beschriftungen und Interaktions-
+ziele als DOM-Elemente erzeugt werden können. Für ausgewählte Präsentationseffekte
+wird GSAP verwendet GreenSock [2026]. Die Animationen beeinflussen ausschließlich die
+Darstellung und nicht den berechneten Simulationsablauf.
+Die automatisierten Tests werden mit Vitest ausgeführt Vitest Team [2026]. Der Schwer-
+punkt liegt auf der unabhängig von der Benutzeroberfläche testbaren Simulationslogik.
+Die Projektstruktur folgt der im Systementwurf beschriebenen Trennung. Die Datei src/simulation.ts
+enthält den zentralen Simulationskern. Gemeinsame TypeScript-Typen befinden sich in
+src/types.ts. Szenarien und Runs werden durch useScenarioWorkspace() verwaltet.
+Die Wiedergabe wird durch usePlayback() gekapselt. Die Darstellung ist auf mehrere
+Vue- Komponenten wie Gantt.vue, StackList.vue, MultiView.vue und ComparisonPanel.vue
+verteilt.
+
+32
+
+
+
+Tabelle 5.1.: Zentrale Technologien und ihre Verwendung.
+Technologie Einsatz Begründung
+Vue 3 Benutzeroberfläche Komponentenbasierte und re-
+
+aktive Darstellung
+TypeScript Datenmodell und Logik Typisierte Schnittstellen zwi-
+
+schen den Schichten
+Vite Entwicklung und Build Entwicklungsserver und stati-
+
+sche Build-Artefakte
+SVG Gantt-Darstellung Skalierbare und interaktive
+
+Zeitelemente
+GSAP Präsentationseffekte Steuerbare Übergänge ohne
+
+Einfluss auf die Fachlogik
+Vitest Automatisierte Tests Reproduzierbare Prüfung des
+
+Simulationskerns
+
+5.2. Datenmodell
+
+Das Datenmodell unterscheidet zwischen Eingabedaten, Laufzeitdaten und Ergebnisda-
+ten. Dadurch können die ursprünglichen Prozessdaten von ihrem Zustand während der
+Simulation und vom fertigen Simulationsergebnis getrennt werden.
+Das Domänenmodell verwendet dabei zwei getrennte Eingabestrukturen. Ein ScenarioRecord
+beschreibt die gemeinsame Szenariobasis. Ein ScenarioRunRecord beschreibt die konkre-
+te Konfiguration eines Simulationslaufs. Beide Strukturen werden vor der Ausführung zu
+einer Simulationsstruktur verbunden und an simulateScenario() übergeben.
+
+5.2.1. Eingabe- und Laufzeitdaten
+
+Ein Prozess wird durch seine Identität sowie Scheduling-relevante Eigenschaften beschrie-
+ben. Dazu gehören insbesondere Ankunftszeit, Burst-Zeit, Priorität und Farbe. Während
+der Simulation wird jeder Eingabeprozess in eine Laufzeitrepräsentation überführt. Diese
+enthält zusätzliche Informationen über Restzeit, Status und bereits erfasste Zeitwerte.
+
+1 type ProcessInput = {
+2 id: string;
+3 name: string;
+4 arrivalTime: number;
+5 burstTime: number;
+6 priority: number;
+7 color: string;
+8 };
+9
+
+10 type ProcessRuntime = ProcessInput & {
+11 remainingTime: number;
+12 status: ProcessStatus;
+
+33
+
+
+
+13 waitingTime: number;
+14 responseTime: number | null;
+15 startedAt: number | null;
+16 finishedAt: number | null;
+17 queueLevel?: number;
+18 mlfqRemainingQuantum?: number;
+19 };
+
+Listing 5.1: Vereinfachte Eingabe- und Laufzeitstruktur eines Prozesses.
+
+Ein ScenarioRecord enthält die Prozessdaten und allgemeine Parameter wie Titel, Be-
+schreibung, Seed und Tick-Größe. Ein ScenarioRunRecord ergänzt diese Szenariobasis
+um eine konkrete Ausführungskonfiguration. Dazu gehören ein Scheduling-Verfahren und
+die algorithmusspezifischen Parameter.
+Die konkrete Simulationsfunktion erhält daraus eine aufbereitete Eingabestruktur. Die
+Prozessbasis bleibt bei mehreren Runs identisch; nur Verfahren und Parameter werden aus-
+getauscht. Dadurch können mehrere ScenarioRunRecord-Objekte auf demselben ScenarioRecord
+ausgeführt und anschließend verglichen werden.
+
+5.2.2. Ergebnisstrukturen
+
+Der Simulationskern erzeugt Ereignisse, Segmente, Snapshots und Kennzahlen. Diese Struk-
+turen erfüllen unterschiedliche Aufgaben:
+
+• ScheduleEvent beschreibt ein zeitlich zugeordnetes Ereignis wie Ankunft, Dispatch,
+Präemption, Quantumablauf oder Abschluss.
+
+• TimelineSegment beschreibt ein zusammenhängendes CPU-Ausführungsintervall ei-
+nes Prozesses.
+
+• SimulationSnapshot speichert den Simulationszustand zu einem bestimmten Zeit-
+punkt.
+
+• SimulationMetrics enthält die aggregierten Kennzahlen.
+
+Alle Strukturen werden im SimulationRun zusammengeführt. Dadurch können das Gantt-
+Modell, die Stack-Liste, die Wiedergabesteuerung und die Kennzahlen auf denselben Be-
+rechnungsergebnissen aufbauen.
+
+5.3. Implementierung des Simulationskerns
+
+Der zentrale Einstiegspunkt der Simulation ist simulateScenario() in src/simulation.ts.
+Die Funktion normalisiert zunächst die aufbereitete Eingabestruktur und erzeugt anschlie-
+ßend die Laufzeitrepräsentationen der Prozesse. Danach wird der Ablauf in diskreten Zeit-
+schritten berechnet.
+
+34
+
+
+
+Die Normalisierung führt ungültige oder fehlende Eingaben auf definierte gültige Werte zu-
+rück. So werden beispielsweise negative Ankunftszeiten verhindert, Burst-Zeiten auf min-
+destens einen Tick begrenzt und fehlende algorithmusspezifische Parameter durch Stan-
+dardwerte ersetzt. Die eigentliche Scheduling-Logik arbeitet dadurch mit einer konsisten-
+ten Eingabestruktur.
+Die Simulation erzeugt während der Verarbeitung alle für die späteren Ansichten benötig-
+ten Daten. Der Ablauf wird nicht aus der Benutzeroberfläche rekonstruiert. Stattdessen
+ist der Simulationskern die einzige Quelle für Ereignisse, Segmente, Snapshots und Kenn-
+zahlen.
+
+5.3.1. Tick-basierte Verarbeitung
+
+Die Verarbeitung erfolgt tick-basiert. In jedem Zeitschritt werden zunächst neu eingetrof-
+fene Prozesse berücksichtigt. Anschließend wird abhängig vom aktiven Verfahren geprüft,
+welcher Prozess ausgeführt werden soll. Falls notwendig, wird eine Präemption erzeugt.
+Danach wird der aktive Prozess für einen Zeitschritt ausgeführt und seine Restzeit aktua-
+lisiert.
+Der vereinfachte Ablauf lautet:
+
+1 while not allProcessesFinished:
+2 addArrivedProcessesToReadyState()
+3
+4 candidate = selectNextProcess(algorithm, state)
+5
+6 if preemptionRequired(candidate, currentProcess):
+7 createPreemptionEvent()
+8 returnCurrentProcessToReadyState()
+9
+
+10 if noProcessIsRunning():
+11 dispatch(candidate)
+12
+13 executeCurrentProcessForOneTick()
+14 updateRemainingTimeAndMetrics()
+15 updateQuantumState()
+16 createEventsAndTimelineSegments()
+17 createSnapshotIfRequired()
+18
+19 if currentProcessIsFinished():
+20 createFinishEvent()
+21 markProcessAsFinished()
+22
+23 advanceSimulationTime()
+
+Listing 5.2: Vereinfachter Ablauf der tick-basierten Simulation.
+
+35
+
+
+
+Die Reihenfolge der Verarbeitung ist für das Ergebnis relevant. Insbesondere muss festge-
+legt sein, ob neue Ankünfte vor oder nach der nächsten Auswahlentscheidung berücksich-
+tigt werden. Diese Reihenfolge wird im Simulationskern einheitlich verwendet und nicht
+von der Benutzeroberfläche bestimmt.
+
+5.3.2. Ergebnisbildung
+
+Nach Abschluss der Simulation werden die gesammelten Daten zu einem SimulationRun
+zusammengeführt. Dieser enthält die zeitlich geordneten Ereignisse, Gantt-Segmente, Snaps-
+hots, Prozesszustände, aggregierten Kennzahlen und die Gesamtdauer.
+Die Kennzahlen werden aus den Laufzeitdaten und den während der Simulation erfassten
+Zählwerten berechnet. Dazu gehören:
+
+• durchschnittliche Wartezeit,
+• durchschnittliche Durchlaufzeit,
+• durchschnittliche Reaktionszeit,
+• maximale Wartezeit,
+• CPU-Auslastung und Leerlaufanteil,
+• Anzahl der Kontextwechsel,
+• Anzahl der Präemptionen,
+• Anzahl abgeschlossener Prozesse.
+
+Die Ergebnisbildung ist von der visuellen Darstellung unabhängig. Dadurch können die
+erzeugten Daten sowohl für die Fokusansicht als auch für den Vergleich mehrerer Runs
+verwendet werden.
+
+5.4. Umsetzung der Scheduling-Verfahren
+
+Die vier betrachteten Verfahren verwenden dieselbe grundlegende Tick-Verarbeitung. Un-
+terschiede entstehen durch die Auswahlregel, die Struktur der Bereitschaftsverwaltung und
+die Bedingungen für eine Präemption.
+
+5.4.1. Round Robin
+
+Bei Round Robin wird der aktive Prozess für höchstens ein konfiguriertes Zeitquantum
+ausgeführt. Ist seine Restzeit nach Ablauf des Quantums noch größer als null, wird er
+präemptiert und am Ende der Bereitschaftswarteschlange eingereiht.
+Für die Berechnung werden deshalb die aktuelle Quantum-Restzeit, die Prozess-Restzeit
+und die Reihenfolge der Bereitschaftswarteschlange gespeichert. Quantumabläufe, Prä-
+
+36
+
+
+
+Tabelle 5.2.: Technische Umsetzung der Scheduling-Verfahren.
+Verfahren Technische Umsetzung
+Round Robin Zyklische Bereitschaftswarteschlange, Quantum-Zähler
+
+und Wiedereinreihung nicht abgeschlossener Prozesse
+nach Quantumablauf.
+
+LCFS Bevorzugung zuletzt eingetroffener Prozesse und
+Präemption bei relevanter Neuankunft.
+
+Strict Priority Auswahl nach Prioritätswert und deterministische Tie-
+Break-Regel; Präemption bei Ankunft eines höher prio-
+risierten Prozesses.
+
+MLFQ Mehrere Warteschlangenebenen, stufenbezogene Quan-
+tumswerte, Queue-Wechsel und Herabstufung nicht ab-
+geschlossener Prozesse.
+
+emptionen und Prozesswechsel werden als Ereignisse dokumentiert.
+
+5.4.2. LCFS
+
+Bei LCFS wird der zuletzt eingetroffene bereite Prozess bevorzugt. In der präemptiven
+Variante kann die Ankunft eines neuen Prozesses den aktuell laufenden Prozess unterbre-
+chen.
+Der verdrängte Prozess wird mit seiner aktuellen Restzeit wieder in die Bereitschaftsver-
+waltung aufgenommen. Dadurch kann er später fortgesetzt werden. Die Ankunft und die
+daraus entstehende Präemption werden als getrennte Ereignisse erfasst.
+
+5.4.3. Strict Priority
+
+Strict Priority wählt den Prozess mit der höchsten Priorität. In der Implementierung
+entspricht ein kleinerer Prioritätswert einer höheren Priorität. Bei gleichen Werten wird
+eine festgelegte Tie-Break-Regel verwendet, damit die Auswahl deterministisch bleibt.
+Trifft ein höher priorisierter Prozess ein, während ein niedriger priorisierter Prozess aus-
+geführt wird, wird eine Präemption ausgelöst. Die Restzeit des unterbrochenen Prozesses
+bleibt erhalten.
+
+5.4.4. Multilevel Feedback Queue
+
+MLFQ verwaltet mehrere Bereitschaftswarteschlangen. Neue Prozesse werden einer Start-
+stufe zugeordnet. Verbraucht ein Prozess sein Quantum, ohne beendet zu sein, kann er in
+eine niedrigere Ebene verschoben werden. Nichtleere höhere Warteschlangen werden bei
+der Auswahl bevorzugt.
+Für die Laufzeitdaten werden deshalb Queue-Ebene und verbleibendes Level-Quantum
+
+37
+
+
+
+gespeichert. Diese Werte werden auch in Snapshots und gegebenenfalls in den Gantt-
+Segmenten berücksichtigt.
+
+5.5. Szenarioverwaltung und Run-Erzeugung
+
+Die Verwaltung der Szenarien und Runs erfolgt im Composable useScenarioWorkspace().
+Es stellt Funktionen zum Erstellen, Auswählen, Bearbeiten, Duplizieren und Löschen von
+Szenarien bereit. Runs können einem Szenario hinzugefügt und mit einem Verfahren sowie
+den zugehörigen Parametern versehen werden.
+Für die Simulation werden die konzeptionell getrennten Strukturen ScenarioRecord und
+ScenarioRunRecord zu einer konkreten Eingabestruktur für simulateScenario() ver-
+bunden. Die Prozessdaten werden dabei kopiert, damit die gespeicherte Szenariobasis
+durch die Simulation nicht verändert wird.
+
+1 const simulationScenario = {
+2 id: ‘${scenario.id}:${run.id}‘,
+3 title: scenario.title,
+4 description: scenario.description,
+5 algorithm: run.algorithm,
+6 algorithmParams: run.algorithmParams,
+7 seed: scenario.seed,
+8 tickSize: scenario.tickSize,
+9 processes: scenario.processes.map(
+
+10 (process) => ({ ...process }),
+11 ),
+12 };
+13
+14 const result = simulateScenario(simulationScenario);
+
+Listing 5.3: Erzeugung einer Simulationsstruktur aus Szenariobasis und Run-Konfiguration.
+
+Die Datenverarbeitung folgt damit der Kette:
+
+ScenarioRecord + ScenarioRunRecord → simulateScenario() → SimulationRun
+
+Die lokale Persistenz ist von der Simulation getrennt. Sie speichert Szenario- und Aus-
+wahlzustände, beeinflusst aber nicht die fachliche Berechnung eines Laufs.
+
+5.6. Wiedergabesteuerung
+
+Die Wiedergabe wird durch das Composable usePlayback() umgesetzt. Es erhält ei-
+ne Referenz auf die Snapshots des aktiven SimulationRun und verwaltet den aktuellen
+Snapshot-Index.
+
+38
+
+
+
+1 const playback = usePlayback(snapshotsRef, {
+2 intervalMs: 1000,
+3 loop: loopPlayback,
+4 });
+5
+6 playback.play();
+7 playback.pause();
+8 playback.stepForward();
+9 playback.stepBack();
+
+10 playback.seek(index);
+11 playback.reset();
+
+Listing 5.4: Verwendung der Snapshot-basierten Wiedergabesteuerung.
+
+Beim Abspielen wird der Index des sichtbaren Snapshots verändert. Die Scheduling-Berechnung
+wird nicht erneut ausgeführt. Dadurch bleibt das Ergebnis unabhängig von Wiedergabe-
+geschwindigkeit und Benutzerinteraktion.
+Die Wiedergabe unterstützt Start, Pause, Schrittsteuerung, direkten Zeitsprung, Geschwin-
+digkeitseinstellung, Zurücksetzen und optionales Wiederholen. Vor- und Rücksprünge sind
+möglich, weil die Zustände bereits als Snapshots vorliegen.
+
+5.7. Visualisierung und Vergleich
+
+5.7.1. Gantt-Modell und Stack-Liste
+
+Die Gantt-Darstellung basiert auf den TimelineSegment-Objekten des SimulationRun.
+Ein Segment enthält Start- und Endzeit, Prozessidentität, Bezeichnung und Farbe. Die
+horizontale Position und Breite werden aus der Zeitachse und der Segmentdauer berechnet.
+Gantt.vue rendert die Segmente als SVG-Elemente. Dadurch können Prozessnamen, Zeit-
+markierungen und Interaktionsziele direkt mit den jeweiligen grafischen Elementen ver-
+bunden werden. Die übergeordnete Komponente GanttWithGsap.vue verbindet diese Dar-
+stellung mit der Wiedergabesteuerung.
+Die Komponente StackList.vue ergänzt das Gantt-Modell um die aktuelle Bereitschafts-
+und Statussituation. Sie kann aktive, bereite, präemptierte und abgeschlossene Prozesse
+sowie bei MLFQ die jeweilige Queue-Ebene darstellen.
+Damit zeigt das Gantt-Modell vor allem die zeitliche Entwicklung, während die Stack-Liste
+die Auswahlgrundlage und die Prozesszustände zu einem bestimmten Zeitpunkt erläutert.
+
+39
+
+
+
+5.7.2. Vergleich mehrerer Runs
+
+Die Komponente MultiView.vue berechnet für jeden gespeicherten Run ein eigenes Simu-
+lationsergebnis. Dabei werden die Prozesse aus dem gemeinsamen ScenarioRecord mit
+dem jeweiligen ScenarioRunRecord verbunden.
+Die Ergebnisse werden als Mini-Gantt-Ansichten dargestellt. Abhängig von der Länge der
+Zeitachse und der verfügbaren Breite werden die Runs nebeneinander oder untereinander
+angeordnet. Dadurch bleibt die zeitliche Struktur auch bei längeren Abläufen erkennbar.
+ComparisonPanel.vue stellt zusätzlich die Kennzahlen mehrerer Runs gegenüber. Die
+Werte werden aus den jeweiligen SimulationRun-Objekten extrahiert. Je nach Anwen-
+dungsszenario können einzelne Kennzahlen unterschiedlich gewichtet werden. Der daraus
+berechnete Score dient als ergänzende Orientierung und ersetzt keine fachliche Analyse
+des Ablaufs.
+
+5.8. Accessibility und technische Bereitstellung
+
+Accessibility wird in den zentralen Interaktions- und Darstellungskomponenten berücksich-
+tigt. Dialoge verwenden Fokusführung und eine Fokusbegrenzung. Beim Schließen kann
+der Fokus an das auslösende Element zurückgegeben werden.
+Die Wiedergabesteuerung verwendet beschriftete native Bedienelemente. Der Zeitregler
+besitzt eine sichtbare Beschriftung und einen ergänzenden Statusbereich. In der Vergleichs-
+ansicht werden Tabs und Tabpanels semantisch miteinander verbunden.
+Dynamische Zustände wie aktueller Zeitpunkt, Wiedergabestatus und Vergleichsergebnis
+werden zusätzlich textuell kommuniziert. Die Gantt-Darstellung basiert auf SVG, sodass
+einzelne Segmente beschrieben und als DOM-Elemente adressiert werden können. Nicht
+notwendige Präsentationseffekte werden bei aktivierter Präferenz für reduzierte Bewegung
+eingeschränkt.
+Die konkrete Qualität und die Grenzen dieser Umsetzung werden in Kapitel 6 unter-
+sucht. Eine vollständige WCAG-Konformitätsprüfung ist nicht Bestandteil der Arbeit
+W3C [2018].
+Der Build-Prozess wird mit Vite ausgeführt. Dabei werden Vue-Komponenten, TypeScript-
+Code und Styles in statische, auslieferbare Artefakte überführt. Die clientseitige Architek-
+tur ermöglicht eine Bereitstellung ohne serverseitige Scheduling-Komponente.
+
+40
+
+
+
+6. Qualitätssicherung
+
+Die Qualitätssicherung dient der Verifikation, ob die implementierte Anwendung die im
+Systementwurf und der Anforderungsanalyse beschriebenen Eigenschaften erfüllt. Im Fo-
+kus stehen dabei Determinismus, fachliche Korrektheit des Simulationskerns, Stabilität
+der Ergebnisstrukturen, Interaktionsfähigkeit und Accessibility.
+Die Prüfstrategie unterscheidet zwischen automatisierten Tests und manuellen Prüfungen.
+Automatisierte Tests werden für die fachliche Logik und die zentrale Algorithmik um-
+gesetzt, weil diese mit deterministischen Eingaben eindeutig überprüfbar sind. Manuelle
+Prüfungen ergänzen diese Automatisierung insbesondere bei visueller Darstellung, Fokus-
+führung und interaktiver Bedienung.
+
+6.1. Prüfstrategie und Qualitätsziele
+
+Die Prüfstrategie folgt den im Entwurf definierten Qualitätszielen. Zentrale Kriterien sind
+fachliche Konsistenz, Determinismus, Nachvollziehbarkeit und Accessibility. Die Prüfun-
+gen decken damit die fachlich kritischen Bereiche der Anwendung ab und ergänzen sich
+gegenseitig:
+
+Tabelle 6.1.: Qualitätsziele und zugehörige Prüfverfahren.
+Qualitätsziel Prüfverfahren
+Determinismus Mehrfache Ausführung mit identischen Einga-
+
+ben und Vergleich der Simulationsergebnisse.
+Fachliche Korrektheit Algorithmusspezifische Testfälle für Round Ro-
+
+bin, LCFS, Strict Priority und MLFQ.
+Ergebnisintegrität Prüfung der Invarianten zu Ereignissen, Seg-
+
+menten, Snapshots und Kennzahlen.
+Interaktionsfähigkeit Manuelle Prüfung der Wiedergabesteuerung,
+
+Vergleichsansicht und Bedienung.
+Accessibility Statische Prüfungen der semantischen Struktur
+
+und manuelle Fokus- und Dialogprüfungen.
+
+Die fachlich relevanten Prüfungen werden dabei nicht nur auf der Ebene einzelner Funktio-
+nen, sondern auch auf der Ebene der Simulationsergebnisse selbst durchgeführt. Dadurch
+wird sichergestellt, dass die vorhandenen Datenstrukturen nicht nur syntaktisch korrekt
+sind, sondern auch fachlich konsistente Laufresultate erzeugen.
+
+41
+
+
+
+6.2. Automatisierte Prüfung des Simulationskerns
+
+Der Simulationskern bildet das fachlich zentrale Modul der Anwendung. Die automatisier-
+ten Prüfungen konzentrieren sich daher auf dessen Determinismus, die Verarbeitungslogik
+und die Ergebnisbildung. Die Prüfungen werden mit Vitest und dem V8-Coverage-Provider
+ausgeführt.
+Die Tests decken unter anderem zeitliche Korrektheit, korrekte Präemptionen, richtige
+Auswahlentscheidungen des Scheduling-Verfahrens, Determinismus gleicher Eingaben und
+die strukturelle Integrität des Ergebnisobjekts ab. Die fachlichen Prüfungen sind dabei an
+die im Entwurf beschriebenen Laufdaten und Ablaufschritte gekoppelt.
+
+6.2.1. Algorithmusspezifische Testfälle
+
+Die wichtigsten Prüfungen betreffen die vier im Hauptteil der Arbeit betrachteten Ver-
+fahren Round Robin, LCFS, Strict Priority und MLFQ. Dabei werden für jedes Verfahren
+die fachlichen Erwartungsspezifikationen überprüft.
+
+Tabelle 6.2.: Algorithmusspezifische Prüfaspekte.
+Verfahren Prüfaspekt
+Round Robin Korrekte Abfolge von Dispatch, Quantumablauf und
+
+Wiedereinreihung.
+LCFS Auswahl des zuletzt eingetroffenen Prozesses sowie kor-
+
+rekte Präemption bei neuem Eingang.
+Strict Priority Prioritätsbasierte Auswahl und deterministische Tie-
+
+Break-Verarbeitung.
+MLFQ Korrekte Mehrschichtenverwaltung, Quantumabläufe
+
+und Herabstufung nicht abgeschlossener Prozesse.
+
+Zusätzlich enthalten die Tests einzelne frühere oder experimentelle Prüfungen für SJF,
+die im Repository verbleiben, jedoch nicht den fachlichen Schwerpunkt dieser Arbeit bil-
+den. Die fachliche Auswertung konzentriert sich auf die im Entwurf als Hauptverfahren
+definierten Strategien Round Robin, LCFS, Strict Priority und MLFQ.
+
+6.2.2. Deterministik
+
+Determinismus ist ein zentraler Qualitätsaspekt, da identische Szenarien und identische
+Parameter zu identischen Simulationsergebnissen führen müssen. Diese Anforderung wird
+durch Testfälle überprüft, in denen derselbe Ablauf zweimal mit derselben Eingabe ausge-
+führt wird. Die Ergebnisse werden anschließend auf Gleichheit von Gesamtzeit, Segment-
+folge und Kennzahlen verglichen.
+Die Prüfforderung lautet dabei:
+
+42
+
+
+
+• identische Eingabe,
+• identische Parameter,
+• identisches Verfahren,
+• gleiche Ergebnisstruktur,
+• gleiche Kennzahlengrundlagen.
+
+Die Verifikation zeigt, dass die Simulation nicht von zufälligen Zwischenzuständen oder von
+Reihenfolgeeffekten abhängt. Dadurch bleibt die fachliche Nachvollziehbarkeit im Lehrkon-
+text erhalten.
+
+6.3. Prüfung der Ergebnisstrukturen
+
+Die fachlichen Ergebnisdaten werden nicht nur als Endergebnis betrachtet, sondern auch
+auf ihre Invarianten geprüft. Eine Simulation muss dafür sicherstellen, dass Ereignisse, Seg-
+mente, Snapshots und Kennzahlen konsistent und innerhalb gültiger Zeitgrenzen erzeugt
+werden.
+Die Prüfungen beziehen sich dabei auf die zentralen Eigenschaften der Ergebnisstrukturen:
+
+Tabelle 6.3.: Geprüfte Eigenschaften der Ergebnisstrukturen.
+Eigenschaft Prüfungsziel
+Segmentgrenzen Startzeit und Endzeit sind gültig und nicht ne-
+
+gativ.
+Reihenfolge der Segmente Segmente liegen in chronologischer Reihenfolge
+
+vor.
+Prozesszustände Zustandsänderungen erfolgen nur in fachlich
+
+zulässigen Übergängen.
+Ereignisprotokoll Ereignisse enthalten gültige Prozess- und Zeit-
+
+informationen.
+Snapshots Snapshot-Zeitpunkte sind konsistent mit der
+
+Gesamtdauer und der Simulation.
+Kennzahlen Aggregierte Kennzahlen bleiben numerisch sta-
+
+bil und fachlich interpretierbar.
+
+Diese Prüfungen sind relevant, weil die Ergebnisstrukturen die Basis für Wiedergabe,
+Gantt-Darstellung und Vergleich bilden. Ein fachlich fehlerhaftes Ereignisprotokoll oder
+fehlerhafte Segmentgrenzen würde sich nicht nur auf eine einzelne Komponente, sondern
+auf die gesamte Visualisierung auswirken.
+
+43
+
+
+
+6.4. Prüfung von Interaktion und Accessibility
+
+Neben der fachlichen Simulation werden Interaktion und Accessibility überprüft. Der Fo-
+kus liegt dabei auf den Kernfunktionen der Benutzeroberfläche: Dialoge, Fokusführung,
+Wiedergabesteuerung und semantische Struktur der Visualisierungen.
+
+6.4.1. Statische Accessibility-Prüfungen
+
+Statische Prüfungen überprüfen, ob die zentralen Dialog- und Interaktionskomponenten
+geeignete semantische Merkmale enthalten. Dabei werden insbesondere Rolle, Fokus- und
+Modalitätseigenschaften geprüft.
+Beispiele sind:
+
+• Dialoge mit role="dialog" und aria-modal=true",
+• Fokus-Trap für Modale,
+• accessible labels für Menüelemente,
+• semantische Beziehungen zwischen Tabs und Panels,
+• title- und desc-Elemente in der Gantt-Darstellung.
+
+Die Prüfungen nutzen dabei sowohl inhaltsbasierte Tests als auch komponentenbezogene
+Assertions auf die vorhandenen Vue-Dateien.
+
+6.4.2. Manuelle Interaktionsprüfung
+
+Zusätzlich werden zentrale Interaktionspfade manuell geprüft. Dabei wird insbesondere die
+Benutzbarkeit der Wiedergabesteuerung, der Vergleichsansicht und der Dialoge getestet.
+
+Tabelle 6.4.: Manuelle Prüfung zentraler Interaktions- und Accessibility-Funktionen.
+Prüfbereich Prüfmerkmal
+Playback Start, Pause, Schrittvorlauf, Schritt zurück, Reset
+
+und Seek-Verhalten.
+Dialoge Fokus auf den Dialog, Schließen mit Escape, Fo-
+
+kusrückgabe.
+Vergleichsansicht Mehrere Runs werden korrekt dargestellt und mit
+
+Kennzahlen verknüpft.
+Gantt-Sicht Zeitachse, Segmentdarstellung und semantische
+
+Labeling bleiben nachvollziehbar.
+Menü und Navigation Menüeinträge sind korrekt benannt und operier-
+
+bar.
+
+Diese manuelle Prüfung ergänzt die automatisierten Tests, weil visuelle und fokussierte
+Interaktionen teilweise nicht vollständig mit einfachen Unit-Tests abgedeckt werden kön-
+
+44
+
+
+
+nen.
+
+6.5. Testmetriken und Codeabdeckung
+
+Zur quantitativen Bewertung der automatisierten Tests wurde Vitest in der Version 4.1.11
+gemeinsam mit dem V8-Coverage-Provider verwendet. Die Tests wurden mit dem Befehl
+npm run test:coverage ausgeführt. Dabei wurden insgesamt zehn Testdateien mit 35
+einzelnen Tests ausgeführt. Alle 35 Tests wurden erfolgreich abgeschlossen. Fehlgeschlagene
+Tests traten nicht auf.
+Die Testsuite umfasst Prüfungen des Simulationskerns, der Szenario- und Run-Verwaltung,
+der Timeline-Berechnung, der Benutzeroberfläche sowie ausgewählter Accessibility-Eigenschaften.
+Zusätzlich enthält die Testsuite einzelne Tests für SJF aus einer früheren Entwicklungspha-
+se. Diese Tests bleiben im Repository enthalten und werden mit ausgeführt, sind jedoch
+nicht Bestandteil der fachlichen Hauptbetrachtung dieser Arbeit.
+
+Tabelle 6.5.: Ergebnisse der automatisierten Tests.
+Kennzahl Wert
+Testdateien 10
+Ausgeführte Tests 35
+Bestandene Tests 35
+Fehlgeschlagene Tests 0
+Vitest-Version 4.1.11
+
+Die Codeabdeckung wurde auf die ausführbaren TypeScript- und Vue-Dateien im Ver-
+zeichnis src begrenzt. Statische Assets, TypeScript-Deklarationsdateien und der Anwen-
+dungseinstieg src/main.ts wurden nicht in die Coverage-Berechnung einbezogen.
+
+Tabelle 6.6.: Codeabdeckung des Anwendungscodes im Verzeichnis src.
+Bereich Statements Branches Functions Lines
+Anwendungscode (src) 43,42 % 28,42 % 31,68 % 43,62 %
+
+Die Werte zeigen, dass der Anwendungscode insgesamt teilweise durch automatisierte Tests
+abgedeckt wird. Die geringere Branch Coverage weist darauf hin, dass insbesondere alter-
+native Ausführungspfade und Sonderbedingungen der Anwendung noch nicht vollständig
+durch Tests durchlaufen werden.
+Der Simulationskern weist mit 81,91 % Statement Coverage und 81,99 % Line Coverage die
+höchste Abdeckung der fachlich zentralen Komponenten auf. Auch die Function Coverage
+liegt mit 88,46 % auf einem hohen Niveau. Damit werden die wesentlichen Berechnungs-
+pfade der Scheduling-Simulation durch automatisierte Tests geprüft.
+Die hohe Abdeckung von simulation.ts ist für die Qualitätssicherung besonders rele-
+
+45
+
+
+
+Tabelle 6.7.: Codeabdeckung ausgewählter zentraler Implementierungsbereiche.
+Datei Statements Branches Functions Lines
+simulation.ts 81,91 % 69,18 % 88,46 % 81,99 %
+timelineLayout.ts 100,00 % 85,71 % 100,00 % 100,00 %
+useTimelineSync.ts 100,00 % 100,00 % 100,00 % 100,00 %
+useFocusTrap.ts 57,14 % 31,57 % 81,81 % 62,06 %
+usePlayback.ts 36,95 % 13,79 % 42,85 % 41,46 %
+useScenarioWorkspace.ts 17,46 % 8,81 % 19,35 % 17,48 %
+
+vant, da dieses Modul die Scheduling-Entscheidungen, Präemptionen, Prozesszustände,
+Ereignisse, Segmente und Kennzahlen erzeugt. Die Tests prüfen unter anderem deter-
+ministisches Verhalten, algorithmusspezifische Auswahlentscheidungen, Quantumabläufe,
+Präemptionen und die Bildung der Simulationsergebnisse.
+Die Hilfsfunktionen timelineLayout.ts und useTimelineSync.ts erreichen eine voll-
+ständige Abdeckung der Statements, Funktionen und Zeilen. Bei timelineLayout.ts ver-
+bleibt lediglich eine nicht vollständig abgedeckte Verzweigung. Diese Werte zeigen, dass
+die zugehörigen Berechnungs- und Synchronisationslogiken durch gezielte Tests gut erfasst
+werden.
+Die niedrigere Gesamtabdeckung des Verzeichnisses src ist vor allem darauf zurückzufüh-
+ren, dass zahlreiche umfangreiche Vue-Komponenten und Interaktionspfade bisher nur teil-
+weise oder indirekt getestet werden. Insbesondere AppShell.vue, Gantt.vue, GanttWithGsap.vue,
+MultiView.vue und ComparisonPanel.vue weisen eine geringere Abdeckung auf. Meh-
+rere Komponenten werden im aktuellen Testbestand nicht direkt gerendert, wodurch ihre
+Statements und Funktionen in der Coverage-Auswertung teilweise unberührt bleiben.
+Die Coverage-Werte sind nicht als Nachweis vollständiger Fehlerfreiheit zu verstehen. Sie
+zeigen, welche Codebereiche während der automatisierten Tests ausgeführt wurden. Eine
+hohe Coverage garantiert daher nicht, dass jede fachliche Kombination korrekt behandelt
+wird. Umgekehrt bedeutet eine geringere Coverage nicht automatisch, dass die betreffen-
+de Komponente fehlerhaft ist. Die automatisierten Tests werden deshalb durch statische
+Accessibility-Prüfungen, manuelle Interaktionsprüfungen und die fachliche Bewertung der
+Simulationsergebnisse ergänzt.
+
+46
+
+
+
+7. Ergebnis und Produktpräsentation
+
+Dieses Kapitel stellt das entwickelte Produkt vor und ordnet die wichtigsten Funktionen
+anhand der zuvor definierten Anforderungen ein. Im Mittelpunkt stehen der Nutzungsvor-
+gang, die zentralen Ansichten und der daraus entstehende Produktnutzen.
+Die Produktpräsentation beschreibt nicht nur das visuelle Erscheinungsbild. Die ausge-
+wählten Ansichten werden im Hinblick auf ihre fachliche Funktion und ihre Bedeutung
+für die Analyse präemptiver Scheduling-Verfahren betrachtet. Die technische Umsetzung
+wurde bereits in Kapitel 5 beschrieben. Die Qualitätssicherung und ihre Grenzen wurden
+in Kapitel 6 behandelt.
+Die in diesem Kapitel dargestellten Screenshots zeigen die Anwendung einheitlich im Dark-
+mode. Diese Darstellung wurde gewählt, um eine konsistente Präsentation des Produkts zu
+gewährleisten und die zeitlichen Ausführungssegmente in den Gantt-Darstellungen deut-
+lich hervorzuheben.
+
+7.1. Entwickeltes Produkt und Produktnutzen
+
+Das Ergebnis der Arbeit ist eine clientseitige Webanwendung zur interaktiven Visualisierung
+der präemptiven Scheduling-Verfahren Round Robin, LCFS, Strict Priority und Multilevel
+Feedback Queue.
+Die Anwendung ermöglicht die Erstellung und Auswahl von Prozessszenarien, die Kon-
+figuration mehrerer Runs sowie die interaktive Untersuchung der berechneten Abläufe.
+Ein Simulationslauf wird dabei nicht nur durch abschließende Kennzahlen beschrieben.
+Zusätzlich werden zeitliche Ausführungssegmente, Prozesszustände, Präemptionen, Quan-
+tumabläufe und Warteschlangeninformationen dargestellt.
+Der zentrale Produktnutzen entsteht durch die Verbindung von drei Analyseebenen:
+
+1. Beobachten: Der Ablauf wird im Gantt-Modell und in der Stack-Liste betrachtet.
+2. Untersuchen: Einzelne Zeitpunkte und Scheduling-Entscheidungen können über
+
+Playback und Schrittsteuerung analysiert werden.
+3. Vergleichen: Mehrere Runs werden auf identischer Szenariobasis hinsichtlich Ab-
+
+lauf und Kennzahlen gegenübergestellt.
+
+Das Produktmerkmal liegt somit nicht allein in der Implementierung einzelner Algorith-
+
+47
+
+
+
+men. Entscheidend ist die Kombination aus gemeinsamer Szenariobasis, deterministischer
+Ergebnisstruktur, Snapshot-basierter Wiedergabe und vergleichender Darstellung.
+
+7.2. Nutzerfluss
+
+Der typische Nutzungsvorgang beginnt mit der Auswahl oder Erstellung eines Szenarios.
+Dieses enthält die Prozesse sowie allgemeine Parameter wie Titel, Beschreibung, Seed
+und Tick-Größe. Anschließend wird ein Run mit einem Scheduling-Verfahren und den
+zugehörigen Parametern angelegt.
+Nach dem Start der Simulation werden die gemeinsame Szenariobasis und die ausgewählte
+Run-Konfiguration an den Simulationskern übergeben. Dieser erzeugt einen vollständigen
+SimulationRun. Das Ergebnis enthält Ereignisse, Segmente, Snapshots, Prozesszustände
+und Kennzahlen. Die Oberfläche stellt daraus zunächst die Fokusansicht für den ausge-
+wählten Run bereit.
+Der Ablauf kann anschließend kontinuierlich oder schrittweise betrachtet werden. Das
+Gantt-Modell zeigt die zeitliche Ausführung, während die Stack-Liste die aktuelle Prozess-
+und Warteschlangensituation ergänzt. Weitere Runs können auf Grundlage desselben Sze-
+narios erzeugt und anschließend in der Vergleichsansicht gegenübergestellt werden.
+Der Nutzerfluss lässt sich damit wie folgt zusammenfassen:
+
+Szenario definieren → Run konfigurieren → Simulation ausführen → Ablauf untersuchen
+→ Runs vergleichen
+
+Die Bedienung verändert dabei nicht den berechneten Ablauf. Sie steuert lediglich, welcher
+Teil des erzeugten SimulationRun aktuell betrachtet wird.
+
+7.3. Szenariokonfiguration
+
+Die Szenariokonfiguration bildet den Einstieg in die fachliche Analyse. Sie erfolgt in zwei
+aufeinanderfolgenden Dialogen. Im ersten Dialog wird ein neues Szenario angelegt. Im
+zweiten Dialog wird auf Grundlage dieses Szenarios ein Scheduling-Verfahren ausgewählt
+und als Run konfiguriert.
+Das erste Modal dient der Erzeugung eines Szenarios. Dabei werden die allgemeinen Szena-
+riodaten und die Prozessbasis festgelegt. Zu den Szenariodaten gehören beispielsweise Ti-
+tel, Beschreibung, Seed und Tick-Größe. Zusätzlich können Prozesse mit ihren Scheduling-
+relevanten Eigenschaften angelegt werden. Dazu zählen insbesondere Ankunftszeit, Burst-
+Zeit, Priorität und Darstellungsfarbe.
+Das erzeugte Szenario bildet die gemeinsame Grundlage für spätere Simulationsläufe. Die
+Prozessdaten werden dabei unabhängig von einem bestimmten Scheduling-Verfahren de-
+
+48
+
+
+
+Abbildung 7.1.: Modal zur Erzeugung eines neuen Szenarios.
+
+finiert. Dadurch kann dasselbe Szenario anschließend mit unterschiedlichen Verfahren un-
+tersucht werden.
+
+Abbildung 7.2.: Modal zur Anwendung eines Scheduling-Verfahrens auf das erstellte Szenario.
+
+Das zweite Modal ergänzt das erstellte Szenario um eine konkrete Run-Konfiguration.
+Hier wird das Scheduling-Verfahren ausgewählt und mit seinen algorithmusspezifischen
+Parametern versehen. Je nach Verfahren können beispielsweise ein Zeitquantum, eine Tie-
+Break-Regel, ein LCFS-Modus oder Parameter für die Queue-Verwaltung der MLFQ fest-
+gelegt werden.
+Die beiden Modale bilden gemeinsam die Trennung zwischen Szenariobasis und Run-
+
+49
+
+
+
+Konfiguration ab. Das erste Modal definiert die Prozesse und allgemeinen Szenariodaten.
+Das zweite Modal bestimmt, wie diese Daten simuliert werden. Dadurch können mehrere
+Runs auf derselben Prozessbasis erzeugt und später miteinander verglichen werden.
+Die Szenarien und die zugehörigen Auswahlzustände können lokal im Browser gespeichert
+werden. Die lokale Speicherung dient dabei der Erhaltung des Arbeitsstands und beein-
+flusst nicht die fachliche Berechnung eines Simulationslaufs.
+
+7.4. Fokusansicht und Ablaufsteuerung
+
+Die Fokusansicht dient der detaillierten Analyse eines einzelnen Simulationslaufs. Sie ver-
+bindet das Gantt-Modell, die Stack-Liste, die Wiedergabesteuerung und die Kennzahlen
+des ausgewählten Runs in einer gemeinsamen Ansicht.
+
+Abbildung 7.3.: Fokusansicht eines Simulationslaufs mit Gantt-Modell, Stack-Liste, Playback-
+Steuerung und Kennzahlen.
+
+Das Gantt-Modell zeigt die zeitliche Ausführung der Prozesse. Die einzelnen Segmen-
+te repräsentieren CPU-Ausführungsintervalle und machen Prozesswechsel, Präemptionen,
+Quantumgrenzen und Leerlaufabschnitte sichtbar.
+Die Stack-Liste ergänzt die zeitliche Darstellung um den aktuellen Zustand der Prozesse.
+Je nach Simulationszeitpunkt werden der aktive Prozess, bereite Prozesse und weitere Zu-
+standsinformationen angezeigt. Bei MLFQ können zusätzlich die einzelnen Queue-Ebenen
+berücksichtigt werden.
+Die Kennzahlen liefern eine quantitative Zusammenfassung des ausgewählten Runs. Dazu
+gehören insbesondere Wartezeit, Durchlaufzeit, Reaktionszeit, Präemptionen, Kontextwechsel
+und CPU-Auslastung. Die Werte werden aus dem gemeinsamen SimulationRun abgelei-
+
+50
+
+
+
+tet und stehen damit in direktem Zusammenhang mit den dargestellten Segmenten und
+Zuständen.
+Die Wiedergabesteuerung ermöglicht Start, Pause, Reset, Schrittsteuerung und die Aus-
+wahl eines bestimmten Zeitpunkts. Dadurch kann der Ablauf sowohl als Gesamtverlauf
+als auch in einzelnen Zeitschritten untersucht werden.
+Die Schrittsteuerung ist insbesondere für Präemptionen und Scheduling-Entscheidungen
+relevant. Ein automatischer Ablauf kann einen Prozesswechsel zwar sichtbar machen, er-
+klärt aber nicht notwendigerweise dessen Ursache. Durch das Anhalten und schrittweise
+Fortsetzen können Ankunft, Dispatch, Präemption, Quantumablauf und Prozessabschluss
+einzeln betrachtet werden.
+Die Fokusansicht vereint damit drei Analyseebenen: Das Gantt-Modell zeigt den zeitlichen
+Ablauf, die Stack-Liste den aktuellen Prozesszustand und die Kennzahlen die aggregierten
+Ergebnisse des Runs.
+Die Wiedergabe greift auf die bereits erzeugten Snapshots zurück. Die Simulation wird
+während der Wiedergabe nicht erneut ausgeführt. Die Wiedergabegeschwindigkeit und
+die Benutzerinteraktion verändern somit weder Ereignisse noch Kennzahlen des zugrunde
+liegenden Laufs.
+
+7.5. Interpretation der Scheduling-Verfahren
+
+Die Fokusansicht unterstützt die Interpretation der betrachteten Scheduling-Verfahren,
+weil zeitliche Segmente und Prozesszustände gemeinsam angezeigt werden.
+Bei Round Robin werden Quantumgrenzen und wiederholte Ausführungsabschnitte sicht-
+bar. Die Wiedereinreihung nicht abgeschlossener Prozesse kann anhand der zeitlichen Ab-
+folge nachvollzogen werden.
+Bei LCFS können Unterbrechungen durch neu eintreffende Prozesse untersucht werden.
+Die Stack-Liste ergänzt die Gantt-Darstellung um die Reihenfolge der bereiten Prozesse.
+Bei Strict Priority wird die Verdrängung durch höher priorisierte Prozesse sichtbar. Die
+Prioritätswerte liefern dabei die fachliche Grundlage für die Auswahlentscheidung.
+Bei MLFQ können Queue-Ebenen, Quantumabläufe und Herabstufungen interpretiert
+werden. Die Kombination aus Gantt-Modell und Stack-Liste macht sichtbar, wie sich ein
+Prozess zwischen den Warteschlangen bewegt.
+Die Darstellung ist damit nicht nur eine Ergebnisgrafik. Sie verbindet die vom Simulations-
+kern erzeugten Segmente und Zustände mit der zeitlichen Analyse durch die Nutzenden.
+
+51
+
+
+
+7.6. Kennzahlen und Ergebnisinterpretation
+
+Neben dem zeitlichen Ablauf stellt die Anwendung aggregierte Kennzahlen des Simu-
+lationslaufs bereit. Dazu gehören durchschnittliche Wartezeit, Durchlaufzeit und Reak-
+tionszeit sowie die Anzahl von Präemptionen und Kontextwechseln. Zusätzlich werden
+CPU-Auslastung, Leerlaufanteil und die Anzahl abgeschlossener Prozesse berücksichtigt.
+Die Kennzahlen ergänzen die visuelle Ablaufanalyse um eine quantitative Perspektive. Eine
+geringe Reaktionszeit kann beispielsweise auf eine schnelle erste CPU-Zuteilung hinweisen.
+Eine hohe Anzahl von Präemptionen kann dagegen auf häufige Unterbrechungen und einen
+höheren Verwaltungsaufwand hindeuten.
+Die Werte werden aus dem gemeinsamen SimulationRun abgeleitet. Dadurch verwenden
+Gantt-Modell, Stack-Liste und Kennzahlen dieselbe fachliche Ergebnisbasis. Eine separate
+Rekonstruktion der Werte aus sichtbaren UI-Elementen ist nicht erforderlich.
+Einzelne Kennzahlen sind jedoch nur eingeschränkt aussagekräftig. Eine geringe durch-
+schnittliche Wartezeit kann beispielsweise lange Wartezeiten einzelner Prozesse verdecken.
+Deshalb werden mehrere Kennzahlen gemeinsam betrachtet und durch die zeitliche Ab-
+laufdarstellung ergänzt.
+Die Interpretation der Kennzahlen hängt außerdem vom jeweiligen Szenario und von den
+verwendeten Parametern ab. Ein Verfahren kann bei einem bestimmten Prozessmix eine
+niedrige durchschnittliche Wartezeit erreichen, während es bei einer anderen Ankunfts-
+oder Burstzeitverteilung deutlich anders abschneidet.
+
+7.7. Vergleich mehrerer Runs
+
+Die Vergleichsansicht stellt mehrere Runs auf identischer Szenariobasis gegenüber. Für
+jeden Run wird ein eigenes SimulationRun-Objekt erzeugt. Die Prozessdaten bleiben dabei
+gleich; Verfahren und algorithmusspezifische Parameter können variieren.
+Die Mini-Gantt-Ansichten ermöglichen die direkte Gegenüberstellung unterschiedlicher
+Prozessreihenfolgen, Segmentlängen, Präemptionen und Leerlaufabschnitte. Dadurch kön-
+nen die Auswirkungen der jeweiligen Auswahlregel unmittelbar verglichen werden.
+Die gemeinsame Szenariobasis ist für die Interpretation entscheidend. Da Ankunftszeiten,
+Burst-Zeiten und Prioritäten unverändert bleiben, lassen sich Unterschiede im Ablauf auf
+die jeweilige Strategie oder ihre Parameter zurückführen.
+Die Vergleichsansicht unterstützt insbesondere:
+
+• die Gegenüberstellung der Prozessreihenfolgen,
+• den Vergleich der Präemptionshäufigkeit,
+• die Untersuchung verschiedener Zeitquantumswerte,
+
+52
+
+
+
+Abbildung 7.4.: Vergleich mehrerer Runs auf identischer Szenariobasis.
+
+• die Analyse von Warte- und Reaktionszeiten,
+• die Betrachtung unterschiedlicher Queue-Strategien.
+
+Bei längeren Zeitachsen werden die Runs abhängig von verfügbarer Breite und Darstel-
+lungsgröße untereinander angeordnet. Dadurch bleibt die Segmentstruktur auch bei um-
+fangreicheren Abläufen lesbar.
+Die Vergleichsansicht dient dabei nicht nur dem Erkennen eines einzelnen Gewinners. Sie
+ermöglicht vielmehr die Untersuchung von Zielkonflikten zwischen verschiedenen Bewer-
+tungskriterien. Ein Run kann beispielsweise eine kürzere durchschnittliche Wartezeit, aber
+zugleich mehr Präemptionen oder eine höhere Zahl von Kontextwechseln aufweisen.
+
+7.8. Bewertungsmatrix
+
+Die Bewertungsmatrix ergänzt die zeitliche Vergleichsansicht um eine gewichtete Betrach-
+tung ausgewählter Kennzahlen.
+
+Abbildung 7.5.: Bewertungsmatrix zur gewichteten Gegenüberstellung mehrerer Runs.
+
+Je nach gewähltem Anwendungsszenario können unterschiedliche Kennzahlen stärker ge-
+wichtet werden. Für interaktive Systeme können beispielsweise Reaktionszeit und Warte-
+zeit wichtiger sein als maximaler Durchsatz. Für andere Anwendungsfälle können Durch-
+laufzeit oder Auslastung stärker berücksichtigt werden.
+
+53
+
+
+
+Der berechnete Score ist von den gewählten Gewichtungen und damit vom jeweiligen An-
+wendungsszenario abhängig. Er stellt daher keine allgemeingültige Rangfolge der Scheduling-
+Verfahren dar, sondern dient als zusätzliche Orientierung innerhalb der gewählten Bewer-
+tungskonfiguration.
+Die zeitliche Darstellung bleibt notwendig, um die Entstehung des Scores und mögliche
+Zielkonflikte zwischen den Kennzahlen zu verstehen. Die Bewertungsmatrix verbindet so-
+mit quantitative Ergebnisbewertung mit der qualitativen Analyse des Simulationsablaufs.
+Die Bewertungsmatrix ist daher als ergänzendes Analysewerkzeug zu verstehen. Sie ersetzt
+weder die Betrachtung des Gantt-Modells noch die Untersuchung der Prozesszustände
+und Ereignisse. Ihre Aussagekraft hängt von den gewählten Gewichtungen und von der
+fachlichen Fragestellung ab.
+
+7.9. Soll-Ist-Abgleich
+
+Die Umsetzung der zentralen Anforderungen wird in Tabelle 7.1 zusammengefasst.
+
+Tabelle 7.1.: Soll-Ist-Abgleich der zentralen Produktanforderungen.
+Bereich Umsetzung Status
+Szenarioverwaltung Szenarien und Prozessdaten können er- umgesetzt
+
+stellt, bearbeitet, ausgewählt und lokal
+im Browser gespeichert werden.
+
+Scheduling-Verfahren Round Robin, LCFS, Strict Priority und umgesetzt
+MLFQ werden im gemeinsamen Simula-
+tionsrahmen verarbeitet.
+
+Ablaufsteuerung Start, Pause, Reset, Schrittsteuerung umgesetzt
+und Zeitsprung sind verfügbar.
+
+Gantt- und Statusdar- Ausführungssegmente, Zeitachse, Pro- umgesetzt
+stellung zessstatus und Warteschlangeninforma-
+
+tionen werden angezeigt.
+Kennzahlen Wartezeit, Durchlaufzeit, Reaktionszeit, umgesetzt
+
+Präemptionen, Kontextwechsel und wei-
+tere Metriken werden ausgegeben.
+
+Vergleich mehrerer Runs werden auf identischer Szenarioba- umgesetzt
+Runs sis simuliert und gemeinsam dargestellt.
+Bewertungsmatrix Kennzahlen können ausgewählt, gewich- umgesetzt
+
+tet und verglichen werden.
+Deterministik Identische Eingaben erzeugen reprodu- automatisiert
+
+zierbare Ergebnisstrukturen. geprüft
+Accessibility Ausgewählte semantische, Tastatur-, fokussiert ge-
+
+Fokus- und Statusanforderungen wur- prüft
+den umgesetzt.
+
+Die Statusangaben unterscheiden zwischen Implementierung und Prüfung. „Umgesetzt“
+
+54
+
+
+
+bedeutet, dass eine Funktion im Produkt vorhanden ist. „Automatisiert geprüft“ bezeich-
+net eine Prüfung durch Tests des Simulationskerns. „Fokussiert geprüft“ weist darauf
+hin, dass ausgewählte Accessibility-Aspekte untersucht wurden, jedoch kein vollständiger
+WCAG- oder BITV-Audit durchgeführt wurde.
+Der Soll-Ist-Abgleich zeigt, dass die zentralen Produktanforderungen umgesetzt wurden.
+Die Prüfungsergebnisse aus Kapitel 6 zeigen ergänzend, in welchem Umfang die einzelnen
+Bereiche durch automatisierte und manuelle Prüfungen abgesichert sind.
+
+7.10. Ergebnisbewertung
+
+Das entwickelte Produkt erfüllt die zentrale Zielsetzung, die zeitliche Dynamik der vier
+betrachteten präemptiven Scheduling-Verfahren interaktiv darzustellen. Die Anwendung
+berechnet die Verfahren auf einer gemeinsamen fachlichen Datenbasis und stellt die ent-
+stehenden Ereignisse, Segmente, Snapshots und Kennzahlen in miteinander verbundenen
+Ansichten dar.
+Der wesentliche Mehrwert besteht in der Verbindung von Ablauf- und Ergebnisanalyse.
+Nutzende können erkennen, welcher Prozess zu einem bestimmten Zeitpunkt ausgeführt
+wird, und zugleich nachvollziehen, welche Ankunft, Auswahlregel, Präemption oder Quan-
+tumentscheidung zu diesem Zustand geführt hat.
+Die Vergleichsansicht erweitert die Analyse eines einzelnen Laufs um die Gegenüberstel-
+lung mehrerer Verfahren. Die Bewertungsmatrix bietet zusätzlich eine gewichtete quan-
+titative Perspektive. Beide Ansichten bauen auf derselben Szenariobasis und denselben
+Ergebnisstrukturen auf.
+Der zentrale Verarbeitungsschritt besteht aus der Verbindung der Szenariobasis mit der
+gewählten Run-Konfiguration:
+
+ScenarioRecord + ScenarioRunRecord → SimulationRun →
+Analyse und Vergleich
+
+Damit wird die Anwendung als interaktives Analysewerkzeug und nicht nur als statische
+Darstellung einzelner Algorithmusergebnisse eingesetzt. Die technische Qualität und die
+Grenzen der durchgeführten Prüfungen wurden in Kapitel 6 beschrieben.
+Eine empirische Aussage über die tatsächliche Lernwirksamkeit ist aus der Produktpräsen-
+tation nicht ableitbar. Die Anwendung unterstützt die Analyse fachlicher Zusammenhänge.
+Ob sie zu einem messbaren Lernzuwachs führt, müsste in einer eigenständigen Nutzerstu-
+die untersucht werden.
+
+55
+
+
+
+8. Fazit und Ausblick
+
+Diese Arbeit hatte zum Ziel, eine interaktive Webanwendung zur Visualisierung präemp-
+tiver Scheduling-Verfahren zu konzipieren und umzusetzen. Im Mittelpunkt standen die
+Verfahren Round Robin, LCFS, Strict Priority und Multilevel Feedback Queue. Die An-
+wendung sollte nicht nur die resultierenden Prozessreihenfolgen berechnen, sondern auch
+die zeitlichen Entscheidungen der Verfahren nachvollziehbar, untersuchbar und vergleich-
+bar darstellen.
+Dazu wurde ein clientseitiger Visualizer entwickelt, der Szenarien mit individuellen Pro-
+zessdaten verwalten, mehrere Simulationsläufe auf einer gemeinsamen Szenariobasis er-
+zeugen und deren Ergebnisse in verschiedenen Ansichten darstellen kann. Die fachliche
+Verarbeitung erfolgt dabei getrennt von der Darstellung. Diese Trennung ermöglicht eine
+wiederverwendbare Simulation und bildet die Grundlage für die Wiedergabe, die Kenn-
+zahlen und den Vergleich mehrerer Runs.
+
+8.1. Zusammenfassung der erreichten Ergebnisse
+
+Die entwickelte Anwendung verbindet die Konfiguration von Prozessszenarien mit der
+interaktiven Analyse von Scheduling-Abläufen. Ein Szenario enthält die gemeinsame Pro-
+zessbasis und allgemeine Parameter. Darauf aufbauend wird ein Run mit einem Scheduling-
+Verfahren und den zugehörigen algorithmusspezifischen Einstellungen konfiguriert.
+Der Simulationskern erzeugt aus diesen Eingaben einen vollständigen SimulationRun. Die-
+ser enthält unter anderem Ereignisse, Ausführungssegmente, Snapshots, Prozesszustände
+und aggregierte Kennzahlen. Die Oberfläche verwendet diese gemeinsame Ergebnisstruk-
+tur für die Darstellung und Wiedergabe des Simulationsablaufs.
+Die Anwendung unterstützt damit mehrere Analyseebenen:
+
+• die Beobachtung des zeitlichen Ablaufs im Gantt-Modell,
+• die Untersuchung einzelner Zeitpunkte und Zustandsänderungen über Playback und
+
+Schrittsteuerung,
+• die Betrachtung von Prozessen und Warteschlangenzuständen über die Stack-Liste,
+• die quantitative Auswertung anhand von Kennzahlen,
+• den Vergleich mehrerer Runs auf identischer Szenariobasis.
+
+56
+
+
+
+Besonders relevant ist die gemeinsame Szenariobasis. Da mehrere Runs mit denselben
+Prozessen, Ankunftszeiten, Burst-Zeiten und Prioritäten erzeugt werden können, lassen
+sich Unterschiede zwischen den Verfahren gezielt untersuchen. Veränderungen im Ablauf
+können dadurch auf das verwendete Verfahren oder auf einzelne Parameter zurückgeführt
+werden.
+
+8.2. Bewertung der Zielerreichung
+
+Die zentralen Ziele der Arbeit wurden erreicht. Die vier betrachteten Scheduling-Verfahren
+sind in einen gemeinsamen Simulationsrahmen integriert und können mit denselben Pro-
+zessszenarien ausgeführt werden. Ihre unterschiedlichen Auswahlregeln, Präemptionen,
+Quantumabläufe und Warteschlangenverhalten werden in der Anwendung sichtbar.
+Die Umsetzung umfasst insbesondere:
+
+• die Erstellung und Verwaltung von Prozessszenarien,
+• die Konfiguration mehrerer Runs,
+• die Simulation von Round Robin, LCFS, Strict Priority und MLFQ,
+• die Erzeugung reproduzierbarer Simulationsergebnisse,
+• die zeitliche Darstellung der Ausführungssegmente,
+• die schrittweise Wiedergabe vorberechneter Snapshots,
+• die Darstellung von Prozess- und Warteschlangenzuständen,
+• die Ausgabe zentraler Kennzahlen,
+• den Vergleich mehrerer Runs,
+• die gewichtete Bewertung ausgewählter Kennzahlen.
+
+Die Trennung von Szenariobasis und Run-Konfiguration unterstützt dabei sowohl die fach-
+liche Analyse als auch die technische Erweiterbarkeit. Ein Szenario muss nicht für jedes
+Verfahren neu angelegt werden. Stattdessen können mehrere Run-Konfigurationen auf der-
+selben Ausgangsbasis erzeugt und verglichen werden.
+Auch die Qualitätssicherung wurde in die Umsetzung einbezogen. Die automatisierten
+Tests decken insbesondere den Simulationskern, Ergebnisstrukturen, Timeline-Berechnungen,
+Szenarioverwaltung und ausgewählte Accessibility-Eigenschaften ab. Zum Zeitpunkt der
+Auswertung wurden zehn Testdateien mit insgesamt 35 Tests ausgeführt. Alle 35 Tests
+waren erfolgreich.
+Die gemessene Codeabdeckung des Anwendungscodes im Verzeichnis src betrug 43,42 %
+für Statements, 28,42 % für Branches, 31,68 % für Functions und 43,62 % für Lines. Der
+fachlich zentrale Simulationskern erreichte dabei eine deutlich höhere Abdeckung von
+81,91 % bei den Statements, 69,18 % bei den Branches, 88,46 % bei den Functions und
+
+57
+
+
+
+81,99 % bei den Lines.
+Die Coverage-Werte zeigen, dass die fachliche Kernlogik umfangreich automatisiert geprüft
+wird. Gleichzeitig machen sie sichtbar, dass umfangreiche UI-Komponenten und komple-
+xe Interaktionspfade bisher nur teilweise durch automatisierte Tests abgedeckt sind. Die
+Coverage wurde daher nicht als alleiniger Qualitätsnachweis verwendet, sondern durch
+statische Accessibility-Prüfungen und manuelle Interaktionsprüfungen ergänzt.
+
+8.3. Beitrag der Arbeit
+
+Der wesentliche Beitrag der Arbeit liegt in der Verbindung von Algorithmussimulation,
+zeitlicher Visualisierung und interaktiver Analyse. Eine reine Berechnung der Endreihen-
+folge würde nur einen Teil des fachlichen Verhaltens sichtbar machen. Die entwickelte
+Anwendung stellt dagegen auch die zeitliche Entstehung des Ergebnisses dar.
+Dadurch können Nutzende nachvollziehen,
+
+• wann ein Prozess die CPU erhält,
+• wann ein Prozess unterbrochen wird,
+• welche Prozesse zu einem bestimmten Zeitpunkt bereitstehen,
+• wie sich Zeitquantum und Priorität auf die Auswahl auswirken,
+• wie sich Prozesse innerhalb einer MLFQ zwischen Queue-Ebenen bewegen,
+• und wie sich verschiedene Verfahren auf Warte-, Reaktions- und Durchlaufzeiten
+
+auswirken.
+
+Die Anwendung unterstützt somit eine erklärende und vergleichende Betrachtung der Ver-
+fahren. Die Kombination aus Gantt-Modell, Stack-Liste, Playback, Kennzahlen und Ver-
+gleichsansicht stellt die Ergebnisse nicht nur dar, sondern ermöglicht deren schrittweise
+Untersuchung.
+Ein weiterer Beitrag liegt in der deterministischen Verarbeitung. Identische Eingaben und
+identische Parameter erzeugen reproduzierbare Ergebnisse. Dies ist sowohl für die Quali-
+tätssicherung als auch für die Verwendung der Anwendung im Lehr- und Demonstrations-
+kontext relevant.
+
+8.4. Grenzen der Umsetzung
+
+Trotz der erreichten Ziele besitzt die entwickelte Anwendung mehrere Einschränkungen.
+Diese ergeben sich sowohl aus dem Umfang der Arbeit als auch aus der bewussten Kon-
+zentration auf die fachliche Visualisierung der Scheduling-Verfahren.
+Die Anwendung ist als clientseitige Webanwendung umgesetzt. Die Szenarien und Ar-
+
+58
+
+
+
+beitsstände werden lokal im Browser gespeichert. Eine zentrale Benutzerverwaltung, eine
+serverseitige Speicherung oder eine gemeinsame Bearbeitung von Szenarien durch mehrere
+Personen sind nicht Bestandteil der aktuellen Version.
+Die Anwendung konzentriert sich außerdem auf die vier in dieser Arbeit betrachteten Ver-
+fahren Round Robin, LCFS, Strict Priority und MLFQ. Weitere Verfahren können grund-
+sätzlich ergänzt werden, sind jedoch nicht Teil der fachlichen Auswertung dieser Arbeit.
+Einzelne zusätzliche Tests aus einer früheren Entwicklungsphase bleiben im Repository
+enthalten, wurden aber nicht als eigener Schwerpunkt der Produktbewertung behandelt.
+Eine weitere Einschränkung betrifft die Testabdeckung der Benutzeroberfläche. Der Si-
+mulationskern weist eine hohe Abdeckung auf, während zahlreiche umfangreiche Vue-
+Komponenten und Interaktionspfade nur teilweise oder indirekt getestet werden. Die au-
+tomatisierten Tests belegen daher nicht die vollständige Fehlerfreiheit der gesamten An-
+wendung.
+Auch die Accessibility-Prüfungen stellen keinen vollständigen WCAG- oder BITV-Audit
+dar. Geprüft wurden ausgewählte semantische Strukturen, Dialogeigenschaften, Fokusme-
+chanismen, Statusmeldungen und weitere zentrale Interaktionsmerkmale. Eine vollstän-
+dige Prüfung aller Kombinationen aus Browsern, Betriebssystemen, Eingabegeräten und
+assistiven Technologien war nicht Bestandteil dieser Arbeit.
+Die Bewertungsmatrix besitzt ebenfalls eine inhaltliche Einschränkung. Ihre Ergebnisse
+hängen von den gewählten Gewichtungen ab. Ein berechneter Score stellt daher keine
+allgemeingültige Rangfolge der Scheduling-Verfahren dar. Er dient ausschließlich als er-
+gänzende Orientierung für eine konkrete Bewertungskonfiguration.
+Schließlich wurde im Rahmen dieser Arbeit keine empirische Nutzerstudie durchgeführt.
+Daher kann keine wissenschaftlich abgesicherte Aussage darüber getroffen werden, ob die
+Anwendung gegenüber einer herkömmlichen oder statischen Darstellung zu einem messba-
+ren Lernzuwachs führt. Die Anwendung wurde als Analyse- und Visualisierungswerkzeug
+umgesetzt; die Untersuchung ihrer tatsächlichen Lernwirksamkeit wäre Gegenstand einer
+weiterführenden Studie.
+
+8.5. Ausblick
+
+Ausgehend von der bestehenden Umsetzung ergeben sich mehrere Möglichkeiten für zu-
+künftige Erweiterungen.
+Ein erster Ansatzpunkt ist die Erweiterung der automatisierten UI-Testabdeckung. Ins-
+besondere die Komponenten für Gantt-Darstellung, Vergleichsansicht, Bewertungsmatrix,
+Playback und Szenariokonfiguration könnten durch zusätzliche Render- und Interaktions-
+tests abgesichert werden. Dadurch ließen sich auch komplexe Benutzerinteraktionen und
+alternative Zustände stärker in die Qualitätssicherung einbeziehen.
+
+59
+
+
+
+Darüber hinaus könnte die Accessibility-Prüfung erweitert werden. Denkbar sind automa-
+tisierte Prüfungen weiterer Ansichten, eine systematische Tastaturprüfung sowie Tests mit
+unterschiedlichen Screenreadern und Browsern. Dadurch könnte die Aussage zur tatsäch-
+lichen Zugänglichkeit der Anwendung auf eine breitere Grundlage gestellt werden.
+Eine weitere Erweiterungsmöglichkeit besteht in der Persistenz und Portabilität der Szena-
+rien. Szenarien könnten exportiert und importiert oder über eine serverseitige Speicherung
+zwischen verschiedenen Geräten ausgetauscht werden. Für eine Lehrveranstaltung wäre au-
+ßerdem eine Möglichkeit denkbar, vorbereitete Szenarien bereitzustellen und Ergebnisse
+zu speichern oder zu teilen.
+Die Visualisierung könnte ebenfalls um zusätzliche Analysefunktionen erweitert werden.
+Dazu zählen beispielsweise:
+
+• der Export von Gantt-Darstellungen und Kennzahlentabellen,
+• eine detailliertere Darstellung von Ereignissen und Zustandsübergängen,
+• die Markierung fachlich relevanter Zeitpunkte,
+• eine Filterung einzelner Prozesse oder Ereignistypen,
+• zusätzliche Vergleichsoptionen für ausgewählte Kennzahlen,
+• und eine erweiterte Darstellung von Leerlauf- und Kontextwechselabschnitten.
+
+Auch die Unterstützung weiterer Scheduling-Verfahren wäre grundsätzlich möglich. Neue
+Verfahren könnten in den bestehenden Simulationsrahmen integriert werden, sofern sie
+dieselben Ergebnisstrukturen für Ereignisse, Segmente, Snapshots und Kennzahlen ver-
+wenden. Dadurch könnte die Anwendung schrittweise zu einer umfassenderen Lern- und
+Vergleichsplattform für Scheduling-Verfahren ausgebaut werden.
+Für die Bewertung der Lernwirksamkeit wäre eine Nutzerstudie ein besonders relevan-
+ter nächster Schritt. Dabei könnten beispielsweise zwei Gruppen verglichen werden, von
+denen eine mit der interaktiven Anwendung und eine andere mit einer herkömmlichen Dar-
+stellung arbeitet. Vorher- und Nachher-Tests könnten anschließend untersuchen, ob sich
+Unterschiede beim Verständnis von Präemptionen, Prioritätsentscheidungen und Quantu-
+mabläufen zeigen.
+Eine solche Studie müsste neben dem fachlichen Lernerfolg auch die Bedienbarkeit und
+Verständlichkeit der Anwendung berücksichtigen. Geeignete Messgrößen wären unter ande-
+rem Bearbeitungszeit, Fehlerhäufigkeit, Aufgabenverständnis, subjektive Verständlichkeit
+und die Fähigkeit, die Entstehung eines Simulationsergebnisses zu erklären.
+
+8.6. Schlussfolgerung
+
+Mit der entwickelten Anwendung wurde ein interaktiver Visualizer für präemptive Scheduling-
+Verfahren realisiert. Die Anwendung verbindet die Konfiguration von Prozessszenarien, die
+
+60
+
+
+
+deterministische Simulation, die zeitliche Darstellung von Ausführungsentscheidungen und
+den Vergleich mehrerer Runs.
+Die vier betrachteten Verfahren Round Robin, LCFS, Strict Priority und MLFQ können
+auf einer gemeinsamen Szenariobasis ausgeführt und hinsichtlich ihres Ablaufs sowie ihrer
+Kennzahlen untersucht werden. Durch Gantt-Modell, Stack-Liste, Playback, Kennzahlen
+und Bewertungsmatrix werden sowohl die zeitliche Dynamik als auch die aggregierten
+Auswirkungen der Verfahren sichtbar.
+Die Qualitätssicherung bestätigt insbesondere die Stabilität der zentralen Simulationslo-
+gik. Gleichzeitig zeigen die Coverage-Werte und die durchgeführten manuellen Prüfungen,
+an welchen Stellen die Absicherung und die empirische Bewertung künftig noch erweitert
+werden können.
+Der abschließende Beitrag der Arbeit besteht damit nicht nur in der Implementierung ein-
+zelner Scheduling-Algorithmen. Entscheidend ist die Umsetzung einer nachvollziehbaren
+Analyseumgebung, in der fachliche Entscheidungen sichtbar, reproduzierbar und vergleich-
+bar werden. Die entwickelte Anwendung bildet damit eine geeignete Grundlage für die
+Visualisierung und Untersuchung präemptiver Scheduling-Verfahren und kann zukünftig
+sowohl technisch als auch didaktisch weiter ausgebaut werden.
+
+61
+
+
+
+Literaturverzeichnis
+
+GreenSock. Gsap documentation, 2026. URL https://greensock.com/docs/.
+
+Andreas M. Heinecke and Jens Gerken. Mensch-Computer-Interaktion: Basiswissen für
+Entwickler und Gestalter. Xpert.press. Springer Vieweg, Berlin/Heidelberg, 3 edition,
+2024. ISBN 978-3-662-67568-7.
+
+Christopher D. Hundhausen, Sarah A. Douglas, and John T. Stasko. A meta-study of
+algorithm visualization effectiveness. Journal of Visual Languages & Computing, 13(3):
+259–290, 2002. doi: 10.1006/jvlc.2002.0237.
+
+L. W. C. Meing and D. R. Tandingan. Exploring multilevel feedback queue combinations
+and regression-based time quanta in scheduling algorithms. Journal of Information Sy-
+stems Engineering and Management, 2025. URL https://jisem-journal.com/index.
+php/journal/article/view/699.
+
+William Stallings. Betriebssysteme: Prinzipien und Umsetzung. Pearson Studium, Mün-
+chen, 4., überarb. auflage edition, 2003.
+
+Andrew S. Tanenbaum and Herbert Bos. Moderne Betriebssysteme. Pearson Studium,
+München, 4., aktualisierte auflage edition, 2016.
+
+Vite. Vite documentation, 2026. URL https://vitejs.dev/.
+
+Vitest Team. Vitest documentation, 2026. URL https://vitest.dev/.
+
+Vue.js Core Team. Vue 3 documentation, 2026. URL https://vuejs.org/.
+
+W3C. Web content accessibility guidelines (wcag) 2.1, 2018. URL https://www.w3.org/
+TR/WCAG21/.
+
+62
+
+
+
+A. Anhang
+
+A.1. Ergänzende Abbildungen
+
+A.2. Zusätzliche Testfälle und Szenarien
+
+A.3. Operationalisierungsmatrix Accessibility
+
+Die vollständige Matrix ergänzt die Kurzfassung aus Tabelle 3.3 um Implementierungsort,
+Nachweis und Ergebnisstatus.
+
+ID Entwurfsentscheidung Implementierung/NachEwregiesbnis und Grenze
+A11Y-01 Semantische Dialoge, Dialogkomponenten, Erfüllt im fokussierten
+
+Namen und Panels. Tablist, Statusrollen; Umfang; Screenreader-
+statischer Test. Matrix offen.
+
+A11Y-02 Keyboard-first- Menü, Tabs, Gantt und Geprüft; Browser-
+Bedienung. Playback; manueller /Assistive-Tech-
+
+Walkthrough. Kombinationen be-
+grenzt.
+
+A11Y-03 Sichtbarer Fokus und useFocusTrap, Erfüllt für die geprüften
+Dialogfalle. Ranking-Dialog; Code- Dialogpfade.
+
+und manueller Test.
+A11Y-04 Statuskanäle statt aus- Live-Status in Playback Erfüllt im geprüften Ab-
+
+schließlich visueller Ef- und Vergleich; manuel- lauf.
+fekte. ler Test.
+
+A11Y-05 Beschreibbares, interak- Gantt.vue, Segmentla- Erfüllt im fokussierten
+tives SVG. bels; statisch und ma- SVG; keine vollständige
+
+nuell. AT-Abdeckung.
+A11Y-06 Nichtfarbliche Zustands- Statuslabels, Fokusre- Zustände geprüft; freie
+
+merkmale und Kontrast- geln, Forced Colors; Prozessfarben bleiben
+prüfung. manueller Checker. Grenze.
+
+A11Y-07 Reflow und Zoom. Schmaler Viewport und Ergebnis nach Durch-
+200 % Zoom; manuelles führung eintragen; keine
+Protokoll. Geräteabdeckung.
+
+A11Y-08 Reduzierte Bewegung. Medienpräferenz in Nicht notwendige Effek-
+GanttWithGsap.vue; te reduziert; keine Nut-
+manueller Test. zerstudie.
+
+63
+
+
+
+A.4. Kompaktes manuelles Accessibility-Prüfprotokoll
+
+Setup Prüfschritte Beobachtung/Status
+Desktop, Tasta- Dialog öffnen, Tab/Shift-Tab, Fokusfalle und Rückgabe do-
+tur Escape, erneut fokussieren. kumentieren: behoben/offen.
+Desktop, Tasta- Menü, Tabs, Slider, Playback Reihenfolge, Aktivierung und
+tur und Gantt ohne Maus bedie- Status dokumentieren.
+
+nen.
+Schmaler View- Vergleich, Gantt und Steue- Überlappung, Abschneiden
+port, 200 % rung bei vergrößerter Darstel- und Reflow dokumentieren.
+
+lung prüfen.
+Reduced Moti- Präferenz aktivieren und Zu- Nicht notwendige Bewegung
+on/Forced Co- stände erneut ausführen. und Fokuskontrast dokumen-
+lors tieren.
+Kontrastprüfung Tatsächlich verwendete Text- Messwert und verbleibende
+
+, Fokus- und Statuszustände Farbrisiken dokumentieren.
+messen.
+
+A.5. Ergänzende technische Artefakte (z. B.
+Konfigurationsbeispiele)
+
+64
+
+
+
+Eidesstattliche Erklärung
+
+Hiermit versichere ich, dass ich diese BACHELORARBEIT selbstständig verfasst und kei-
+ne anderen als die angegebenen Quellen und Hilfsmittel benutzt habe, alle Ausführungen,
+die anderen Schriften wörtlich oder sinngemäß entnommen wurden, kenntlich gemacht sind
+und die Arbeit in gleicher oder ähnlicher Fassung noch nicht Bestandteil einer Studien-
+oder Prüfungsleistung war.
+
+Marten Kirschenhofer
+
+65

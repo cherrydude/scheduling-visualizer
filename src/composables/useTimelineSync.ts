@@ -3,13 +3,18 @@ import { createTimelineLayout } from "@/utils/timelineLayout";
 
 const sharedCellWidth = ref<number | null>(null);
 
-function computeSharedCellWidth(timelineLength: number, containerWidth: number, options: {
-  padding?: number;
-  comfortTicks?: number;
-  minCellWidth?: number;
-  maxCellWidth?: number;
-  lockedCellWidth?: number;
-} = {}) {
+/** Berechnet die gemeinsame Zellbreite für synchronisierte Timeline-Ansichten. */
+function computeSharedCellWidth(
+  timelineLength: number,
+  containerWidth: number,
+  options: {
+    padding?: number;
+    comfortTicks?: number;
+    minCellWidth?: number;
+    maxCellWidth?: number;
+    lockedCellWidth?: number;
+  } = {},
+) {
   const layout = createTimelineLayout({
     timelineLength: Math.max(1, Math.floor(timelineLength)),
     containerWidth: Math.max(320, Math.floor(containerWidth)),

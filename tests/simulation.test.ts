@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { simulateScenario } from "../src/simulation";
 
+// Diese Tests sichern Eingabenormalisierung und grundlegende Timeline-Invarianten.
 describe("simulateScenario", () => {
+  // Fehlerhafte Eingaben dürfen keine negativen Zeiten oder ungültigen Segmente erzeugen.
   it("normalizes malformed input and keeps segment bounds valid", () => {
     const result = simulateScenario({
       id: "broken",
@@ -43,6 +45,7 @@ describe("simulateScenario", () => {
     expect(result.snapshots[0]?.time ?? 0).toBe(0);
   });
 
+  // Round Robin muss Segmente chronologisch halten und Quantumwechsel zählen.
   it("produces sorted segments for a small round robin scenario", () => {
     const result = simulateScenario({
       id: "rr",

@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
-// Accessibility tests scaffold: replace with runtime axe-core checks in a follow-up
+import { describe, it, expect } from "vitest";
+// Platzhalter für die Basissuite; die echten DOM- und axe-Prüfungen liegen in den
+// spezialisierten Accessibility-Testdateien.
 
-describe('accessibility (scaffold)', () => {
-  it('placeholder - axe integration pending', () => {
+describe("accessibility (scaffold)", () => {
+  it("placeholder - axe integration pending", () => {
     expect(true).toBe(true);
   });
 });

@@ -9,6 +9,10 @@ import type {
   TimelineSegment,
 } from "@/types";
 
+/**
+ * Begrenzt eine Zahl auf ganze Werte ab einem Mindestwert.
+ * Nicht endliche Eingaben werden durch den angegebenen Fallback ersetzt.
+ */
 function clampInteger(
   value: number,
   minimum: number,
@@ -21,6 +25,7 @@ function clampInteger(
   return Math.max(minimum, Math.floor(value));
 }
 
+/** Normalisiert numerische Eingaben für Parameter, die mindestens einen Tick umfassen. */
 function clampPositiveInteger(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) {
@@ -30,6 +35,7 @@ function clampPositiveInteger(value: unknown, fallback: number): number {
   return Math.max(1, Math.floor(parsed));
 }
 
+/** Prüft, ob ein unbekannter Wert einem unterstützten Scheduling-Algorithmus entspricht. */
 function isAlgorithmType(value: unknown): value is AlgorithmType {
   return (
     value === "roundRobin" ||
@@ -40,6 +46,11 @@ function isAlgorithmType(value: unknown): value is AlgorithmType {
   );
 }
 
+/**
+ * Erzeugt aus einem Szenario eine simulationssichere Kopie.
+ * Dadurch bleiben ungültige oder unvollständige Eingaben auf der UI-/Storage-Grenze
+ * und können die eigentliche Zustandsmaschine nicht in einen inkonsistenten Zustand bringen.
+ */
 function normalizeScenarioInput(scenario: Scenario): Scenario {
   const normalizedAlgorithm = isAlgorithmType(scenario.algorithm)
     ? scenario.algorithm
@@ -99,6 +110,7 @@ function normalizeScenarioInput(scenario: Scenario): Scenario {
   };
 }
 
+/** Erzeugt einen deterministischen Pseudozufallszahlengenerator für Beispielszenarien. */
 function seededRandom(seed: number): () => number {
   let state = seed % 2147483647;
   if (state <= 0) {
@@ -111,6 +123,7 @@ function seededRandom(seed: number): () => number {
   };
 }
 
+/** Überführt Eingabeprozesse in die veränderlichen Laufzeitobjekte der Simulation. */
 function createRuntime(processes: Scenario["processes"]): ProcessRuntime[] {
   return processes
     .map((process) => ({
@@ -131,6 +144,11 @@ function createRuntime(processes: Scenario["processes"]): ProcessRuntime[] {
     );
 }
 
+/**
+ * Berechnet Metriken für den aktuellen Simulationszeitpunkt.
+ * Noch nicht beendete Prozesse erhalten dabei vorläufige Wartezeiten, damit
+ * Zwischen-Snapshots bereits aussagekräftige Werte anzeigen können.
+ */
 function createMetrics(
   processes: ProcessRuntime[],
   currentTime: number,
@@ -189,10 +207,12 @@ function createMetrics(
   };
 }
 
+/** Das Quantum eines MLFQ-Levels wächst linear mit der Queue-Tiefe. */
 function quantumForLevel(baseQuantum: number, queueLevel: number): number {
   return Math.max(1, baseQuantum * (queueLevel + 1));
 }
 
+/** Erstellt einen unveränderlichen Beobachtungspunkt für Playback und UI. */
 function createSnapshot(
   time: number,
   currentProcess: ProcessRuntime | null,
@@ -255,6 +275,7 @@ function createSnapshot(
   return snapshot;
 }
 
+/** Markiert einen Prozess als beendet und berechnet seine Abschlussmetriken. */
 function finalizeProcess(process: ProcessRuntime, time: number): void {
   process.finishedAt = time;
   process.turnaroundTime = time - process.arrivalTime;
@@ -262,6 +283,11 @@ function finalizeProcess(process: ProcessRuntime, time: number): void {
   process.status = "finished";
 }
 
+/**
+ * Wählt den nächsten bereiten Prozess nach dem jeweils aktiven Algorithmus.
+ * Die Funktion verändert die Queue nur bei einer erfolgreichen Disposition;
+ * so können Präemption und Leerlauf ohne Sonderzustände behandelt werden.
+ */
 function dispatchProcess(
   algorithm: AlgorithmType,
   time: number,
@@ -355,6 +381,7 @@ function dispatchProcess(
   };
 }
 
+/** Fügt einen Prozess gemäß der Queue-Ordnung des aktiven Algorithmus ein. */
 function enqueueReadyProcess(
   process: ProcessRuntime,
   algorithm: AlgorithmType,
@@ -440,6 +467,7 @@ function shouldPreemptSjf(
   });
 }
 
+/** Liefert den Vergleichswert für Gleichstände innerhalb einer Prioritätsklasse. */
 function strictPriorityScore(
   process: ProcessRuntime,
   time: number,
@@ -460,6 +488,7 @@ function strictPriorityScore(
   }
 }
 
+/** Wählt einen Prozess mit kleinster Priorität und löst Gleichstände konfigurierbar auf. */
 function selectStrictPriorityProcess(
   readyQueue: ProcessRuntime[],
   time: number,
@@ -513,6 +542,7 @@ function selectStrictPriorityProcess(
   return selected ?? null;
 }
 
+/** Wählt beim SRTF-Verfahren den Prozess mit der kürzesten Restlaufzeit. */
 function selectSjfProcess(readyQueue: ProcessRuntime[]): ProcessRuntime | null {
   if (readyQueue.length === 0) {
     return null;
@@ -550,6 +580,10 @@ function selectSjfProcess(readyQueue: ProcessRuntime[]): ProcessRuntime | null {
   return selected ?? null;
 }
 
+/**
+ * Führt ein Szenario tickweise aus und erzeugt Ereignisse, Gantt-Segmente,
+ * Snapshots sowie abschließende Prozess- und Systemmetriken.
+ */
 export function simulateScenario(scenario: Scenario): SimulationRun {
   const simulationScenario = normalizeScenarioInput(scenario);
 
@@ -657,10 +691,9 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     }
     currentProcess.status = "preempted";
     pushSegment(time);
-    // For LCFS we want the newly arrived processes to be on top of the stack.
-    // Since arrivals are enqueued before we call preemptCurrentProcess,
-    // push the preempted process to the front so it does not become the
-    // immediate top element (pop) and re-acquire the CPU.
+    // Beim LCFS sollen neue Ankünfte oben auf dem Stapel liegen. Da Ankünfte
+    // vor dieser Funktion eingereiht werden, kommt der verdrängte Prozess an
+    // den Anfang: Er darf nicht direkt erneut von pop() gewählt werden.
     if (simulationScenario.algorithm === "lcfs") {
       currentProcess.status = "ready";
       currentProcess.queueLevel = 0;
@@ -1088,7 +1121,8 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
     pushIdleSegment(time);
   }
 
-  // ensure final snapshot present
+  // Auch wenn das letzte reguläre Intervall kein Snapshot-Intervall erreicht,
+  // muss der abgeschlossene Lauf für Scrubber und Auswertung sichtbar sein.
   maybeSnapshot(true);
 
   const finalMetrics = createMetrics(
@@ -1110,6 +1144,7 @@ export function simulateScenario(scenario: Scenario): SimulationRun {
   };
 }
 
+/** Erzeugt reproduzierbare Prozessdaten für Szenario-Vorlagen und Tests. */
 export function createSeededScenarioProcesses(
   seed: number,
   count: number,

@@ -1,11 +1,12 @@
-import { createApp } from 'vue';
-import App from './AppShell.vue';
-import './styles.css';
-import theme from './composables/useTheme';
+import { createApp } from "vue";
+import App from "./AppShell.vue";
+import "./styles.css";
+import theme from "./composables/useTheme";
 
-// initialize theme before mounting to avoid FOUC
-if (typeof window !== 'undefined') {
-	theme.initTheme();
+// Thema vor dem Mounten setzen, damit beim ersten Paint kein falsches Thema
+// sichtbar wird (Flash of Unstyled Content).
+if (typeof window !== "undefined") {
+  theme.initTheme();
 }
 
-createApp(App).mount('#app');
+createApp(App).mount("#app");

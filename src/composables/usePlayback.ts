@@ -1,5 +1,6 @@
 import { ref, computed, watch } from "vue";
 
+/** Kapselt die zeitgesteuerte Navigation durch Simulations-Snapshots. */
 export function usePlayback(
   snapshotsRef: any,
   options: { intervalMs?: number; loop?: { value: boolean } } = {},
@@ -14,6 +15,7 @@ export function usePlayback(
     snapshotsRef?.value ? snapshotsRef.value.length : 0,
   );
 
+  /** Entfernt den bestehenden Timer, damit nie mehrere Playback-Schleifen laufen. */
   function clearTimer() {
     if (timer !== undefined) {
       window.clearInterval(timer);
@@ -21,6 +23,7 @@ export function usePlayback(
     }
   }
 
+  /** Startet den Timer mit der aktuell gewählten Wiedergabegeschwindigkeit. */
   function startTimer() {
     clearTimer();
     if (!playing.value) return;

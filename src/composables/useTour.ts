@@ -12,9 +12,11 @@ export interface TourActions {
 
 const TOUR_STORAGE_KEY = "scheduling-visualizer.tour-seen";
 
+/** Baut und steuert die geführte UI-Tour mit Shepherd.js. */
 export function useTour(actions: TourActions) {
   let tour: InstanceType<typeof Shepherd.Tour> | null = null;
 
+  /** Wartet auf zwei Layoutzyklen, damit Ziele und Pfeile geometrisch stabil sind. */
   function waitForLayout(): Promise<void> {
     return new Promise((resolve) => {
       requestAnimationFrame(() => {
@@ -23,6 +25,7 @@ export function useTour(actions: TourActions) {
     });
   }
 
+  /** Richtet den Shepherd-Pfeil bei komplexen, dynamisch positionierten Panels aus. */
   function alignTourArrowTo(
     stepClass: string,
     targetSelector: string,
@@ -54,6 +57,7 @@ export function useTour(actions: TourActions) {
     });
   }
 
+  /** Erstellt alle Tour-Schritte und bindet sie an die aktuellen UI-Aktionen. */
   function createTour(): InstanceType<typeof Shepherd.Tour> {
     const next = () => tour?.next();
     const back = () => tour?.back();

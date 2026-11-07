@@ -6,6 +6,7 @@ import {
   type ScenarioRecord,
 } from "@/composables/useScenarioWorkspace";
 
+/** Verwaltet Gewichtungen und erstellt vergleichbare Simulationsläufe. */
 export function useComparison() {
   const state = reactive({
     weights: {
@@ -32,7 +33,7 @@ export function useComparison() {
       }
     }
   } catch {
-    // ignore invalid data
+    // Ungültige oder nicht zugängliche Browserdaten dürfen den Vergleich nicht blockieren.
   }
 
   function buildForScenario(
@@ -59,6 +60,8 @@ export function useComparison() {
     return buildComparisonRows(runs, weights);
   }
 
+  // Gewichtungen werden reaktiv persistiert, damit ein Seitenwechsel keine
+  // fachliche Vergleichseinstellung verliert.
   watch(
     () => state.weights,
     (v) => {

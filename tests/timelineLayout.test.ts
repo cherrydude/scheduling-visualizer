@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createTimelineLayout } from "@/utils/timelineLayout";
 
+// Schützt responsive Zellbreiten und das Scrollverhalten der Timeline.
 describe("createTimelineLayout", () => {
   it("stretches short force-fit timelines to the available width", () => {
     const layout = createTimelineLayout({
